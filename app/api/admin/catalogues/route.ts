@@ -1,0 +1,91 @@
+import { randomUUID } from 'node:crypto'
+import { z } from 'zod'
+import { requireOperator } from '@/lib/admin/session'
+import { seedModules } from '@/lib/admin/templates'
+import { getRepository } from '@/lib/db'
+import { noStore, readJson, route } from '@/lib/http/handler'
+import {
+  appNameSchema,
+  brandingSchema,
+  localisedRequiredSchema,
+  localisedStringSchema,
+  occasionSchema,
+  slugSchema,
+} from '@/lib/schema'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+const createSchema = z.object({
+  coupleName: localisedRequiredSchema,
+  // Rejects anything matching /flix$/i — doc 12 §1 rule 3, doc 10 §1 test 13.
+  appName: appNameSchema,
+  weddingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
+  slug: slugSchema,
+  city: localisedStringSchema.optional(),
+  synopsis: localisedStringSchema.optional(),
+  occasion: occasionSchema.default('wedding'),
+  branding: brandingSchema.default({}),
+  template: z.string().default('keepsake'),
+})
+
+/** Three months included with the planner's per-wedding licence (doc 01 §7). */
+const INCLUDED_MONTHS = 3
+
+export async function GET() {
+  return route('admin/catalogues:list', async () => {
+    const { orgId } = await requireOperator()
+    return noStore({ catalogues: await getRepository().listCatalogues({ orgId }) })
+  })
+}
+
+export async function POST(request: Request) {
+  return route('admin/catalogues:create', async () => {
+    const { orgId } = await requireOperator()
+    const body = await readJson(request, createSchema)
+    const repository = getRepository()
+
+    const now = new Date()
+    const includedUntil = new Date(now)
+    includedUntil.setMonth(includedUntil.getMonth() + INCLUDED_MONTHS)
+
+    const org = await repository.getOrg(orgId)
+
+    const catalogue = await repository.createCatalogue({
+      id: randomUUID(),
+      orgId,
+      slug: body.slug,
+      customDomain: null,
+      coupleName: body.coupleName,
+      appName: body.appName,
+      weddingDate: body.weddingDate,
+      city: body.city,
+      synopsis: body.synopsis,
+      occasion: body.occasion,
+      // Org defaults are inherited, then overridden — most operators skip the branding step.
+      branding: { ...(org?.branding ?? {}), ...body.branding },
+      featuredTitleId: null,
+      modules: [],
+      draftModules: null,
+      template: body.template,
+      status: 'draft',
+      privacy: 'unlisted',
+      passcodeHash: null,
+      includedUntil: includedUntil.toISOString(),
+      subStatus: 'included',
+      subPlan: null,
+      subUntil: null,
+      createdAt: now.toISOString(),
+      publishedAt: null,
+    })
+
+    // Seed the draft from the template. There is no content yet, so the sections come out
+    // empty — the customizer fills them as titles finish uploading.
+    const modules = seedModules(body.template, catalogue, [], [])
+    const withModules = await repository.updateCatalogue(catalogue.id, orgId, {
+      draftModules: modules,
+    })
+
+    return noStore({ catalogue: withModules }, 201)
+  })
+}

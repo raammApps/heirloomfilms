@@ -11,6 +11,7 @@ export default defineModule<LetterConfig>({
     icon: 'PenLine',
     occasions: ['wedding', 'anniversary', 'proposal', 'birthday', 'engagement'],
     phase: 0,
+    content: 'text',
   },
 
   schema: configSchema,

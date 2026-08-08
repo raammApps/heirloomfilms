@@ -24,7 +24,7 @@
   },
   "overrides": [
     {
-      "files": ["lib/env.ts", "*.config.ts", "*.config.mjs", "scripts/**", "e2e/**", "tests/**"],
+      "files": ["lib/env.ts", "lib/log.ts", "*.config.ts", "*.config.mjs", "scripts/**", "e2e/**", "tests/**"],
       "rules": { "no-restricted-properties": "off" }
     }
   ],

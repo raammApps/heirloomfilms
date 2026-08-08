@@ -1,7 +1,12 @@
+import 'server-only'
 import { z } from 'zod'
 
 /**
  * The one place `process.env` is read (enforced by an eslint rule).
+ *
+ * `server-only` is load-bearing: this module names every secret the app has, and it was once
+ * pulled into the browser bundle through a transitive `lib/log` import. The guard turns that
+ * class of mistake into a build error rather than a white screen in front of a guest.
  *
  * Configuration is validated once, at module load, so a missing Bunny key fails the boot of a
  * deployment rather than the first playback request of a wedding reception.
@@ -12,6 +17,19 @@ const nonEmpty = z.string().trim().min(1)
 const schema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+
+    /**
+     * Set by Next during `next build`. The production guards below are runtime guards; the
+     * build runs with NODE_ENV=production and no real configuration, and must not trip them.
+     */
+    NEXT_PHASE: z.string().optional(),
+
+    /**
+     * Opt in to running a production build on an ephemeral store. Exists for the Playwright
+     * suite and for an offline planner demo — never for a real deployment, which is why it has
+     * to be typed out rather than inferred.
+     */
+    ALLOW_EPHEMERAL_DATA: z.enum(['0', '1']).default('0'),
 
     ROOT_DOMAIN: nonEmpty.default('mehfil.localhost:3000'),
 
@@ -35,6 +53,9 @@ const schema = z
     DEV_OPERATOR_PASSWORD: nonEmpty.default('mehfil-dev'),
 
     PLAYBACK_TOKEN_TTL_S: z.coerce.number().int().positive().default(4 * 60 * 60),
+
+    /** Set by Vercel; surfaced on /api/health so a deploy can be identified. */
+    VERCEL_GIT_COMMIT_SHA: z.string().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.DATA_DRIVER === 'supabase') {
@@ -70,7 +91,9 @@ const schema = z
       }
     }
 
-    if (env.NODE_ENV === 'production') {
+    const building = env.NEXT_PHASE?.includes('build') ?? false
+
+    if (env.NODE_ENV === 'production' && !building) {
       if (env.SESSION_SECRET.startsWith('dev-only')) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -78,7 +101,7 @@ const schema = z
           message: 'The example SESSION_SECRET must not be used in production',
         })
       }
-      if (env.DATA_DRIVER !== 'supabase') {
+      if (env.DATA_DRIVER !== 'supabase' && env.ALLOW_EPHEMERAL_DATA !== '1') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['DATA_DRIVER'],

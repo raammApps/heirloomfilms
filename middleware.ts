@@ -17,9 +17,21 @@ export function middleware(request: NextRequest) {
   const rootDomain = process.env.ROOT_DOMAIN ?? 'mehfil.localhost:3000'
   const resolution = resolveTenant(request.headers.get('host'), rootDomain)
 
-  // `?__catalogue=` is a dev affordance: it lets a plain `localhost:3000` reach a catalogue
-  // without a wildcard DNS entry or an /etc/hosts edit.
-  const override = url.searchParams.get('__catalogue')
+  /**
+   * `?__catalogue=` lets a plain `localhost:3000` reach a catalogue without wildcard DNS or an
+   * /etc/hosts edit — which is what makes local development and CI possible at all.
+   *
+   * It is sticky: the first request stores the slug in a cookie, so client-side navigation to
+   * `/watch/<slug>` resolves the same way a real subdomain would. Without that, Play from the
+   * title modal 404s in dev and the E2E suite cannot exercise the real navigation path.
+   *
+   * Never available in a real deployment. `ALLOW_EPHEMERAL_DATA` already means "this process
+   * is a test or a demo, not production", so it gates this too rather than adding a flag.
+   */
+  const overrideAllowed =
+    process.env.NODE_ENV !== 'production' || process.env.ALLOW_EPHEMERAL_DATA === '1'
+  const overrideParam = overrideAllowed ? url.searchParams.get('__catalogue') : null
+  const override = overrideParam ?? (overrideAllowed ? request.cookies.get('__catalogue')?.value : null)
 
   switch (resolution.kind) {
     case 'admin':
@@ -53,7 +65,11 @@ export function middleware(request: NextRequest) {
       if (override && !url.pathname.startsWith('/api') && !url.pathname.startsWith('/admin')) {
         url.searchParams.delete('__catalogue')
         url.pathname = `/c/${override}${url.pathname === '/' ? '' : url.pathname}`
-        return NextResponse.rewrite(url)
+        const response = NextResponse.rewrite(url)
+        if (overrideParam) {
+          response.cookies.set('__catalogue', overrideParam, { path: '/', sameSite: 'lax' })
+        }
+        return response
       }
       return NextResponse.next()
     }

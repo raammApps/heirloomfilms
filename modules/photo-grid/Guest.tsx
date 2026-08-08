@@ -34,7 +34,7 @@ export default function Guest({ config, ctx }: GuestProps<PhotoGridConfig>) {
               type="button"
               onClick={() => setOpenIndex(index)}
               aria-label={caption || ctx.t('photo.open')}
-              className="mb-3 block w-full overflow-hidden rounded-[var(--radius-card)] bg-surface-2 transition-transform duration-[180ms] ease-[var(--ease-lift)] [@media(hover:hover)and(pointer:fine)]:hover:scale-[1.02]"
+              className="mb-3 block w-full overflow-hidden rounded-[var(--radius-card)] bg-surface-2 transition-transform duration-[180ms] ease-[var(--ease-lift)] [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
               style={{ breakInside: 'avoid' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- see PosterCard */}

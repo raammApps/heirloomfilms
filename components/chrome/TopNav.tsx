@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useCatalogue } from '@/components/streaming/CatalogueProvider'
 import { LOCALE_LABELS, type Translator } from '@/lib/i18n'
+import { hashSlug } from '@/lib/poster'
 import { LOCALES, type Locale } from '@/lib/schema'
 
 type Props = {
@@ -12,9 +14,16 @@ type Props = {
   t: Translator
 }
 
+const AVATAR_COLOURS = ['#f2933a', '#d4547e', '#3b3f8f', '#1f6b52', '#e0b155', '#8e1220']
+
 /**
  * Sticky, transparent over the billboard, solid on scroll (doc 02 §4).
  * No search, no hamburger — neither exists in this product.
+ *
+ * The profile control is an avatar, not a text button: at 360px a "Switch profile" label
+ * pushed the wordmark and the language toggle into each other and made the toggle
+ * untappable. doc 02 §4 specifies an avatar here, and the avatar is also what makes the
+ * row fit.
  */
 export function TopNav({ appName, logoUrl, locale, t }: Props) {
   const { setProfileId, preview } = useCatalogue()
@@ -27,6 +36,8 @@ export function TopNav({ appName, logoUrl, locale, t }: Props) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  const colour = AVATAR_COLOURS[hashSlug(appName) % AVATAR_COLOURS.length]!
+
   return (
     <header
       className={`sticky top-0 z-50 h-[var(--nav-h,64px)] transition-colors duration-300 ${
@@ -34,31 +45,38 @@ export function TopNav({ appName, logoUrl, locale, t }: Props) {
       }`}
       style={{ ['--nav-h' as string]: '64px' }}
     >
-      <div className="gutter-x flex h-full items-center justify-between gap-4">
-        <a href="/" className="flex items-center gap-2 no-underline">
+      <div className="gutter-x flex h-full items-center justify-between gap-2">
+        <Link href="/" className="flex min-w-0 items-center gap-2 no-underline">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- tenant logo, arbitrary host
-            <img src={logoUrl} alt={appName} className="h-7 w-auto max-w-[160px] object-contain" />
+            <img src={logoUrl} alt={appName} className="h-7 w-auto max-w-[140px] object-contain" />
           ) : (
             <span
-              className="type-title text-accent"
-              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.18em' }}
+              className="type-label truncate text-accent md:text-[13px]"
+              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.16em' }}
             >
               {appName.toUpperCase()}
             </span>
           )}
-        </a>
+        </Link>
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <LanguageToggle locale={locale} t={t} />
 
           {!preview ? (
             <button
               type="button"
               onClick={() => setProfileId(null)}
-              className="type-label h-11 rounded-[var(--radius-pill)] px-3 text-text-lo hover:text-text-hi"
+              aria-label={t('nav.switchProfile')}
+              className="flex h-11 w-11 items-center justify-center rounded-full"
             >
-              {t('nav.switchProfile')}
+              <span
+                aria-hidden
+                className="flex h-8 w-8 items-center justify-center rounded text-[15px] font-black text-surface-0"
+                style={{ background: colour, fontFamily: 'var(--font-display)' }}
+              >
+                {appName.trim().slice(0, 1).toUpperCase()}
+              </span>
             </button>
           ) : null}
         </div>
@@ -85,7 +103,7 @@ function LanguageToggle({ locale, t }: { locale: Locale; t: Translator }) {
           type="button"
           onClick={() => switchTo(candidate)}
           aria-pressed={candidate === locale}
-          className={`type-label h-11 min-w-11 rounded-[var(--radius-pill)] px-2 ${
+          className={`type-label flex h-11 min-w-11 items-center justify-center rounded-[var(--radius-pill)] px-1 ${
             candidate === locale ? 'text-accent' : 'text-text-lo hover:text-text-hi'
           }`}
         >

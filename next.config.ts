@@ -22,7 +22,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Emits a self-contained server bundle so the Docker image does not ship node_modules.
   output: process.env.NEXT_OUTPUT_STANDALONE === '1' ? 'standalone' : undefined,
-  typedRoutes: false,
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },

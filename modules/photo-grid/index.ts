@@ -11,6 +11,7 @@ export default defineModule<PhotoGridConfig>({
     icon: 'LayoutGrid',
     occasions: ['wedding', 'anniversary', 'proposal', 'birthday', 'engagement'],
     phase: 0,
+    content: 'photo',
   },
 
   schema: configSchema,

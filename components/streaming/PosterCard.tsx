@@ -49,7 +49,7 @@ function PosterCardImpl({ item, aspect, onOpen, eager = false, wide = false }: P
         'group relative shrink-0 snap-start overflow-hidden rounded-[var(--radius-card)]',
         'text-left transition-transform duration-[180ms] ease-[var(--ease-lift)]',
         // :hover sticks after a tap on Android, so the lift is pointer-device only (doc 08).
-        '[@media(hover:hover)and(pointer:fine)]:hover:scale-[1.03] [@media(hover:hover)and(pointer:fine)]:hover:z-10',
+        '[@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.03] [@media(hover:hover)_and_(pointer:fine)]:hover:z-10',
         wide ? 'w-[var(--card-w-wide)]' : 'w-[var(--card-w)] md:w-[var(--card-w-md)]',
       ].join(' ')}
     >

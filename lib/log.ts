@@ -1,5 +1,3 @@
-import { isTest } from './env'
-
 type Level = 'debug' | 'info' | 'warn' | 'error'
 
 type Fields = Record<string, unknown>
@@ -28,7 +26,9 @@ export function redact(fields: Fields): Fields {
 }
 
 function emit(level: Level, message: string, fields: Fields = {}): void {
-  if (isTest && level !== 'error') return
+  // Read directly rather than through lib/env: this module is imported by the module
+  // registry, which renders on the client, and lib/env is server-only by design.
+  if (process.env.NODE_ENV === 'test' && level !== 'error') return
   const line = JSON.stringify({ level, message, at: new Date().toISOString(), ...redact(fields) })
   if (level === 'error') console.error(line)
   else if (level === 'warn') console.warn(line)

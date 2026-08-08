@@ -57,6 +57,9 @@ export function titleFromFilename(filename: string): string {
       .replace(/\b(final|fin|v\d+|ver\d+|copy|export|render|4k|1080p?|720p?|h26[45]|prores|color|colour|graded|master)\b/gi, '')
       .replace(/\s+/g, ' ')
       .trim()
+      // Studios deliver WED_FINAL_V3.mp4 as often as they deliver sangeet.mp4, so shouting
+      // filenames are normalised rather than passed through to a guest-visible title.
+      .toLowerCase()
       .replace(/\b\w/g, (c) => c.toUpperCase()) || 'Untitled'
   )
 }

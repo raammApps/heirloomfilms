@@ -14,6 +14,7 @@ export default defineModule<BillboardConfig>({
     icon: 'MonitorPlay',
     occasions: ['wedding', 'anniversary', 'proposal', 'birthday', 'engagement'],
     phase: 0,
+    content: 'video',
     singleton: true,
   },
 

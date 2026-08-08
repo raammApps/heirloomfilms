@@ -13,7 +13,7 @@ export async function GET() {
   return NextResponse.json(
     {
       status: 'ok',
-      version: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
+      version: env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
       drivers: { data: env.DATA_DRIVER, video: env.VIDEO_DRIVER },
       at: new Date().toISOString(),
     },

@@ -169,7 +169,7 @@ function RowArrow({
       className={[
         'absolute bottom-10 top-0 z-20 hidden w-12 items-center justify-center',
         'bg-surface-0/70 text-text-hi backdrop-blur-sm transition-opacity duration-200',
-        '[@media(hover:hover)and(pointer:fine)]:flex',
+        '[@media(hover:hover)_and_(pointer:fine)]:flex',
         side === 'left' ? 'start-0' : 'end-0',
         visible ? 'opacity-0 group-hover/row:opacity-100' : 'pointer-events-none opacity-0',
       ].join(' ')}

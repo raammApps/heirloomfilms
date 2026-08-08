@@ -22,6 +22,11 @@ export type ModuleMeta = {
   icon: string
   occasions: readonly string[]
   phase: ModulePhase
+  /**
+   * What the section is made of. Lets catalogue-level checks reason about a page ("this is all
+   * video") without naming a module type, which would put a switch back in the customizer.
+   */
+  content: 'video' | 'photo' | 'text'
   /** Some modules (the billboard) may only appear once in a catalogue. */
   singleton?: boolean
 }

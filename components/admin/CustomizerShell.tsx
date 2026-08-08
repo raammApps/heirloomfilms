@@ -1,0 +1,452 @@
+'use client'
+
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Eye, EyeOff, GripVertical, Plus, Settings2, Trash2, Undo2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Album, Catalogue, ModuleInstance, Photo, Title } from '@/lib/schema'
+import { getModule, listModules, instantiate } from '@/modules/registry'
+import type { GuestContext } from '@/modules/contract'
+import { ModuleEditorSheet } from './ModuleEditorSheet'
+import { PreviewPane } from './PreviewPane'
+import { ThemePicker } from './ThemePicker'
+
+const AUTOSAVE_DEBOUNCE_MS = 800
+const UNDO_DEPTH = 20
+
+type Props = {
+  catalogue: Catalogue
+  titles: Title[]
+  albums: Album[]
+  photos: Photo[]
+  initialModules: ModuleInstance[]
+}
+
+/**
+ * The customizer (doc 14 §5, doc 08 `<CustomizerShell>`).
+ *
+ * Where the operator spends their thirty minutes, and the thing a competitor cannot copy in a
+ * weekend. Drag **and** keyboard reorder, visibility without deleting config, autosave to
+ * `draft_modules`, an explicit Publish, and an undo stack of twenty.
+ */
+export function CustomizerShell({ catalogue, titles, albums, photos, initialModules }: Props) {
+  const [modules, setModules] = useState<ModuleInstance[]>(initialModules)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [publishing, setPublishing] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const undoStack = useRef<ModuleInstance[][]>([])
+
+  /** Every mutation goes through here so undo and autosave cannot be bypassed. */
+  const commit = useCallback((next: ModuleInstance[]) => {
+    setModules((current) => {
+      undoStack.current = [...undoStack.current, current].slice(-UNDO_DEPTH)
+      return next.map((instance, index) => ({ ...instance, order: index }))
+    })
+    setDirty(true)
+  }, [])
+
+  const undo = useCallback(() => {
+    const previous = undoStack.current.pop()
+    if (!previous) return
+    setModules(previous)
+    setDirty(true)
+  }, [])
+
+  // Autosave to draft_modules, debounced. Publish is separate and explicit (doc 14 §5.6).
+  useEffect(() => {
+    if (!dirty) return
+    setSaveState('saving')
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/admin/catalogues/${catalogue.id}/modules`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ modules }),
+        })
+        setSaveState(response.ok ? 'saved' : 'error')
+      } catch {
+        setSaveState('error')
+      }
+      setDirty(false)
+    }, AUTOSAVE_DEBOUNCE_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [modules, dirty, catalogue.id])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // Keyboard reorder is not optional: mouse-only is an a11y failure and a trackpad
+    // annoyance (doc 14 §5.1).
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const from = modules.findIndex((m) => m.id === active.id)
+    const to = modules.findIndex((m) => m.id === over.id)
+    if (from === -1 || to === -1) return
+    commit(arrayMove(modules, from, to))
+  }
+
+  const moveBy = (id: string, delta: -1 | 1) => {
+    const from = modules.findIndex((m) => m.id === id)
+    const to = from + delta
+    if (from === -1 || to < 0 || to >= modules.length) return
+    commit(arrayMove(modules, from, to))
+  }
+
+  const publish = async () => {
+    setPublishing(true)
+    try {
+      // Flush any in-flight autosave first, so Publish can never ship a stale draft.
+      await fetch(`/api/admin/catalogues/${catalogue.id}/modules`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ modules }),
+      })
+      await fetch(`/api/admin/catalogues/${catalogue.id}/publish`, { method: 'POST' })
+      setSaveState('saved')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  const editing = modules.find((m) => m.id === editingId) ?? null
+
+  const advisories = useMemo(
+    () => collectAdvisories(modules, { catalogue, titles, albums, photos, profileId: null }),
+    [modules, catalogue, titles, albums, photos],
+  )
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[minmax(320px,400px)_1fr]">
+      <section aria-label="Sections">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-[13px] font-bold uppercase tracking-[0.09em] text-[var(--color-l-text-mid)]">
+            Sections
+          </h2>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={undoStack.current.length === 0}
+              className="inline-flex h-9 items-center gap-1 rounded-[var(--radius-pill)] px-3 text-[13px] disabled:opacity-40"
+            >
+              <Undo2 size={15} aria-hidden /> Undo
+            </button>
+            <AddSectionMenu
+              onAdd={(type) => {
+                const instance = instantiate(type, modules.length, catalogue, titles, albums)
+                if (instance) commit([...modules, instance])
+              }}
+              existingTypes={modules.map((m) => m.type)}
+            />
+          </div>
+        </div>
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis]}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext items={modules.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+            <ul className="space-y-2">
+              {modules.map((instance, index) => (
+                <SectionRow
+                  key={instance.id}
+                  instance={instance}
+                  index={index}
+                  total={modules.length}
+                  onToggle={() =>
+                    commit(
+                      modules.map((m) =>
+                        m.id === instance.id ? { ...m, enabled: !m.enabled } : m,
+                      ),
+                    )
+                  }
+                  onEdit={() => setEditingId(instance.id)}
+                  onRemove={() => commit(modules.filter((m) => m.id !== instance.id))}
+                  onMove={(delta) => moveBy(instance.id, delta)}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
+
+        {advisories.length > 0 ? <Advisories notes={advisories} /> : null}
+
+        <ThemePicker catalogue={catalogue} />
+      </section>
+
+      <section aria-label="Preview" className="min-w-0">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p aria-live="polite" className="text-[13px] text-[var(--color-l-text-mid)]">
+            {saveState === 'saving'
+              ? 'Saving…'
+              : saveState === 'saved'
+                ? 'Saved as draft'
+                : saveState === 'error'
+                  ? 'Could not save — your changes are still here, retrying on the next edit'
+                  : ''}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => void publish()}
+            disabled={publishing}
+            className="inline-flex h-11 items-center rounded-[var(--radius-pill)] bg-accent px-5 font-semibold text-accent-ink disabled:opacity-60"
+          >
+            {publishing ? 'Publishing…' : 'Publish'}
+          </button>
+        </div>
+
+        <PreviewPane
+          catalogue={catalogue}
+          titles={titles}
+          albums={albums}
+          photos={photos}
+          modules={modules}
+        />
+      </section>
+
+      {editing ? (
+        <ModuleEditorSheet
+          instance={editing}
+          catalogue={catalogue}
+          titles={titles}
+          albums={albums}
+          photos={photos}
+          onChange={(next) => commit(modules.map((m) => (m.id === next.id ? next : m)))}
+          onClose={() => setEditingId(null)}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function SectionRow({
+  instance,
+  index,
+  total,
+  onToggle,
+  onEdit,
+  onRemove,
+  onMove,
+}: {
+  instance: ModuleInstance
+  index: number
+  total: number
+  onToggle: () => void
+  onEdit: () => void
+  onRemove: () => void
+  onMove: (delta: -1 | 1) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: instance.id,
+  })
+  const definition = getModule(instance.type)
+  const label = instance.title.en || definition?.meta.label || instance.type
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center gap-1 rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-white px-2 py-2 ${
+        isDragging ? 'opacity-70 shadow-lg' : ''
+      } ${instance.enabled ? '' : 'opacity-55'}`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Reorder ${label}`}
+        className="flex h-9 w-8 cursor-grab items-center justify-center text-[var(--color-l-text-mid)]"
+      >
+        <GripVertical size={16} aria-hidden />
+      </button>
+
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14px] font-medium">{label}</span>
+        <span className="block text-[12px] text-[var(--color-l-text-mid)]">
+          {definition?.meta.label ?? 'Unknown section'}
+        </span>
+      </span>
+
+      {/* Arrow buttons duplicate drag for keyboard and trackpad users. */}
+      <button
+        type="button"
+        onClick={() => onMove(-1)}
+        disabled={index === 0}
+        aria-label={`Move ${label} up`}
+        className="h-9 w-8 rounded text-[13px] disabled:opacity-30"
+      >
+        ↑
+      </button>
+      <button
+        type="button"
+        onClick={() => onMove(1)}
+        disabled={index === total - 1}
+        aria-label={`Move ${label} down`}
+        className="h-9 w-8 rounded text-[13px] disabled:opacity-30"
+      >
+        ↓
+      </button>
+
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={instance.enabled}
+        aria-label={instance.enabled ? `Hide ${label} from guests` : `Show ${label} to guests`}
+        className="flex h-9 w-9 items-center justify-center rounded"
+      >
+        {instance.enabled ? <Eye size={17} aria-hidden /> : <EyeOff size={17} aria-hidden />}
+      </button>
+
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label={`Edit ${label}`}
+        className="flex h-9 w-9 items-center justify-center rounded"
+      >
+        <Settings2 size={17} aria-hidden />
+      </button>
+
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${label}`}
+        className="flex h-9 w-9 items-center justify-center rounded text-[var(--color-l-text-mid)] hover:text-[var(--color-error)]"
+      >
+        <Trash2 size={16} aria-hidden />
+      </button>
+    </li>
+  )
+}
+
+function AddSectionMenu({
+  onAdd,
+  existingTypes,
+}: {
+  onAdd: (type: string) => void
+  existingTypes: string[]
+}) {
+  const [open, setOpen] = useState(false)
+  const available = listModules({ phase: 0 }).filter(
+    (definition) => !definition.meta.singleton || !existingTypes.includes(definition.meta.type),
+  )
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="inline-flex h-9 items-center gap-1 rounded-[var(--radius-pill)] border border-[var(--color-l-line)] px-3 text-[13px]"
+      >
+        <Plus size={15} aria-hidden /> Add
+      </button>
+
+      {open ? (
+        <ul className="absolute end-0 z-20 mt-1 w-[300px] rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-white p-1 shadow-xl">
+          {available.map((definition) => (
+            <li key={definition.meta.type}>
+              <button
+                type="button"
+                onClick={() => {
+                  onAdd(definition.meta.type)
+                  setOpen(false)
+                }}
+                className="block w-full rounded px-3 py-2 text-start hover:bg-[var(--color-l-surface-2)]"
+              >
+                <span className="block text-[14px] font-medium">{definition.meta.label}</span>
+                <span className="block text-[12px] text-[var(--color-l-text-mid)]">
+                  {definition.meta.description}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
+/** Suggestions with a dismiss — never blockers (doc 14 §5.9). */
+function Advisories({ notes }: { notes: string[] }) {
+  const [dismissed, setDismissed] = useState(false)
+  if (dismissed) return null
+
+  return (
+    <aside className="mt-4 rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--color-warn)_40%,white)] bg-[color-mix(in_srgb,var(--color-warn)_10%,white)] p-3">
+      <div className="mb-1 flex items-start justify-between gap-2">
+        <p className="text-[13px] font-semibold">A few suggestions</p>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="text-[12px] underline underline-offset-2"
+        >
+          Dismiss
+        </button>
+      </div>
+      <ul className="list-disc space-y-1 ps-4 text-[13px] text-[var(--color-l-text-mid)]">
+        {notes.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
+    </aside>
+  )
+}
+
+function collectAdvisories(
+  modules: ModuleInstance[],
+  ctx: Omit<GuestContext, 't' | 'locale' | 'heading' | 'instanceId'>,
+): string[] {
+  const notes: string[] = []
+
+  for (const instance of modules) {
+    if (!instance.enabled) continue
+    const definition = getModule(instance.type)
+    if (!definition?.advise) continue
+    const parsed = definition.schema.safeParse(instance.config)
+    if (!parsed.success) continue
+    notes.push(...definition.advise(parsed.data, ctx))
+  }
+
+  // Catalogue-level nudges the individual modules cannot see. Driven off `meta.content`
+  // rather than off type names, so adding a module does not mean editing this file.
+  const enabled = modules
+    .filter((m) => m.enabled)
+    .map((m) => getModule(m.type))
+    .filter((definition): definition is NonNullable<typeof definition> => definition !== null)
+
+  if (enabled.length > 0 && enabled.every((definition) => definition.meta.content === 'video')) {
+    notes.push('Every section here is video. A message or a gallery is what makes it a keepsake.')
+  }
+  if (ctx.titles.length > 12) {
+    notes.push(
+      `${ctx.titles.length} films is a lot to browse. Under twelve is where this stops feeling like a folder.`,
+    )
+  }
+
+  return notes
+}

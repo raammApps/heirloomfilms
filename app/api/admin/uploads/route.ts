@@ -1,0 +1,108 @@
+import { randomUUID } from 'node:crypto'
+import { z } from 'zod'
+import { requireOwnedCatalogue } from '@/lib/admin/session'
+import { getRepository } from '@/lib/db'
+import { slugify, titleFromFilename } from '@/lib/format'
+import { ApiError } from '@/lib/http/errors'
+import { noStore, readJson, route } from '@/lib/http/handler'
+import { log } from '@/lib/log'
+import { MAX_TITLES } from '@/lib/schema'
+import { getVideoProvider, isAcceptedVideo, MAX_UPLOAD_BYTES } from '@/lib/video'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+const bodySchema = z.object({
+  catalogueId: z.string().uuid(),
+  filename: z.string().min(1).max(255),
+  sizeBytes: z.number().int().positive(),
+  mimeType: z.string().max(120).optional(),
+  kind: z.literal('video').default('video'),
+})
+
+/**
+ * `POST /api/admin/uploads` (doc 05 §3, doc 07).
+ *
+ * Creates the provider object and hands back a resumable endpoint. **Bytes never pass through
+ * our server** — a Vercel route handler has payload limits and would make us pay egress twice.
+ *
+ * The `titles` row is created at `uploading` immediately, so a refresh mid-upload shows the
+ * file rather than losing it.
+ */
+export async function POST(request: Request) {
+  return route('admin/uploads', async () => {
+    const body = await readJson(request, bodySchema)
+    const { catalogue } = await requireOwnedCatalogue(body.catalogueId)
+    const repository = getRepository()
+
+    if (!isAcceptedVideo(body.filename, body.mimeType)) {
+      throw new ApiError('VALIDATION_FAILED', 'That file type is not supported', {
+        fields: { filename: 'Use MP4, MOV, MKV, WebM or AVI.' },
+      })
+    }
+
+    if (body.sizeBytes > MAX_UPLOAD_BYTES) {
+      throw new ApiError('UPLOAD_LIMIT', 'That file is larger than the per-file cap')
+    }
+
+    // The 15-title cap is a curation feature first and a cost ceiling second (doc 01 §4).
+    const existing = await repository.listTitles(catalogue.id)
+    if (existing.length >= MAX_TITLES) {
+      throw new ApiError(
+        'VALIDATION_FAILED',
+        `A catalogue holds ${MAX_TITLES} films. Past that it stops being a keepsake and becomes a folder — remove one first.`,
+        { fields: { catalogueId: 'This catalogue is full' } },
+      )
+    }
+
+    const draftName = titleFromFilename(body.filename)
+    const ticket = await getVideoProvider().createUpload({
+      title: `${catalogue.slug}/${draftName}`,
+      sizeBytes: body.sizeBytes,
+    })
+
+    const title = await repository.createTitle({
+      id: randomUUID(),
+      catalogueId: catalogue.id,
+      slug: uniqueSlug(draftName, existing.map((t) => t.slug)),
+      name: { en: draftName },
+      category: 'highlights',
+      credits: [],
+      provider: getVideoProvider().name,
+      providerId: ticket.providerId,
+      durationS: null,
+      posterUrl: null,
+      posterCandidates: [],
+      posterSource: 'generated',
+      thumbnailsUrl: null,
+      trailerUrl: null,
+      captions: [],
+      status: 'uploading',
+      errorMessage: null,
+      published: false,
+      sortOrder: existing.length,
+    })
+
+    log.info('upload ticket issued', {
+      titleId: title.id,
+      catalogueId: catalogue.id,
+      sizeBytes: body.sizeBytes,
+    })
+
+    return noStore({
+      titleId: title.id,
+      tusEndpoint: ticket.tusEndpoint,
+      headers: ticket.headers,
+      chunkSizeBytes: ticket.chunkSizeBytes,
+    })
+  })
+}
+
+/** Slugs are per-catalogue and appear in share links, so collisions get a numeric suffix. */
+function uniqueSlug(name: string, taken: string[]): string {
+  const base = slugify(name) || 'film'
+  if (!taken.includes(base)) return base
+  let n = 2
+  while (taken.includes(`${base}-${n}`)) n += 1
+  return `${base}-${n}`
+}
