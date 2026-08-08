@@ -9,21 +9,32 @@ import { expect, test, type Page } from '@playwright/test'
  */
 const CATALOGUE = 'aanya-vikram'
 
-async function openBrowse(page: Page, query = ''): Promise<void> {
+/**
+ * A first-time visitor: the profile gate will appear.
+ */
+async function openFresh(page: Page, query = ''): Promise<void> {
   await page.goto(`/?__catalogue=${CATALOGUE}${query}`)
 }
 
-async function dismissGate(page: Page): Promise<void> {
-  const gate = page.getByTestId('profile-gate')
-  if (await gate.isVisible().catch(() => false)) {
-    await page.getByRole('button', { name: 'Skip for now' }).click()
-    await expect(gate).toBeHidden()
-  }
+/**
+ * A returning visitor.
+ *
+ * The gate mounts after hydration, so "navigate, then dismiss it if it happens to be there" is
+ * a race — it can appear *after* the check and cover whatever the test is asserting on. Marking
+ * the choice as already made before the first paint removes the race and is exactly the state a
+ * returning guest is in.
+ */
+async function openBrowse(page: Page, query = ''): Promise<void> {
+  await page.addInitScript((slug) => {
+    window.localStorage.setItem(`mehfil.profile.${slug}`, 'skipped')
+  }, CATALOGUE)
+  await page.goto(`/?__catalogue=${CATALOGUE}${query}`)
+  await expect(page.getByTestId('profile-gate')).toHaveCount(0)
 }
 
 test.describe('the guest catalogue', () => {
   test('opens on the profile gate — the signature moment', async ({ page }) => {
-    await openBrowse(page)
+    await openFresh(page)
 
     const gate = page.getByTestId('profile-gate')
     await expect(gate).toBeVisible()
@@ -38,17 +49,16 @@ test.describe('the guest catalogue', () => {
   })
 
   test('remembers the choice, so the gate is a first-visit moment only', async ({ page }) => {
-    await openBrowse(page)
+    await openFresh(page)
     await page.getByRole('button', { name: /Friends/ }).click()
-    await expect(page.getByTestId('profile-gate')).toBeHidden()
+    await expect(page.getByTestId('profile-gate')).toHaveCount(0)
 
-    await openBrowse(page)
-    await expect(page.getByTestId('profile-gate')).toBeHidden()
+    await openFresh(page)
+    await expect(page.getByTestId('profile-gate')).toHaveCount(0)
   })
 
   test('shows the billboard with exactly two buttons', async ({ page }) => {
     await openBrowse(page)
-    await dismissGate(page)
 
     await expect(page.getByRole('heading', { name: 'Aanya & Vikram' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Play' }).first()).toBeVisible()
@@ -57,7 +67,6 @@ test.describe('the guest catalogue', () => {
 
   test('renders curated rows and the letter, and no row is empty', async ({ page }) => {
     await openBrowse(page)
-    await dismissGate(page)
 
     const rows = page.getByTestId('poster-row')
     await expect(rows.first()).toBeVisible()
@@ -72,7 +81,6 @@ test.describe('the guest catalogue', () => {
 
   test('a three-card row is a designed state, not a broken one', async ({ page }) => {
     await openBrowse(page)
-    await dismissGate(page)
 
     const compact = page.locator('[data-testid="poster-row"][data-compact="true"]')
     await expect(compact.first()).toBeVisible()
@@ -85,7 +93,6 @@ test.describe('the guest catalogue', () => {
     page,
   }) => {
     await openBrowse(page)
-    await dismissGate(page)
 
     await page.getByTestId('poster-card').first().click()
     await expect(page.getByRole('dialog')).toBeVisible()
@@ -99,7 +106,6 @@ test.describe('the guest catalogue', () => {
 
   test('E2E-2: a cold `?title=` load opens the modal directly', async ({ page }) => {
     await openBrowse(page, '&title=the-ceremony')
-    await dismissGate(page)
 
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
@@ -108,7 +114,6 @@ test.describe('the guest catalogue', () => {
 
   test('Play navigates to the player rather than starting inline', async ({ page }) => {
     await openBrowse(page, '&title=the-ceremony')
-    await dismissGate(page)
 
     await page.getByRole('dialog').getByRole('button', { name: 'Play' }).click()
     await expect(page).toHaveURL(/\/watch\/the-ceremony/)
@@ -119,7 +124,6 @@ test.describe('the guest catalogue', () => {
     page,
   }) => {
     await openBrowse(page)
-    await dismissGate(page)
 
     await page.getByRole('button', { name: 'हिं' }).click()
     await expect(page.locator('html')).toHaveAttribute('lang', 'hi')
@@ -134,7 +138,6 @@ test.describe('the guest catalogue', () => {
 
   test('the language choice survives a reload', async ({ page }) => {
     await openBrowse(page)
-    await dismissGate(page)
     await page.getByRole('button', { name: 'हिं' }).click()
     await expect(page.locator('html')).toHaveAttribute('lang', 'hi')
 
@@ -154,7 +157,6 @@ test.describe('E2E-6: access control', () => {
     request,
   }) => {
     await openBrowse(page)
-    await dismissGate(page)
     await expect(page.getByText('Still Encoding')).toHaveCount(0)
 
     const response = await request.post('/api/playback/token', {

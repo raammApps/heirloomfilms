@@ -6,7 +6,7 @@ import { WatchScreen } from '@/components/streaming/WatchScreen'
 import { resolveAccess } from '@/lib/catalogue-access'
 import { getRepository } from '@/lib/db'
 import { parseLocale, resolveLocalised } from '@/lib/i18n'
-import { categoryEyebrow, posterDataUri } from '@/lib/poster'
+import { posterDataUri } from '@/lib/poster'
 
 /** Dynamic — every visit needs a fresh playback token (doc 05 §6). */
 export const dynamic = 'force-dynamic'
@@ -53,13 +53,8 @@ export default async function WatchPage({
         titleName={name}
         posterUrl={
           title.posterUrl ??
-          posterDataUri({
-            slug: title.slug,
-            label: name,
-            eyebrow: categoryEyebrow(title.category),
-            width: 1600,
-            height: 900,
-          })
+          // The player's own chrome carries the title; the poster frame stays clean.
+          posterDataUri({ slug: title.slug, label: '', width: 1600, height: 900 })
         }
         locale={locale}
         startAtS={Number.isFinite(startAt) ? startAt : null}

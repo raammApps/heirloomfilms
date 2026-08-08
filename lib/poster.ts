@@ -94,6 +94,7 @@ function motifPath(motif: Motif, seed: number): string {
 
 export type PosterOptions = {
   slug: string
+  /** Set on the artwork itself. Pass an empty string for a backdrop that carries its own type. */
   label: string
   eyebrow?: string
   width?: number
@@ -134,10 +135,14 @@ export function generatePosterSvg({
     '</g>',
     `<rect width="${width}" height="${height}" fill="url(#s)"/>`,
     `<rect width="${width}" height="${height}" filter="url(#n)" opacity="0.03"/>`,
-    eyebrow
+    // Type is omitted entirely when there is no label, so the same generator produces both a
+    // titled poster card and a clean full-bleed backdrop for the billboard.
+    label.trim() && eyebrow
       ? `<text x="44" y="${height - 108}" fill="#f5f5f6" fill-opacity="0.72" font-family="Inter,system-ui,sans-serif" font-size="22" letter-spacing="4">${escape(eyebrow.toUpperCase())}</text>`
       : '',
-    `<text x="44" y="${height - 52}" fill="#f5f5f6" font-family="Archivo,Impact,sans-serif" font-size="52" font-weight="800" letter-spacing="-1">${escape(label)}</text>`,
+    label.trim()
+      ? `<text x="44" y="${height - 52}" fill="#f5f5f6" font-family="Archivo,Impact,sans-serif" font-size="52" font-weight="800" letter-spacing="-1">${escape(label)}</text>`
+      : '',
     '</svg>',
   ].join('')
 }

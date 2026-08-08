@@ -78,7 +78,8 @@ export function TitleModal({ catalogue, titles, locale, t, shareBaseUrl }: Props
   const synopsis = resolveLocalised(title.synopsis, locale)
   const poster =
     title.posterUrl ||
-    posterDataUri({ slug: title.slug, label: name, eyebrow: categoryEyebrow(title.category), width: 1200, height: 675 })
+    // No baked type: the modal renders the name and the category row directly below it.
+    posterDataUri({ slug: title.slug, label: '', width: 1200, height: 675 })
   const resume = progressByTitleId[title.id]
   const shareUrl = `${shareBaseUrl}/watch/${title.slug}`
   const shareText = `${name} — ${resolveLocalised(catalogue.coupleName, locale)}`

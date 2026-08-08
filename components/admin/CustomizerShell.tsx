@@ -442,11 +442,20 @@ function collectAdvisories(
   if (enabled.length > 0 && enabled.every((definition) => definition.meta.content === 'video')) {
     notes.push('Every section here is video. A message or a gallery is what makes it a keepsake.')
   }
+  const withoutPoster = ctx.titles.filter((title) => title.published && !title.posterUrl).length
+  if (withoutPoster > 0) {
+    notes.push(
+      `${withoutPoster} published film${withoutPoster > 1 ? 's have' : ' has'} no poster art — generated artwork will stand in.`,
+    )
+  }
+
   if (ctx.titles.length > 12) {
     notes.push(
       `${ctx.titles.length} films is a lot to browse. Under twelve is where this stops feeling like a folder.`,
     )
   }
 
-  return notes
+  // Several rows can raise the same nudge; an operator reading the same sentence twice
+  // discounts all of them.
+  return [...new Set(notes)]
 }

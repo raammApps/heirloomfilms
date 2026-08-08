@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 /**
  * doc 10 §2 E2E-4 — the journey the business depends on: an operator arranges sections, sees
@@ -9,6 +9,23 @@ import { expect, test } from '@playwright/test'
 test.describe('the operator console', () => {
   // The admin is a laptop tool. The guest surface is the one that has to work on a phone.
   test.skip(({ isMobile }) => Boolean(isMobile), 'the admin console is a desktop tool')
+
+  /**
+   * Open the customizer and wait until it is actually interactive.
+   *
+   * `toBeVisible` on a section proves the DOM is there, not that React has hydrated and
+   * attached the click handlers. The preview pane only ever renders client-side, so content
+   * inside it is a reliable hydration signal — without this, clicks land on dead markup and
+   * the suite flakes.
+   */
+  async function openCustomizer(page: Page): Promise<void> {
+    await page.getByRole('link', { name: 'Aanya & Vikram' }).click()
+    await expect(page.getByRole('heading', { name: 'Aanya & Vikram' })).toBeVisible()
+    await page.getByRole('link', { name: 'Customizer' }).click()
+    await expect(
+      page.getByTestId('preview-viewport').getByTestId('poster-row').first(),
+    ).toBeVisible()
+  }
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/admin/login')
@@ -42,8 +59,7 @@ test.describe('the operator console', () => {
   test('E2E-4: reordering sections changes the preview and then the published page', async ({
     page,
   }) => {
-    await page.getByRole('link', { name: 'Aanya & Vikram' }).click()
-    await page.getByRole('link', { name: 'Customizer' }).click()
+    await openCustomizer(page)
 
     const sections = page.getByRole('region', { name: 'Sections' }).getByRole('listitem')
     await expect(sections.first()).toContainText('Billboard')
@@ -69,18 +85,26 @@ test.describe('the operator console', () => {
   })
 
   test('hiding a section removes it from guests without discarding its config', async ({ page }) => {
-    await page.getByRole('link', { name: 'Aanya & Vikram' }).click()
-    await page.getByRole('link', { name: 'Customizer' }).click()
+    await openCustomizer(page)
 
-    const hide = page.getByRole('button', { name: /Hide .* from guests/ }).first()
-    await hide.click()
-    // The section is still listed — its config is intact, it is simply not shown.
-    await expect(page.getByRole('button', { name: /Show .* to guests/ }).first()).toBeVisible()
+    // Target one named section rather than "the first button that matches": the list
+    // re-renders on every change, and `.first()` races with that re-render.
+    const sections = page.getByRole('region', { name: 'Sections' })
+    const letter = sections.getByRole('listitem').filter({ hasText: 'A message for you' })
+    await expect(letter).toBeVisible()
+
+    await letter.getByRole('button', { name: /Hide .* from guests/ }).click()
+
+    // Still listed, and its config is intact — it is simply not shown to guests.
+    await expect(letter.getByRole('button', { name: /Show .* to guests/ })).toBeVisible()
+    await expect(letter).toContainText('A message for you')
+
+    // And it disappears from the preview, which is the actual guest-visible effect.
+    await expect(page.getByTestId('preview-viewport').getByTestId('letter-module')).toHaveCount(0)
   })
 
   test('warns at pick time about an accent that will not read on black', async ({ page }) => {
-    await page.getByRole('link', { name: 'Aanya & Vikram' }).click()
-    await page.getByRole('link', { name: 'Customizer' }).click()
+    await openCustomizer(page)
 
     await page.getByLabel('Custom').fill('#ff8fc7')
     // Scoped to the branding panel: Next's route announcer is also role="alert".
@@ -89,8 +113,7 @@ test.describe('the operator console', () => {
   })
 
   test('the preview renders the real guest components, mobile by default', async ({ page }) => {
-    await page.getByRole('link', { name: 'Aanya & Vikram' }).click()
-    await page.getByRole('link', { name: 'Customizer' }).click()
+    await openCustomizer(page)
 
     await expect(page.getByRole('button', { name: 'Mobile preview' })).toHaveAttribute(
       'aria-pressed',

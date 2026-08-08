@@ -144,7 +144,10 @@
   h2,
   h3 {
     font-family: var(--font-display);
-    color: var(--color-text-hi);
+    /* `currentColor` rather than a fixed token: the guest surface is near-black and the admin
+       is the light set, and a heading hard-coded to --color-text-hi is invisible on one of
+       them. Each surface sets its own colour on the container. */
+    color: inherit;
     font-weight: 800;
   }
 

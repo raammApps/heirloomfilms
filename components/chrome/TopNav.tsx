@@ -103,7 +103,9 @@ function LanguageToggle({ locale, t }: { locale: Locale; t: Translator }) {
           type="button"
           onClick={() => switchTo(candidate)}
           aria-pressed={candidate === locale}
-          className={`type-label flex h-11 min-w-11 items-center justify-center rounded-[var(--radius-pill)] px-1 ${
+          // Not `type-label`: 11px on a 1.2 line-height clips the matra on हिं (doc 04 §3,
+          // manual check M-6). Devanagari sets the floor for this control.
+          className={`flex h-11 min-w-11 items-center justify-center rounded-[var(--radius-pill)] px-1 text-[13px] font-semibold leading-[1.7] tracking-[0.06em] ${
             candidate === locale ? 'text-accent' : 'text-text-lo hover:text-text-hi'
           }`}
         >

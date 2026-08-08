@@ -36,8 +36,16 @@ type Props = {
 }
 
 function PosterCardImpl({ item, aspect, onOpen, eager = false, wide = false }: Props) {
-  const src =
-    item.posterUrl || posterDataUri({ slug: item.key, label: item.label, eyebrow: item.eyebrow })
+  /**
+   * Generated artwork carries no type on a card.
+   *
+   * Doc 04 §6 sets the event name into the artwork, which is right when the poster is the only
+   * surface showing it. The card also renders the name and category underneath — and it has to,
+   * because a real photographic poster has no text baked in — so keeping both printed the title
+   * twice. The DOM label is the single source: it truncates, it localises, and a screen reader
+   * can read it.
+   */
+  const src = item.posterUrl || posterDataUri({ slug: item.key, label: '' })
 
   return (
     <button

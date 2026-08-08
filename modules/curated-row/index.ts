@@ -44,15 +44,6 @@ export default defineModule<CuratedRowConfig>({
       notes.push(`${missing} film${missing > 1 ? 's are' : ' is'} no longer published and will be skipped.`)
     }
 
-    const withoutPoster = config.titleIds.filter(
-      (id) => !ctx.titles.find((t) => t.id === id)?.posterUrl,
-    ).length
-    if (withoutPoster > 0) {
-      notes.push(
-        `${withoutPoster} film${withoutPoster > 1 ? 's have' : ' has'} no poster art yet — generated artwork will be used.`,
-      )
-    }
-
     return notes
   },
 })

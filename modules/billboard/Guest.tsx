@@ -61,7 +61,8 @@ export default function Guest({ config, ctx }: GuestProps<BillboardConfig>) {
   const synopsis = resolveLocalised(featured.synopsis ?? ctx.catalogue.synopsis, ctx.locale)
   const still =
     featured.posterUrl ||
-    posterDataUri({ slug: featured.slug, label: filmName, eyebrow: coupleName, width: 1600, height: 900 })
+    // No baked label: the hero renders its own headline, and artwork type behind it collides.
+    posterDataUri({ slug: featured.slug, label: '', width: 1600, height: 900 })
 
   return (
     <section className="relative isolate -mt-[var(--nav-h,64px)] min-h-[78svh] w-full overflow-hidden md:min-h-[86svh]">
@@ -98,6 +99,20 @@ export default function Guest({ config, ctx }: GuestProps<BillboardConfig>) {
       />
 
       <div className="gutter-x relative flex min-h-[78svh] flex-col justify-end pb-10 md:min-h-[86svh] md:pb-16">
+        {/*
+          A second, tighter scrim under the copy itself. The page scrim fades out well above the
+          eyebrow, and accent-on-a-bright-poster is unreadable there — doc 04 §2 forbids fixing
+          that by lightening the red, so the surface goes darker instead.
+        */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[62%]"
+          style={{
+            background:
+              'linear-gradient(to top, var(--color-surface-0) 4%, color-mix(in srgb, var(--color-surface-0) 72%, transparent) 46%, transparent 100%)',
+          }}
+        />
+
         <p className="type-label mb-3 text-accent">
           {formatWeddingDate(ctx.catalogue.weddingDate, ctx.locale)}
         </p>

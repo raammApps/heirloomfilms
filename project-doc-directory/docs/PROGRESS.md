@@ -77,6 +77,28 @@ mechanics. Sourcing the real thing is still open.
 
 ---
 
+## Visual pass — defects found by looking at the running product
+
+Screenshots at 360×800 and 1440×900, after the suites were already green. None of these would
+have been caught by a test that did not have eyes on it.
+
+- The generated hero artwork baked "The Highlights" into the image, where it collided with the
+  billboard's own headline and buttons. `generatePosterSvg` now omits type entirely when the
+  label is empty, and every full-bleed use passes an empty one.
+- The card title was printed twice — once in the artwork, once in the DOM label below. Doc 04 §6
+  sets the name into generated art, which is right when the poster is the only surface showing
+  it; the card also shows it, and has to, because a photographic poster has no baked text. The
+  DOM label is now the single source.
+- `हिं` in the language toggle was clipped at `type-label`'s 11px/1.2 — manual check M-6, on the
+  one control a Hindi-reading guest has to find first. Devanagari now sets the floor for it.
+- Admin headings inherited `--color-text-hi`, the *dark* theme's near-white, and were close to
+  invisible on the light admin surface. Headings now inherit from their container.
+- The billboard eyebrow sat above the page scrim's dark zone, so accent-on-a-bright-poster was
+  unreadable at narrow widths. Fixed with a second tighter scrim under the copy — doc 04 §2
+  forbids fixing it by lightening the red.
+- Poster-coverage nudges were raised per row, so the operator read the same sentence twice with
+  different numbers. Moved to a single catalogue-level advisory.
+
 ## Three bugs the tests found, worth knowing about
 
 1. **`lib/env.ts` was reaching the client bundle** through `lib/log` → `modules/registry`, which
