@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.github
+coverage
+playwright-report
+test-results
+.data
+project-doc-directory
+e2e
+tests
+*.md
+.env*
+!.env.example
