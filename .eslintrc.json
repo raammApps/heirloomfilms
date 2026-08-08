@@ -1,0 +1,32 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript", "prettier"],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ],
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+        "message": "Tenant and guest strings render as text nodes only (doc 08, shared rules)."
+      }
+    ],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "process",
+        "property": "env",
+        "message": "Read configuration through lib/env.ts so it is validated once, at boot."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["lib/env.ts", "*.config.ts", "*.config.mjs", "scripts/**", "e2e/**", "tests/**"],
+      "rules": { "no-restricted-properties": "off" }
+    }
+  ],
+  "ignorePatterns": ["node_modules", ".next", "coverage", "project-doc-directory", "playwright-report"]
+}

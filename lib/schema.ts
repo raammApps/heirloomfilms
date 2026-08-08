@@ -1,0 +1,310 @@
+import { z } from 'zod'
+
+/**
+ * The domain vocabulary, mirroring the Postgres schema in doc 06 §1 and doc 14 §6.
+ *
+ * Every type in the app is inferred from these — there are no hand-written interfaces for
+ * persisted data, so a schema change surfaces as a type error rather than as a runtime shape
+ * mismatch on a wedding day.
+ */
+
+// ── Localised strings ─────────────────────────────────────────────────────────
+export const LOCALES = ['en', 'hi'] as const
+export const localeSchema = z.enum(LOCALES)
+export type Locale = z.infer<typeof localeSchema>
+export const DEFAULT_LOCALE: Locale = 'en'
+
+/** English is mandatory; every other locale is an optional overlay that falls back silently. */
+export const localisedStringSchema = z
+  .object({ en: z.string(), hi: z.string().optional() })
+  .strict()
+export type LocalisedString = z.infer<typeof localisedStringSchema>
+
+export const localisedRequiredSchema = localisedStringSchema.refine((v) => v.en.trim().length > 0, {
+  message: 'English text is required',
+})
+
+// ── Categories (doc 06 §2) ────────────────────────────────────────────────────
+export const CATEGORIES = [
+  'highlights',
+  'pre_wedding',
+  'mehendi',
+  'haldi',
+  'sangeet',
+  'ceremony',
+  'reception',
+  'full_films',
+  'aerial',
+  'guest_wishes',
+  'behind_scenes',
+] as const
+export const categorySchema = z.enum(CATEGORIES)
+export type Category = z.infer<typeof categorySchema>
+
+// ── Enumerations ──────────────────────────────────────────────────────────────
+export const OCCASIONS = ['wedding', 'anniversary', 'proposal', 'birthday', 'engagement'] as const
+export const occasionSchema = z.enum(OCCASIONS)
+export type Occasion = z.infer<typeof occasionSchema>
+
+export const catalogueStatusSchema = z.enum(['draft', 'published', 'archived'])
+export type CatalogueStatus = z.infer<typeof catalogueStatusSchema>
+
+export const privacySchema = z.enum(['unlisted', 'passcode'])
+export type Privacy = z.infer<typeof privacySchema>
+
+export const subStatusSchema = z.enum(['included', 'active', 'grace', 'lapsed', 'cold', 'deleted'])
+export type SubStatus = z.infer<typeof subStatusSchema>
+
+/** Sub-states in which content is still served. Everything else routes to /renew. */
+export const SERVING_SUB_STATUSES: readonly SubStatus[] = ['included', 'active', 'grace']
+
+export const titleStatusSchema = z.enum(['uploading', 'processing', 'ready', 'failed'])
+export type TitleStatus = z.infer<typeof titleStatusSchema>
+
+export const posterSourceSchema = z.enum(['auto', 'custom', 'generated'])
+
+export const PROFILE_LABELS = ["Bride's side", "Groom's side", 'Friends', 'Family'] as const
+export const profileLabelSchema = z.enum(PROFILE_LABELS)
+export type ProfileLabel = z.infer<typeof profileLabelSchema>
+
+// ── Slugs and names ───────────────────────────────────────────────────────────
+export const RESERVED_SUBDOMAINS = [
+  'www',
+  'admin',
+  'api',
+  'app',
+  'cdn',
+  'static',
+  'assets',
+  'demo',
+  'staging',
+  'help',
+  'status',
+  'blog',
+  'docs',
+] as const
+
+export const slugSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3, 'Slug must be at least 3 characters')
+  .max(48, 'Slug must be 48 characters or fewer')
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase letters, numbers and single hyphens')
+  .refine((s) => !(RESERVED_SUBDOMAINS as readonly string[]).includes(s), {
+    message: 'That address is reserved',
+  })
+
+/**
+ * doc 12 §1 rule 2: no `-flix` in any name we ship, including the per-couple app name an
+ * operator types. Enforced at creation rather than in review, because the operator is the one
+ * who will reach for it.
+ */
+export const FLIX_SUFFIX = /flix\s*$/i
+
+export const appNameSchema = localisedRequiredSchema.superRefine((value, ctx) => {
+  for (const [locale, text] of Object.entries(value)) {
+    if (typeof text === 'string' && FLIX_SUFFIX.test(text)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [locale],
+        message: 'Try "…Stream", "…Originals" or "The … Files" instead — the -flix suffix is out',
+      })
+    }
+  }
+})
+
+// ── Branding ──────────────────────────────────────────────────────────────────
+export const hexColourSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-fA-F]{6}$/, 'Use a 6-digit hex colour, e.g. #d11a2a')
+
+export const DISPLAY_FONTS = ['archivo', 'fraunces'] as const
+export const brandingSchema = z
+  .object({
+    accent: hexColourSchema.optional(),
+    logoUrl: z.string().url().or(z.literal('')).optional(),
+    presentedBy: z.string().max(80).optional(),
+    displayFont: z.enum(DISPLAY_FONTS).optional(),
+  })
+  .strict()
+export type Branding = z.infer<typeof brandingSchema>
+
+// ── Module instances (doc 14 §3) ──────────────────────────────────────────────
+export const moduleInstanceSchema = z.object({
+  id: z.string().min(1),
+  type: z.string().min(1),
+  enabled: z.boolean(),
+  order: z.number().int().nonnegative(),
+  title: localisedStringSchema,
+  config: z.record(z.unknown()),
+})
+export type ModuleInstance = z.infer<typeof moduleInstanceSchema>
+
+// ── Entities ──────────────────────────────────────────────────────────────────
+export const orgSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  slug: slugSchema,
+  branding: brandingSchema.default({}),
+  createdAt: z.string(),
+})
+export type Org = z.infer<typeof orgSchema>
+
+export const operatorSchema = z.object({
+  id: z.string().uuid(),
+  orgId: z.string().uuid(),
+  email: z.string().email(),
+  name: z.string().min(1),
+  role: z.enum(['admin', 'uploader']),
+  passwordHash: z.string(),
+  createdAt: z.string(),
+})
+export type Operator = z.infer<typeof operatorSchema>
+
+export const creditSchema = z.object({ role: z.string().min(1), name: z.string().min(1) })
+export type Credit = z.infer<typeof creditSchema>
+
+export const captionSchema = z.object({ lang: localeSchema, url: z.string() })
+
+export const titleSchema = z.object({
+  id: z.string().uuid(),
+  catalogueId: z.string().uuid(),
+  slug: z.string().min(1),
+
+  name: localisedRequiredSchema,
+  synopsis: localisedStringSchema.optional(),
+  category: categorySchema,
+  credits: z.array(creditSchema).default([]),
+
+  provider: z.string().default('bunny'),
+  providerId: z.string().nullable().default(null),
+  durationS: z.number().int().nonnegative().nullable().default(null),
+  posterUrl: z.string().nullable().default(null),
+  posterCandidates: z.array(z.string()).default([]),
+  posterSource: posterSourceSchema.default('generated'),
+  thumbnailsUrl: z.string().nullable().default(null),
+  trailerUrl: z.string().nullable().default(null),
+  captions: z.array(captionSchema).default([]),
+
+  status: titleStatusSchema,
+  errorMessage: z.string().nullable().default(null),
+
+  published: z.boolean().default(false),
+  sortOrder: z.number().int().default(0),
+  publishedAt: z.string().nullable().default(null),
+  createdAt: z.string(),
+
+  viewCount: z.number().int().nonnegative().default(0),
+  watchSeconds: z.number().int().nonnegative().default(0),
+})
+export type Title = z.infer<typeof titleSchema>
+
+export const photoSchema = z.object({
+  id: z.string().uuid(),
+  albumId: z.string().uuid(),
+  url: z.string(),
+  lqip: z.string().nullable().default(null),
+  caption: localisedStringSchema.optional(),
+  width: z.number().int().positive().nullable().default(null),
+  height: z.number().int().positive().nullable().default(null),
+  sortOrder: z.number().int().default(0),
+})
+export type Photo = z.infer<typeof photoSchema>
+
+export const albumSchema = z.object({
+  id: z.string().uuid(),
+  catalogueId: z.string().uuid(),
+  name: localisedRequiredSchema,
+  createdAt: z.string(),
+})
+export type Album = z.infer<typeof albumSchema>
+
+export const catalogueSchema = z.object({
+  id: z.string().uuid(),
+  orgId: z.string().uuid(),
+  slug: slugSchema,
+  customDomain: z.string().nullable().default(null),
+
+  coupleName: localisedRequiredSchema,
+  appName: appNameSchema,
+  weddingDate: z.string(),
+  city: localisedStringSchema.optional(),
+  synopsis: localisedStringSchema.optional(),
+  occasion: occasionSchema.default('wedding'),
+
+  branding: brandingSchema.default({}),
+  featuredTitleId: z.string().uuid().nullable().default(null),
+
+  modules: z.array(moduleInstanceSchema).default([]),
+  draftModules: z.array(moduleInstanceSchema).nullable().default(null),
+  template: z.string().nullable().default(null),
+
+  status: catalogueStatusSchema.default('draft'),
+  privacy: privacySchema.default('unlisted'),
+  passcodeHash: z.string().nullable().default(null),
+
+  includedUntil: z.string(),
+  subStatus: subStatusSchema.default('included'),
+  subPlan: z.enum(['monthly', 'yearly']).nullable().default(null),
+  subUntil: z.string().nullable().default(null),
+
+  createdAt: z.string(),
+  publishedAt: z.string().nullable().default(null),
+})
+export type Catalogue = z.infer<typeof catalogueSchema>
+
+export const profileSchema = z.object({
+  id: z.string().uuid(),
+  catalogueId: z.string().uuid(),
+  label: profileLabelSchema,
+  avatarSeed: z.string(),
+  createdAt: z.string(),
+})
+export type Profile = z.infer<typeof profileSchema>
+
+export const progressSchema = z.object({
+  profileId: z.string().uuid(),
+  titleId: z.string().uuid(),
+  positionS: z.number().int().nonnegative(),
+  durationS: z.number().int().positive(),
+  completed: z.boolean(),
+  updatedAt: z.string(),
+})
+export type PlaybackProgress = z.infer<typeof progressSchema>
+
+export const moduleStateSchema = z.object({
+  profileId: z.string().uuid(),
+  moduleId: z.string(),
+  state: z.record(z.unknown()),
+  updatedAt: z.string(),
+})
+export type ModuleState = z.infer<typeof moduleStateSchema>
+
+export const playEventSchema = z.object({
+  id: z.string(),
+  catalogueId: z.string().uuid(),
+  titleId: z.string().uuid(),
+  profileId: z.string().uuid().nullable(),
+  seconds: z.number().int().nonnegative(),
+  at: z.string(),
+})
+export type PlayEvent = z.infer<typeof playEventSchema>
+
+/**
+ * A catalogue plus everything the guest page renders from it. Assembled once per request by
+ * the route; presentational components never fetch (CLAUDE.md working agreements).
+ */
+export type CatalogueBundle = {
+  catalogue: Catalogue
+  titles: Title[]
+  albums: Album[]
+  photos: Photo[]
+}
+
+// ── Content caps (doc 01 §4 — a soft cap is a real cap) ───────────────────────
+export const MAX_TITLES = 15
+export const MAX_PHOTOS = 60
+/** Above this, the customizer nudges — it does not block. doc 14 §5.9 */
+export const CURATION_TITLE_WARNING = 12

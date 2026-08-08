@@ -1,0 +1,68 @@
+import 'server-only'
+import { cookies } from 'next/headers'
+import { passcodeCookieName, verifyPasscodeGrant } from './auth'
+import { getRepository } from './db'
+import { ApiError } from './http/errors'
+import { SERVING_SUB_STATUSES, type Catalogue, type CatalogueBundle } from './schema'
+
+/**
+ * The one place a guest request is authorised (doc 05 §4, doc 02 §5).
+ *
+ * Every guest route and the playback-token endpoint go through this, so "draft is not a 404",
+ * "lapsed is a renewal screen, never a 404" and "passcode before content" cannot be
+ * accidentally implemented three different ways.
+ */
+
+export type AccessVerdict =
+  | { kind: 'ok'; catalogue: Catalogue }
+  | { kind: 'missing' }
+  | { kind: 'draft'; catalogue: Catalogue }
+  | { kind: 'locked'; catalogue: Catalogue }
+  | { kind: 'lapsed'; catalogue: Catalogue }
+
+export async function resolveAccess(slug: string): Promise<AccessVerdict> {
+  const catalogue = await getRepository().getCatalogueBySlug(slug)
+  if (!catalogue) return { kind: 'missing' }
+
+  // A lapsed subscription is checked before publication state: the couple must always land on
+  // the renewal screen rather than on anything that reads as "your wedding is gone".
+  if (!SERVING_SUB_STATUSES.includes(catalogue.subStatus)) {
+    return { kind: 'lapsed', catalogue }
+  }
+
+  if (catalogue.status !== 'published') return { kind: 'draft', catalogue }
+
+  if (catalogue.privacy === 'passcode') {
+    const grant = (await cookies()).get(passcodeCookieName(catalogue.slug))?.value
+    if (!verifyPasscodeGrant(grant, catalogue.id)) return { kind: 'locked', catalogue }
+  }
+
+  return { kind: 'ok', catalogue }
+}
+
+/** Everything the guest page renders, fetched once per request. */
+export async function loadBundle(catalogue: Catalogue): Promise<CatalogueBundle> {
+  const repository = getRepository()
+  const [titles, albums, photos] = await Promise.all([
+    repository.listTitles(catalogue.id, { publishedOnly: true }),
+    repository.listAlbums(catalogue.id),
+    repository.listPhotosForCatalogue(catalogue.id),
+  ])
+  return { catalogue, titles, albums, photos }
+}
+
+/** API variant: the same rules, expressed as the error codes in doc 07. */
+export async function requireServableCatalogue(slug: string): Promise<Catalogue> {
+  const verdict = await resolveAccess(slug)
+  switch (verdict.kind) {
+    case 'ok':
+      return verdict.catalogue
+    case 'missing':
+    case 'draft':
+      throw new ApiError('CATALOGUE_NOT_FOUND', 'No such catalogue')
+    case 'locked':
+      throw new ApiError('PASSCODE_REQUIRED', 'This catalogue needs a passcode')
+    case 'lapsed':
+      throw new ApiError('SUBSCRIPTION_INACTIVE', 'This catalogue needs renewing')
+  }
+}

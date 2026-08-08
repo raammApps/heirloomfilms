@@ -1,0 +1,303 @@
+@import 'tailwindcss';
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Marquee — the default theme. doc 04.
+
+   Every value a tenant can override is a CSS custom property set on :root and
+   re-set per catalogue by <ThemeStyle>. Tailwind utilities read the same vars, so
+   a tenant accent flows through utility classes without a rebuild.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Surfaces — true cinematic black, a touch warm so skin tones don't go grey */
+  --color-surface-0: #0c0c0d;
+  --color-surface-1: #17171a;
+  --color-surface-2: #202024;
+  --color-surface-3: #2c2c31;
+
+  /* Accent — hot red. Never #E50914 (doc 12 §1 rule 4). */
+  --color-accent: #d11a2a;
+  --color-accent-hi: #f0313f;
+  --color-accent-dim: #8e1220;
+  --color-accent-ink: #ffffff;
+
+  /* Poster-side warmth. Generated art and card accents only, never the shell. */
+  --color-marigold: #f2933a;
+  --color-rose: #d4547e;
+  --color-gold: #e0b155;
+
+  /* Text on dark */
+  --color-text-hi: #f5f5f6;
+  --color-text-mid: #c4c4c8;
+  --color-text-lo: #93939a;
+
+  /* Semantic */
+  --color-ok: #46a758;
+  --color-warn: #d9a441;
+  --color-error: #f0313f;
+
+  /* Light set — admin console and the family dashboard */
+  --color-l-surface-0: #fafafa;
+  --color-l-surface-1: #ffffff;
+  --color-l-surface-2: #f1f1f3;
+  --color-l-text-hi: #131316;
+  --color-l-text-mid: #45454b;
+  --color-l-line: #e2e2e6;
+
+  /* Space scale — nothing off-scale (doc 04 §4) */
+  --spacing: 4px;
+
+  --radius-card: 10px;
+  --radius-modal: 18px;
+  --radius-pill: 999px;
+  --radius-input: 8px;
+
+  --font-display: var(--font-archivo), 'Archivo', Impact, sans-serif;
+  --font-sans: var(--font-inter), 'Inter', system-ui, sans-serif;
+  --font-deva: var(--font-mukta), 'Mukta', 'Noto Sans Devanagari', sans-serif;
+
+  /* Fluid type scale (doc 04 §3) */
+  --text-display-xl: clamp(2.5rem, 1.4rem + 5.5vw, 4.75rem);
+  --text-display-xl--line-height: 1.02;
+  --text-display-xl--letter-spacing: -0.02em;
+  --text-display-lg: clamp(1.75rem, 1.3rem + 2.2vw, 2.5rem);
+  --text-display-lg--line-height: 1.08;
+  --text-display-lg--letter-spacing: -0.015em;
+  --text-title: clamp(1.125rem, 1rem + 0.6vw, 1.375rem);
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.01em;
+  --text-body-lg: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
+  --text-body-lg--line-height: 1.55;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.4;
+  --text-meta--letter-spacing: 0.02em;
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.09em;
+
+  /* Motion (doc 04 §5) */
+  --ease-lift: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-in-modal: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-modal: cubic-bezier(0.4, 0, 1, 1);
+  --ease-scroll: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  --edge: 1px solid color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --edge-plain: 1px solid var(--color-surface-3);
+  --scrim: linear-gradient(
+    to top,
+    var(--color-surface-0) 0%,
+    color-mix(in srgb, var(--color-surface-0) 82%, transparent) 26%,
+    color-mix(in srgb, var(--color-surface-0) 30%, transparent) 62%,
+    transparent 100%
+  );
+  /* Grid margins per breakpoint (doc 03). Rows deliberately break the right one. */
+  --gutter: 16px;
+  color-scheme: dark;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --gutter: 24px;
+  }
+}
+@media (min-width: 768px) {
+  :root {
+    --gutter: 32px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 48px;
+  }
+}
+
+@layer base {
+  * {
+    min-width: 0;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-surface-0);
+    color: var(--color-text-mid);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Devanagari needs more leading or matras clip — handled once, not per component. */
+  [lang='hi'],
+  :root:lang(hi) body {
+    font-family: var(--font-deva);
+    line-height: calc(var(--text-body--line-height) + 0.12);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--color-text-hi);
+    font-weight: 800;
+  }
+
+  [lang='hi'] h1,
+  [lang='hi'] h2,
+  [lang='hi'] h3 {
+    font-family: var(--font-deva);
+    font-weight: 700;
+  }
+
+  /* Never removed (doc 04 §7, doc 10 §4). */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+
+  /* 16px inputs prevent iOS zoom-on-focus (doc 04 §7, manual check M-3). */
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    font-size: max(16px, 1em);
+  }
+
+  img,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@layer utilities {
+  .type-display-xl {
+    font-family: var(--font-display);
+    font-size: var(--text-display-xl);
+    line-height: var(--text-display-xl--line-height);
+    letter-spacing: var(--text-display-xl--letter-spacing);
+    font-weight: 800;
+    color: var(--color-text-hi);
+  }
+
+  .type-display-lg {
+    font-family: var(--font-display);
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    letter-spacing: var(--text-display-lg--letter-spacing);
+    font-weight: 800;
+    color: var(--color-text-hi);
+  }
+
+  .type-title {
+    font-size: var(--text-title);
+    line-height: var(--text-title--line-height);
+    letter-spacing: var(--text-title--letter-spacing);
+    font-weight: 600;
+    color: var(--color-text-hi);
+  }
+
+  .type-body-lg {
+    font-size: var(--text-body-lg);
+    line-height: var(--text-body-lg--line-height);
+  }
+
+  .type-meta {
+    font-size: var(--text-meta);
+    line-height: var(--text-meta--line-height);
+    letter-spacing: var(--text-meta--letter-spacing);
+    color: var(--color-text-lo);
+  }
+
+  .type-label {
+    font-size: var(--text-label);
+    line-height: var(--text-label--line-height);
+    letter-spacing: var(--text-label--letter-spacing);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .edge {
+    border: var(--edge);
+  }
+
+  /* The page grid. Rows opt out of the right margin to let the next card peek. */
+  .gutter-x {
+    padding-inline: var(--gutter);
+  }
+  .gutter-l {
+    padding-inline-start: var(--gutter);
+  }
+
+  .scrim-bottom::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--scrim);
+    pointer-events: none;
+  }
+
+  .clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 3% grain, stops gradient banding on cheap panels (doc 04 §6). */
+  .grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/*
+  "Disables", not "reduces" (doc 04 §5). Modal transitions drop to a 100ms opacity fade so the
+  state change is still perceivable, which is why this is not a blanket animation: none.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-motion='modal'] {
+    transition-duration: 100ms !important;
+  }
+}

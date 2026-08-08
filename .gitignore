@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next
+.next/
+out/
+next-env.d.ts
+
+# testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# env
+.env
+.env.local
+.env*.local
+
+# editors / os
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.tsbuildinfo
+
+# runtime data written by the file-backed repository in local dev
+.data/

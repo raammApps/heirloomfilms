@@ -1,0 +1,121 @@
+import { createHash, timingSafeEqual } from 'node:crypto'
+import { env } from '@/lib/env'
+import {
+  TUS_CHUNK_BYTES,
+  type AssetStatus,
+  type PlaybackTicket,
+  type UploadTicket,
+  type Usage,
+  type VideoProvider,
+} from './provider'
+
+/**
+ * A deterministic, network-free `VideoProvider`.
+ *
+ * Not a mock bolted onto the tests — a first-class driver (`VIDEO_DRIVER=fake`) so that CI, the
+ * Playwright suite, and a planner demo on venue wifi all exercise the same code paths as
+ * production without a Bunny account. Playback resolves to a bundled sample HLS stream, so
+ * "press play and something plays" is verifiable end to end offline.
+ */
+export class FakeVideoProvider implements VideoProvider {
+  readonly name = 'fake'
+
+  /** Assets transition uploading → processing → ready on a timer, mimicking a transcode. */
+  private readonly assets = new Map<string, { createdAt: number; durationS: number }>()
+
+  private static readonly PROCESSING_MS = 1_500
+
+  async createUpload({ title, sizeBytes }: { title: string; sizeBytes: number }): Promise<UploadTicket> {
+    const providerId = `fake_${createHash('sha1').update(`${title}:${sizeBytes}:${Date.now()}`).digest('hex').slice(0, 20)}`
+    this.assets.set(providerId, {
+      createdAt: Date.now(),
+      // A stable pseudo-duration between 45s and 20min, derived from the id so it survives a
+      // reload without any storage.
+      durationS: 45 + (parseInt(providerId.slice(-4), 16) % 1155),
+    })
+    return {
+      providerId,
+      tusEndpoint: '/api/dev/tus',
+      headers: { VideoId: providerId, LibraryId: 'fake' },
+      chunkSizeBytes: TUS_CHUNK_BYTES,
+    }
+  }
+
+  async getPlaybackToken({
+    providerId,
+    scope,
+    ttlS,
+  }: {
+    providerId: string
+    scope: { catalogueId: string; titleId: string }
+    ttlS: number
+  }): Promise<PlaybackTicket> {
+    const expires = Math.floor(Date.now() / 1000) + ttlS
+    // Signed exactly like the real thing, so the scoping test (doc 10 §1 test 7) is meaningful
+    // against this driver too.
+    const token = createHash('sha256')
+      .update(`${env.SESSION_SECRET}:${providerId}:${scope.catalogueId}:${scope.titleId}:${expires}`)
+      .digest('base64url')
+
+    return {
+      playbackUrl: `/media/${providerId}/playlist.m3u8?token=${token}&expires=${expires}`,
+      thumbnailsUrl: null,
+      expiresAt: new Date(expires * 1000).toISOString(),
+    }
+  }
+
+  async getStatus(providerId: string): Promise<AssetStatus> {
+    const asset = this.assets.get(providerId)
+    if (!asset) {
+      // Seeded demo content has no in-process record; treat it as long since ready.
+      return {
+        state: 'ready',
+        durationS: null,
+        posterCandidates: [],
+        thumbnailsUrl: null,
+        errorMessage: null,
+      }
+    }
+
+    const ready = Date.now() - asset.createdAt > FakeVideoProvider.PROCESSING_MS
+    return {
+      state: ready ? 'ready' : 'processing',
+      durationS: ready ? asset.durationS : null,
+      posterCandidates: ready
+        ? [1, 2, 3].map((n) => `/api/poster/frame?asset=${providerId}&n=${n}`)
+        : [],
+      thumbnailsUrl: null,
+      errorMessage: null,
+    }
+  }
+
+  async deleteAsset(providerId: string): Promise<void> {
+    this.assets.delete(providerId)
+  }
+
+  async getUsage(): Promise<Usage> {
+    return { storedGb: 0, deliveredGb: 0 }
+  }
+
+  verifyWebhook(rawBody: string, headers: Headers) {
+    const provided = headers.get('x-bunny-signature') ?? ''
+    const expected = createHash('sha256').update(`${env.SESSION_SECRET}${rawBody}`).digest('hex')
+    const a = Buffer.from(provided)
+    const b = Buffer.from(expected)
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return null
+
+    try {
+      const payload = JSON.parse(rawBody) as { VideoGuid?: string; Status?: number }
+      if (!payload.VideoGuid) return null
+      const state: AssetStatus['state'] =
+        payload.Status === 4 ? 'ready' : payload.Status === 5 ? 'failed' : 'processing'
+      return {
+        providerId: payload.VideoGuid,
+        state,
+        ...(state === 'failed' ? { errorMessage: 'Encoding failed (simulated)' } : {}),
+      }
+    } catch {
+      return null
+    }
+  }
+}

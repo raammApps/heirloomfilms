@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mehfil — Wireframes</title>
+<style>
+  :root { --ink:#14161a; --mute:#6b7280; --line:#e5e7eb; --acc:#b4762b; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.6 -apple-system, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+         color:var(--ink); background:#f7f7f8; }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:28px 32px; position:sticky; top:0; z-index:5; }
+  h1 { margin:0 0 4px; font-size:20px; letter-spacing:-.01em; }
+  header p { margin:0; color:var(--mute); font-size:13.5px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  nav a { font-size:12.5px; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+          background:#fff; padding:5px 11px; border-radius:999px; }
+  nav a:hover { border-color:var(--acc); color:var(--acc); }
+  main { padding:32px; max-width:1600px; margin:0 auto; }
+  figure { margin:0 0 40px; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  figcaption { padding:14px 20px; border-bottom:1px solid var(--line); font-weight:600; font-size:14px; }
+  figcaption span { display:block; font-weight:400; color:var(--mute); font-size:12.5px; margin-top:2px; }
+  img { display:block; width:100%; height:auto; }
+  footer { padding:24px 32px 60px; color:var(--mute); font-size:12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Mehfil — Wireframes</h1>
+  <p>Low-fidelity and annotated. Structure and behaviour only; visual design lives in docs/04-design-system.md.</p>
+  <nav>
+    <a href="#w1">01 Profile gate</a><a href="#w2">02 Browse · mobile</a><a href="#w3">03 Title modal</a>
+    <a href="#w4">04 Player</a><a href="#w5">05 Browse · desktop</a><a href="#w6">06 Admin · titles</a>
+    <a href="#w7">07 Customizer</a><a href="#w8">08 White-label</a>
+  </nav>
+</header>
+<main>
+  <figure id="w1"><figcaption>01 · Profile gate — mobile<span>First visit · sets the profile for Continue Watching</span></figcaption><img src="01-profile-gate-mobile.svg" alt="Profile gate wireframe"></figure>
+  <figure id="w2"><figcaption>02 · Browse — mobile<span>Module-driven · every row comes from catalogue.modules</span></figcaption><img src="02-browse-mobile.svg" alt="Browse wireframe"></figure>
+  <figure id="w3"><figcaption>03 · Title detail modal — mobile<span>Deep-linkable · back-aware · prefetches playback</span></figcaption><img src="03-title-modal-mobile.svg" alt="Title modal wireframe"></figure>
+  <figure id="w4"><figcaption>04 · Player<span>Own route · the component the product is judged on</span></figcaption><img src="04-player.svg" alt="Player wireframe"></figure>
+  <figure id="w5"><figcaption>05 · Browse — desktop<span>Enhancement layer over the mobile design</span></figcaption><img src="05-browse-desktop.svg" alt="Desktop browse wireframe"></figure>
+  <figure id="w6"><figcaption>06 · Admin — titles &amp; upload<span>Resumable upload · transcode status · publish toggle</span></figcaption><img src="06-admin-titles.svg" alt="Admin titles wireframe"></figure>
+  <figure id="w7"><figcaption>07 · Customizer — the differentiator<span>Module list · live preview · draft &amp; publish</span></figcaption><img src="07-customizer.svg" alt="Customizer wireframe"></figure>
+  <figure id="w8"><figcaption>08 · White-label — same build, two partners<span>One codebase · per-catalogue config only</span></figcaption><img src="08-whitelabel-swap.svg" alt="White-label wireframe"></figure>
+</main>
+<footer>Regenerate with <code>python3 scripts/make_wireframes.py</code></footer>
+</body>
+</html>

@@ -1,0 +1,108 @@
+import { z } from 'zod'
+
+/**
+ * The one place `process.env` is read (enforced by an eslint rule).
+ *
+ * Configuration is validated once, at module load, so a missing Bunny key fails the boot of a
+ * deployment rather than the first playback request of a wedding reception.
+ */
+
+const nonEmpty = z.string().trim().min(1)
+
+const schema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+
+    ROOT_DOMAIN: nonEmpty.default('mehfil.localhost:3000'),
+
+    DATA_DRIVER: z.enum(['memory', 'file', 'supabase']).default('memory'),
+    DATA_DIR: nonEmpty.default('.data'),
+
+    NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional().or(z.literal('')),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+
+    VIDEO_DRIVER: z.enum(['fake', 'bunny']).default('fake'),
+    BUNNY_LIBRARY_ID: z.string().optional(),
+    BUNNY_API_KEY: z.string().optional(),
+    BUNNY_CDN_HOSTNAME: z.string().optional(),
+    BUNNY_TOKEN_AUTH_KEY: z.string().optional(),
+    BUNNY_WEBHOOK_SECRET: z.string().optional(),
+
+    SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
+
+    DEV_OPERATOR_EMAIL: z.string().email().default('operator@mehfil.test'),
+    DEV_OPERATOR_PASSWORD: nonEmpty.default('mehfil-dev'),
+
+    PLAYBACK_TOKEN_TTL_S: z.coerce.number().int().positive().default(4 * 60 * 60),
+  })
+  .superRefine((env, ctx) => {
+    if (env.DATA_DRIVER === 'supabase') {
+      for (const key of [
+        'NEXT_PUBLIC_SUPABASE_URL',
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+        'SUPABASE_SERVICE_ROLE_KEY',
+      ] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} is required when DATA_DRIVER=supabase`,
+          })
+        }
+      }
+    }
+
+    if (env.VIDEO_DRIVER === 'bunny') {
+      for (const key of [
+        'BUNNY_LIBRARY_ID',
+        'BUNNY_API_KEY',
+        'BUNNY_CDN_HOSTNAME',
+        'BUNNY_TOKEN_AUTH_KEY',
+      ] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} is required when VIDEO_DRIVER=bunny`,
+          })
+        }
+      }
+    }
+
+    if (env.NODE_ENV === 'production') {
+      if (env.SESSION_SECRET.startsWith('dev-only')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SESSION_SECRET'],
+          message: 'The example SESSION_SECRET must not be used in production',
+        })
+      }
+      if (env.DATA_DRIVER !== 'supabase') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DATA_DRIVER'],
+          message: 'Production must run on the supabase driver; memory/file lose data on restart',
+        })
+      }
+    }
+  })
+
+export type Env = z.infer<typeof schema>
+
+function load(): Env {
+  const parsed = schema.safeParse(process.env)
+  if (!parsed.success) {
+    const detail = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n')
+    throw new Error(`Invalid environment configuration:\n${detail}`)
+  }
+  return parsed.data
+}
+
+export const env: Env = load()
+
+/** Root domain without a port — what a Host header is compared against. */
+export const rootDomainHost: string = env.ROOT_DOMAIN.split(':')[0]!.toLowerCase()
+
+export const isProduction = env.NODE_ENV === 'production'
+export const isTest = env.NODE_ENV === 'test'
