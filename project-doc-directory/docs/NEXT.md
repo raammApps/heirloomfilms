@@ -36,14 +36,13 @@ and resumable upload — have all now run against the real services.
 
 ### N-11 · Actually deploy  ·  ~1h + DNS
 
-Nothing has ever run outside localhost: no linked Vercel project, no wildcard DNS. Everything is
-prepared — Dockerfile, `vercel.json` pinned to `bom1`, both crons declared, CI, boot-time env
-validation, `pnpm preflight`. What is needed is `vercel link`, the environment variables,
-`*.mehfil.app` + `admin.mehfil.app` pointed at the project, and a first deploy verified with
-`/api/health` reporting `supabase` + `bunny`.
+Nothing has ever run outside localhost: no linked Vercel project, no wildcard DNS.
 
-Set `SESSION_SECRET` to something new for production — the local one is a dev value, and
-`lib/env.ts` refuses to boot on the example string.
+**Follow [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md).** It has the full procedure, the
+environment variable table, and the settings that fail silently if wrong.
+
+The two that bite: `CRON_SECRET` must be set or Vercel's crons 401 and never run, and the
+wildcard `*.mehfil.app` CNAME is what makes any catalogue reachable at all.
 
 ### N-4 · The browse route renders dynamically, not ISR  ·  ~2h
 

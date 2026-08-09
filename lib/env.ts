@@ -58,6 +58,14 @@ const schema = z
 
     SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
 
+    /**
+     * What Vercel puts in the `Authorization` header of a scheduled invocation. Set it and
+     * Vercel signs its crons with it; leave it unset and Vercel sends no header at all, so the
+     * jobs 401 and silently never run. Falls back to SESSION_SECRET so a self-hosted deploy
+     * needs no extra configuration.
+     */
+    CRON_SECRET: z.string().min(16).optional(),
+
     DEV_OPERATOR_EMAIL: z.string().email().default('operator@mehfil.test'),
     DEV_OPERATOR_PASSWORD: nonEmpty.default('mehfil-dev'),
 

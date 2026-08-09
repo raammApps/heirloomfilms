@@ -286,6 +286,31 @@ Note: playback start is measured **press-play → first frame** on the `playing`
 against the one metric doc 05 §6 says the product lives or dies on.
 Note: QoE beacons carry no guest identity. doc 06 §5 applies to telemetry too.
 
+## Deployment guide, and two defects writing it uncovered — done 2026-08-09
+Built: `docs/DEPLOYMENT.md` — accounts, the Bunny settings that fail closed, Supabase bootstrap,
+DNS, the full environment table, ordered verification, and what to alert on.
+Files: docs/DEPLOYMENT.md, lib/video/{provider,bunny,fake}.ts, app/api/webhooks/bunny/route.ts,
+app/api/cron/*/route.ts, lib/env.ts, tests/unit/webhook.test.ts, tests/integration/drivers.test.ts
+
+Note: **the webhook verification was wrong in three ways** and all of them fail closed, so
+titles would have sat in `processing` until the nightly reconciliation. Bunny sends
+`X-BunnyStream-Signature` (we read `x-bunny-signature`); it is HMAC-SHA256 keyed by the library
+**read-only** key (we computed `sha256(secret + body)`); and the webhook's `Status` enum is not
+the video object's — the webhook calls Finished 3, the API calls it 4, which we had mapped to
+`processing`. The handler now treats the payload as a *notification* and asks `getStatus()` what
+actually happened, which removes the enum question entirely and makes it idempotent by
+construction. Still unverified against a real delivery: it needs a public URL. Step 8.2 of the
+guide is how to confirm it.
+
+Note: **Vercel signs crons with `CRON_SECRET`, not `SESSION_SECRET`.** Worse, when the variable
+is unset Vercel sends no header at all, so the jobs 401 and silently never run — surfacing weeks
+later as usage that was never recorded. `lib/env.ts` now takes `CRON_SECRET`, and the guide
+calls it out as the variable people forget.
+
+Note: the integration tests were order-dependent — `orgId` was assigned inside one test and used
+by three others, so a timeout there cascaded into misleading failures. Resolved in `beforeAll`
+now, with a 30s budget and parallel table checks (5s+ → 806ms).
+
 ## Open, and deliberately so
 
 - **The browse route renders dynamically, not ISR.** Reading the locale cookie in

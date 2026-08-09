@@ -34,17 +34,20 @@ export async function POST(request: Request) {
       return new NextResponse(null, { status: 204 })
     }
 
-    // Idempotency: a repeat of a state we already recorded is a no-op.
-    if (title.status === verified.state && verified.state !== 'ready') {
+    /**
+     * The webhook says *something changed*; the API says *what*. Bunny's webhook `Status` enum
+     * differs from the video object's (the webhook calls Finished 3, the API calls it 4), so
+     * trusting the payload would have left every title stuck in `processing` — visible only as
+     * a wedding that never appears, hours later, when the nightly reconciliation caught it.
+     */
+    const status = await getVideoProvider().getStatus(verified.providerId)
+
+    // Idempotent: re-delivering a state we already recorded changes nothing.
+    if (title.status === status.state && (status.state !== 'ready' || title.durationS !== null)) {
       return new NextResponse(null, { status: 204 })
     }
 
-    if (verified.state === 'ready') {
-      if (title.status === 'ready' && title.durationS !== null) {
-        return new NextResponse(null, { status: 204 })
-      }
-
-      const status = await getVideoProvider().getStatus(verified.providerId)
+    if (status.state === 'ready') {
       const candidates = status.posterCandidates.map((file) => posterRoute(title.id, file))
       await repository.updateTitle(title.id, {
         status: 'ready',
@@ -61,14 +64,14 @@ export async function POST(request: Request) {
       const catalogue = await repository.getCatalogueById(title.catalogueId)
       if (catalogue) revalidatePath(`/c/${catalogue.slug}`, 'page')
       log.info('bunny webhook: title ready', { titleId: title.id })
-    } else if (verified.state === 'failed') {
+    } else if (status.state === 'failed') {
       await repository.updateTitle(title.id, {
         status: 'failed',
-        errorMessage: verified.errorMessage ?? 'The provider could not encode this file',
+        errorMessage: status.errorMessage ?? 'The provider could not encode this file',
       })
       log.warn('bunny webhook: transcode failed', { titleId: title.id })
     } else {
-      await repository.updateTitle(title.id, { status: 'processing' })
+      await repository.updateTitle(title.id, { status: status.state })
     }
 
     return new NextResponse(null, { status: 204 })

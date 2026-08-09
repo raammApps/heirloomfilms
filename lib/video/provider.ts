@@ -77,13 +77,15 @@ export interface VideoProvider {
   getUsage(providerId: string): Promise<Usage>
 
   /**
-   * Verify a webhook payload's authenticity. Returns the provider id and state, or null when
-   * the signature does not check out — the handler rejects on null before parsing anything.
+   * Verify a webhook's authenticity and say which asset it concerns.
+   *
+   * Deliberately returns **only the id**, not a state. Bunny's webhook `Status` enum is not the
+   * same as the one on the video object (the webhook calls Finished 3, the API calls it 4), and
+   * mapping the wrong one silently leaves every title stuck in `processing`. So the webhook is
+   * treated as "something changed, go and ask" and `getStatus` remains the single source of
+   * truth — which also makes the handler naturally idempotent.
    */
-  verifyWebhook(
-    rawBody: string,
-    headers: Headers,
-  ): { providerId: string; state: AssetStatus['state']; errorMessage?: string } | null
+  verifyWebhook(rawBody: string, headers: Headers): { providerId: string } | null
 }
 
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024 * 1024

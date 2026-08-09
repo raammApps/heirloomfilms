@@ -116,22 +116,15 @@ export class FakeVideoProvider implements VideoProvider {
   }
 
   verifyWebhook(rawBody: string, headers: Headers) {
-    const provided = headers.get('x-bunny-signature') ?? ''
+    const provided = headers.get('x-bunnystream-signature') ?? headers.get('x-bunny-signature') ?? ''
     const expected = createHash('sha256').update(`${env.SESSION_SECRET}${rawBody}`).digest('hex')
     const a = Buffer.from(provided)
     const b = Buffer.from(expected)
     if (a.length !== b.length || !timingSafeEqual(a, b)) return null
 
     try {
-      const payload = JSON.parse(rawBody) as { VideoGuid?: string; Status?: number }
-      if (!payload.VideoGuid) return null
-      const state: AssetStatus['state'] =
-        payload.Status === 4 ? 'ready' : payload.Status === 5 ? 'failed' : 'processing'
-      return {
-        providerId: payload.VideoGuid,
-        state,
-        ...(state === 'failed' ? { errorMessage: 'Encoding failed (simulated)' } : {}),
-      }
+      const payload = JSON.parse(rawBody) as { VideoGuid?: string }
+      return payload.VideoGuid ? { providerId: payload.VideoGuid } : null
     } catch {
       return null
     }

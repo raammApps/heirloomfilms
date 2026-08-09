@@ -137,6 +137,10 @@ e2e/ · tests/               Playwright · Vitest
 
 ## Deployment
 
+**[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) is the full guide** — accounts, Bunny and Supabase
+setup with the settings that fail closed, DNS, every environment variable, verification steps
+and what to alert on. The summary below is orientation; that document is the procedure.
+
 ### Vercel (primary)
 
 Wildcard `*.mehfil.app` plus `admin.mehfil.app` pointed at the project. `vercel.json` pins the

@@ -1,0 +1,248 @@
+# Deployment
+
+Everything needed to put Mehfil in front of a real planner, in order, with the values and the
+traps. Follow it top to bottom the first time; after that, only §9 matters.
+
+Two rules worth internalising before you start:
+
+- **`pnpm preflight` is the authority**, not this document. It probes both services and reports
+  what is actually true in a few seconds.
+- **Every failure in §3 and §4 fails closed and silently.** A wrong Bunny setting does not throw
+  — it produces a 403 a guest sees, or a title that never leaves "processing". That is why each
+  step below has a verification, and why you should not skip them.
+
+---
+
+## 1. What you are deploying
+
+One codebase, two surfaces (doc 02 §1):
+
+| Surface | Host | Who | What |
+|---|---|---|---|
+| **Guest catalogue** | `<slug>.mehfil.app` | Guests, no login | Profile gate, billboard, poster rows, title modal, player |
+| **Admin console** | `admin.mehfil.app` | Operators, login | Create catalogue, upload, title, customizer, publish |
+| Root | `mehfil.app` | — | A signpost with a sign-in link. There is no marketing site; doc 03 leaves it out on purpose. |
+
+Both are served by the same Next.js app. `middleware.ts` decides which one you get from the
+`Host` header, and `resolveTenant` is a pure function with exhaustive unit tests, so routing
+behaviour is knowable without deploying.
+
+## 2. Accounts and prerequisites
+
+| | Needed for | Notes |
+|---|---|---|
+| Vercel | Hosting, wildcard TLS, cron | Or any container host — see §10 |
+| Supabase | Postgres + RLS | Free tier is fine for Phase 0 |
+| Bunny.net | Stream library | **Requires a balance.** A zero-balance account refuses to create zones with `user.insufficient_balance`, which reads like a permissions error and is not one. |
+| A domain | `mehfil.app` or yours | Needs wildcard DNS, so the registrar must support a `*` CNAME |
+
+> Doc 12 §3: run a trademark search on the Indian registry (classes 42 and 45) before printing
+> "Mehfil" on planner collateral. It is a common word; expect crowding.
+
+## 3. Bunny Stream
+
+Create a **Stream video library**. Pick the storage region nearest your audience — Bunny has no
+India origin, so Singapore is the closest; delivery still uses Bunny's India PoPs, which is what
+doc 05 §2's cost maths actually depends on.
+
+Then, in the library's settings:
+
+| Setting | Value | Why |
+|---|---|---|
+| Token authentication (pull zone → Security) | **ON** | doc 01 US-5 promises a copied `.m3u8` dies within the hour. Off, and every playback URL is permanent and public — while every test still passes. |
+| IP pinning (`ZoneSecurityIncludeHashRemoteIP`) | **OFF** | doc 05 §4: Indian mobile IPs rotate mid-playback and it causes false failures |
+| Block requests with no referrer (`BlockNoneReferrer`) | **OFF** | Defaults to ON for a new library. Native HLS players send no `Referer`, so leaving it on 403s everything — and looks exactly like a broken token |
+
+**Three different keys, and mixing them up produces identical 401s:**
+
+| Key | Where | Used for |
+|---|---|---|
+| Account API key | Account Settings → API | Managing libraries. The app never needs it. |
+| **Library** API key | Stream → your library → API | `BUNNY_API_KEY`. All `video.bunnycdn.com` calls. |
+| Library **read-only** key | Same page | `BUNNY_WEBHOOK_SECRET`. Bunny signs webhooks with it. |
+| Token authentication key | Pull zone → Security | `BUNNY_TOKEN_AUTH_KEY`. Signs playback and poster URLs. |
+
+**Webhook**: point the library's webhook at `https://admin.mehfil.app/api/webhooks/bunny`.
+
+Verify: `pnpm preflight` should show token auth enforced, referrer blocking off, IP pinning off.
+Then `pnpm verify:playback` uploads a real clip and asserts a signed manifest, a signed child
+playlist and a signed poster all return 200 while all three unsigned return 403.
+
+## 4. Supabase
+
+```bash
+pnpm bootstrap:sql > bootstrap.sql
+```
+
+Paste into the SQL editor and run. One transaction: 11 tables, 16 RLS policies, and the first
+org. This step cannot be automated — PostgREST does not execute DDL, and the Management API
+wants a personal access token rather than the secret key. That is a feature: arbitrary remote
+DDL against a database holding people's weddings is not a capability worth building.
+
+Then create the operator:
+
+1. Authentication → Users → Add user. `operators.id` references `auth.users.id`, so the auth
+   row must exist first.
+2. Run the `insert into operators` statement printed at the end of the bootstrap script, with
+   that user's id.
+
+The app verifies its own scrypt hash (`lib/admin/session.ts`), so the Supabase Auth password on
+that account is never used — set it to something random rather than something memorable.
+
+Verify: `pnpm preflight` shows the schema and the first org. `pnpm test:integration` should be
+10/10, including the RLS test.
+
+> If the integration run fails immediately after applying the DDL with `PGRST205`, wait thirty
+> seconds. PostgREST caches the schema and takes a moment to notice new tables.
+
+## 5. DNS
+
+Two records, both pointing at Vercel:
+
+| Record | Type | Value | Serves |
+|---|---|---|---|
+| `*` | CNAME | `cname.vercel-dns.com` | Every catalogue, `<slug>.mehfil.app` |
+| `admin` | CNAME | `cname.vercel-dns.com` | The operator console |
+| `@` | A / ALIAS | per Vercel | The signpost |
+
+The wildcard is the one that matters — without it, no guest can reach any catalogue. Add
+`*.mehfil.app` and `admin.mehfil.app` as domains on the Vercel project so it provisions TLS for
+both.
+
+Reserved labels (`www`, `admin`, `api`, `app`, `cdn`, `demo`, `staging`, …) can never be
+catalogue slugs; `lib/schema.ts` rejects them at creation.
+
+## 6. Environment variables
+
+Set these on the Vercel project (Production, and Preview if you want previews to work).
+
+**Required**
+
+| Variable | Value | Secret |
+|---|---|---|
+| `DATA_DRIVER` | `supabase` | |
+| `VIDEO_DRIVER` | `bunny` | |
+| `ROOT_DOMAIN` | `mehfil.app` — no protocol, no port | |
+| `SESSION_SECRET` | `openssl rand -hex 32`. **Generate a new one; do not reuse the dev value.** Signs operator sessions and passcode grants. | ● |
+| `CRON_SECRET` | `openssl rand -hex 32`. See the warning below. | ● |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` | |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` (older projects: `…ANON_KEY`) | |
+| `SUPABASE_SECRET_KEY` | `sb_secret_…` (older projects: `SUPABASE_SERVICE_ROLE_KEY`) | ● |
+| `BUNNY_API_KEY` | The **library** key | ● |
+| `BUNNY_LIBRARY_ID` | Numeric, from the library dashboard | |
+| `BUNNY_CDN_HOSTNAME` | `vz-….b-cdn.net`, hostname only | |
+| `BUNNY_TOKEN_AUTH_KEY` | Pull zone → Security | ● |
+| `BUNNY_WEBHOOK_SECRET` | The library **read-only** key | ● |
+
+**Optional**
+
+| Variable | Default | |
+|---|---|---|
+| `PLAYBACK_TOKEN_TTL_S` | `14400` (4h) | doc 05 §4 |
+| `DEV_OPERATOR_EMAIL` / `DEV_OPERATOR_PASSWORD` | — | Ignored under `DATA_DRIVER=supabase` |
+
+> **`CRON_SECRET` is the one people forget.** Vercel sends `Authorization: Bearer $CRON_SECRET`
+> on scheduled invocations — and **no header at all** when it is unset. The jobs then 401 and
+> never run, which surfaces weeks later as usage that was never recorded and stuck titles that
+> were never reconciled. Nothing alerts on it, because from the outside nothing happened.
+
+`lib/env.ts` validates all of this at boot and refuses to start a production deploy on an
+ephemeral data driver or on the example `SESSION_SECRET`. A misconfigured deploy fails at boot
+rather than on a guest's first request.
+
+## 7. Deploy
+
+```bash
+vercel link
+vercel --prod
+```
+
+`vercel.json` already pins the Mumbai region (`bom1`) and declares both cron jobs. CI runs lint,
+typecheck, 198 unit and component tests, the contrast gate, the build, the first-load JS budget,
+and 69 E2E specs — so a red pipeline is a real signal.
+
+## 8. Verify the deployment
+
+In order. Each one catches a different class of mistake.
+
+```bash
+curl https://admin.mehfil.app/api/health
+```
+
+Must report `"drivers":{"data":"supabase","video":"bunny"}`. **A deploy that silently came up on
+the memory driver is exactly what this probe exists to catch** — it would work perfectly and
+lose everything on the next restart.
+
+Then:
+
+1. **Sign in** at `admin.mehfil.app` and create a catalogue.
+2. **Upload a real film.** Watch it reach `ready` on its own — that proves the webhook signature
+   is right. If it sits in `processing`, the webhook is being rejected: check the logs for
+   `bunny webhook: signature mismatch`, which prints the headers it actually received. The
+   nightly reconciliation will rescue it within 24h either way, so this is a quality problem,
+   not a data-loss one.
+3. **Publish and open the guest URL on a phone**, on mobile data, not office wifi.
+4. **Check the WhatsApp preview** by sending the link to yourself. Append `?v=2` when
+   re-checking — WhatsApp caches previews for days (doc 10 §6).
+5. **Confirm the crons ran** the next morning: `usage rollup complete` and the reconcile line.
+   Silence here means `CRON_SECRET` is wrong.
+
+Then work through doc 10 §6, the per-catalogue pre-handover runbook, before any link goes to a
+couple.
+
+## 9. Operating it
+
+**Alert on two log lines:**
+
+| Line | Meaning |
+|---|---|
+| `error.report` with `severity: error` | An unhandled server error or a client crash |
+| `usage.delivery_alert` | A catalogue passed 300GB delivered this month — flaunted hard (good) or a leaked link (act on it) |
+
+**Watch two numbers**, both emitted with a pre-computed `overBudget` boolean so you filter on a
+flag rather than parse a threshold:
+
+| Line | Target |
+|---|---|
+| `qoe.playback_start` | p75 under 1500ms on 4G — doc 01 §8, the metric the product lives or dies on |
+| `qoe.rebuffer` | ratio under 1% |
+
+Everything is structured JSON on stdout, which Vercel captures. No vendor is wired in;
+`lib/observability.ts` is the seam if you want one, and swapping it changes no call sites.
+
+**Rollback** is Vercel's previous deployment — one click, and doc 10 §6 asks you to confirm it
+is available before every handover. Nothing in a deploy migrates data, so rolling back the app
+never risks the content.
+
+**Schema changes** are additive-only while a wedding is live. Add a migration to
+`supabase/migrations/`, apply it in the SQL editor, then deploy — in that order, so the old
+code never meets the new schema mid-request.
+
+## 10. Container, if not Vercel
+
+```bash
+docker build -t mehfil .
+docker run -p 3000:3000 --env-file .env.production mehfil
+```
+
+Standalone output, non-root user, health check on `/api/health`. No secret is baked in — the
+build skips `lib/env.ts`'s production guards precisely so it can run without real configuration.
+
+You lose three things Vercel provides, and each needs replacing: wildcard TLS (a reverse proxy
+with a wildcard certificate), the cron scheduler (two entries hitting `/api/cron/reconcile` and
+`/api/cron/usage` with the `Authorization: Bearer $CRON_SECRET` header), and ISR revalidation
+across instances — run a single instance, or add shared cache handling, before scaling out.
+
+## 11. Known gaps at deploy time
+
+Honest, so they are not discovered at a wedding. Tracked in
+[`../project-doc-directory/docs/NEXT.md`](../project-doc-directory/docs/NEXT.md).
+
+- **The webhook signature has never been verified against a real delivery.** It needs a public
+  URL, so it cannot be tested locally. It fails closed, and the nightly reconciliation is the
+  safety net. Step 8.2 is how you confirm it.
+- **The browse route renders dynamically, not ISR** (N-4). It reads the locale cookie, which
+  opts it out of static generation. A real LCP cost on the page every guest lands on.
+- **No Lighthouse in CI** (N-5). First-load JS is gated at 150KB; LCP and CLS are not.
+- **The production database has no demo catalogue.** The nine-title fixture exists only in the
+  `memory` and `file` drivers, and a real one needs real cleared footage (N-6, doc 13 §8).

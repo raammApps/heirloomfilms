@@ -27,8 +27,11 @@ export const DELIVERY_ALERT_GB = 300
 
 export async function GET(request: Request) {
   return route('cron/usage', async () => {
-    const secret = request.headers.get('authorization')
-    if (env.NODE_ENV === 'production' && secret !== `Bearer ${env.SESSION_SECRET}`) {
+    // Vercel sends `Authorization: Bearer $CRON_SECRET` — and *no header at all* when
+    // CRON_SECRET is unset, which is why a forgotten variable shows up as jobs that never run
+    // rather than as an error.
+    const expected = `Bearer ${env.CRON_SECRET ?? env.SESSION_SECRET}`
+    if (env.NODE_ENV === 'production' && request.headers.get('authorization') !== expected) {
       return new NextResponse(null, { status: 401 })
     }
 

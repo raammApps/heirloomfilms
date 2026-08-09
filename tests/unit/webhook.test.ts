@@ -8,6 +8,11 @@ import { installRepository, makeCatalogue, makeTitle } from '../helpers/reposito
 /**
  * doc 07 webhooks and doc 10 §5: the endpoint verifies the signature before anything else and
  * is idempotent, because the provider retries.
+ *
+ * The payload is treated as a *notification* only. Bunny's webhook `Status` enum is not the one
+ * on the video object — the webhook calls Finished 3, the API calls it 4 — so the handler asks
+ * the API what actually happened. These tests therefore drive state through the provider, not
+ * through the payload.
  */
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
@@ -89,12 +94,42 @@ describe('POST /api/webhooks/bunny', () => {
   })
 
   it('records a failure with a reason rather than dropping the title', async () => {
+    // The provider is the source of truth, so that is where the failure comes from.
+    const provider = new FakeVideoProvider()
+    vi.spyOn(provider, 'getStatus').mockResolvedValue({
+      state: 'failed',
+      durationS: null,
+      posterCandidates: [],
+      thumbnailsUrl: null,
+      errorMessage: 'The provider could not encode this file',
+    })
+    setVideoProvider(provider)
+
     const response = await deliver({ VideoGuid: providerId, Status: 5 })
     expect(response.status).toBe(204)
 
     const title = await repository.getTitle(titleId)
     expect(title!.status).toBe('failed')
     expect(title!.errorMessage).toBeTruthy()
+  })
+
+  it('asks the API rather than believing the payload', async () => {
+    // A payload claiming "finished" while the API says otherwise must not publish a title —
+    // the two enums genuinely disagree, so the payload cannot be trusted.
+    const provider = new FakeVideoProvider()
+    const getStatus = vi.spyOn(provider, 'getStatus').mockResolvedValue({
+      state: 'processing',
+      durationS: null,
+      posterCandidates: [],
+      thumbnailsUrl: null,
+      errorMessage: null,
+    })
+    setVideoProvider(provider)
+
+    await deliver({ VideoGuid: providerId, Status: 4 })
+
+    expect(getStatus).toHaveBeenCalledWith(providerId)
+    expect((await repository.getTitle(titleId))!.status).toBe('processing')
   })
 
   it('acknowledges an unknown asset instead of making the provider retry forever', async () => {

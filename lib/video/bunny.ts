@@ -1,5 +1,5 @@
 import 'server-only'
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { env } from '@/lib/env'
 import { ApiError } from '@/lib/http/errors'
 import { log } from '@/lib/log'
@@ -200,27 +200,42 @@ export class BunnyProvider implements VideoProvider {
   }
 
   verifyWebhook(rawBody: string, headers: Headers) {
+    /**
+     * Bunny signs the **raw** body with HMAC-SHA256, keyed by the library's read-only API key,
+     * hex-encoded, in `X-BunnyStream-Signature`.
+     *
+     * Three things here are easy to get wrong and all fail closed — meaning titles silently
+     * never leave `processing` and only the nightly reconciliation rescues them:
+     *   · it is HMAC, not sha256(secret + body)
+     *   · the key is the read-only key, not the main library key
+     *   · the body must be verified exactly as received, never parsed and re-serialised
+     */
     const secret = env.BUNNY_WEBHOOK_SECRET
     if (!secret) {
-      log.error('bunny: webhook received but BUNNY_WEBHOOK_SECRET is unset — rejecting')
+      log.error('bunny webhook: BUNNY_WEBHOOK_SECRET is unset — rejecting', {
+        fix: 'set it to the library read-only API key',
+      })
       return null
     }
 
-    const provided = headers.get('x-bunny-signature') ?? ''
-    const expected = createHash('sha256').update(`${secret}${rawBody}`).digest('hex')
-    const a = Buffer.from(provided)
+    const provided = headers.get('x-bunnystream-signature') ?? ''
+    const expected = createHmac('sha256', secret).update(rawBody).digest('hex')
+
+    const a = Buffer.from(provided.toLowerCase())
     const b = Buffer.from(expected)
-    if (a.length !== b.length || !timingSafeEqual(a, b)) return null
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      // A rejection here is indistinguishable from an attack unless it says what arrived, and
+      // this is exactly the failure that cannot be reproduced locally.
+      log.warn('bunny webhook: signature mismatch', {
+        headersSeen: [...headers.keys()].filter((k) => k.startsWith('x-')).join(','),
+        providedLength: provided.length,
+      })
+      return null
+    }
 
     try {
-      const payload = JSON.parse(rawBody) as { VideoGuid?: string; Status?: number }
-      if (!payload.VideoGuid) return null
-      const state = STATUS_MAP[payload.Status ?? 2] ?? 'processing'
-      return {
-        providerId: payload.VideoGuid,
-        state,
-        ...(state === 'failed' ? { errorMessage: 'The provider could not encode this file' } : {}),
-      }
+      const payload = JSON.parse(rawBody) as { VideoGuid?: string }
+      return payload.VideoGuid ? { providerId: payload.VideoGuid } : null
     } catch {
       return null
     }

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 /**
  * The production drivers, against the real services.
@@ -90,9 +90,33 @@ describe.skipIf(!hasBunny)('Bunny Stream, for real', () => {
   })
 })
 
+/**
+ * Every call here is a network round trip to a remote database, so the default 5s budget is not
+ * a meaningful assertion about anything — it just makes the suite flaky. 30s per test.
+ */
+const REMOTE_TIMEOUT = 30_000
+
 describe.skipIf(!hasSupabase)('Supabase Postgres, for real', () => {
   const createdCatalogues: string[] = []
   let orgId: string
+
+  /**
+   * Resolved once, up front, rather than as a side effect of the first test. It used to be
+   * assigned inside "has the schema applied", so a timeout there cascaded into three unrelated
+   * failures with a misleading message — the tests were coupled through mutable state.
+   */
+  beforeAll(async () => {
+    const { createClient } = await import('@supabase/supabase-js')
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY)!,
+      { auth: { persistSession: false } },
+    )
+    const { data, error } = await db.from('orgs').select('id').limit(1)
+    if (error) throw new Error(`cannot reach Supabase: ${error.message}`)
+    if (!data?.length) throw new Error('no org exists — run `pnpm bootstrap:sql`')
+    orgId = data[0]!.id
+  }, REMOTE_TIMEOUT)
 
   afterAll(async () => {
     if (createdCatalogues.length === 0) return
@@ -104,70 +128,82 @@ describe.skipIf(!hasSupabase)('Supabase Postgres, for real', () => {
     )
     // Titles, albums and photos cascade from the catalogue.
     for (const id of createdCatalogues) await db.from('catalogues').delete().eq('id', id)
-  })
+  }, REMOTE_TIMEOUT)
 
-  it('has the schema applied', async () => {
-    const { createClient } = await import('@supabase/supabase-js')
-    const db = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY)!,
-      { auth: { persistSession: false } },
-    )
+  it(
+    'has the schema applied',
+    async () => {
+      const { createClient } = await import('@supabase/supabase-js')
+      const db = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY)!,
+        { auth: { persistSession: false } },
+      )
 
-    for (const table of ['orgs', 'operators', 'catalogues', 'titles', 'albums', 'photos']) {
-      const { error } = await db.from(table).select('*', { head: true, count: 'exact' })
-      expect(error, `table "${table}" is missing — run \`pnpm bootstrap:sql\``).toBeNull()
-    }
+      const tables = ['orgs', 'operators', 'catalogues', 'titles', 'albums', 'photos', 'profiles']
+      // In parallel: six sequential round trips to a remote database is latency, not coverage.
+      const results = await Promise.all(
+        tables.map(async (table) => ({
+          table,
+          error: (await db.from(table).select('*', { head: true, count: 'exact' })).error,
+        })),
+      )
 
-    const { data } = await db.from('orgs').select('id').limit(1)
-    expect(data?.length, 'no org exists — run the bootstrap script').toBeGreaterThan(0)
-    orgId = data![0]!.id
-  })
+      const missing = results.filter((r) => r.error).map((r) => r.table)
+      expect(missing, 'run `pnpm bootstrap:sql` and apply it in the SQL editor').toEqual([])
+      expect(orgId).toBeTruthy()
+    },
+    REMOTE_TIMEOUT,
+  )
 
-  it('round-trips a catalogue through the repository, scoped to its org', async () => {
-    const { SupabaseRepository } = await import('@/lib/db/supabase-repository')
-    const repository = new SupabaseRepository()
+  it(
+    'round-trips a catalogue through the repository, scoped to its org',
+    async () => {
+      const { SupabaseRepository } = await import('@/lib/db/supabase-repository')
+      const repository = new SupabaseRepository()
 
-    const id = randomUUID()
-    const slug = `itest-${Date.now().toString(36)}`
+      const id = randomUUID()
+      const slug = `itest-${Date.now().toString(36)}`
 
-    const created = await repository.createCatalogue({
-      id,
-      orgId,
-      slug,
-      customDomain: null,
-      coupleName: { en: 'Integration & Test' },
-      appName: { en: 'Integration Originals' },
-      weddingDate: '2026-12-01',
-      occasion: 'wedding',
-      branding: {},
-      featuredTitleId: null,
-      modules: [],
-      draftModules: null,
-      template: 'films-only',
-      status: 'draft',
-      privacy: 'unlisted',
-      passcodeHash: null,
-      includedUntil: new Date(Date.now() + 90 * 864e5).toISOString(),
-      subStatus: 'included',
-      subPlan: null,
-      subUntil: null,
-      createdAt: new Date().toISOString(),
-      publishedAt: null,
-    })
-    createdCatalogues.push(id)
+      const created = await repository.createCatalogue({
+        id,
+        orgId,
+        slug,
+        customDomain: null,
+        coupleName: { en: 'Integration & Test' },
+        appName: { en: 'Integration Originals' },
+        weddingDate: '2026-12-01',
+        occasion: 'wedding',
+        branding: {},
+        featuredTitleId: null,
+        modules: [],
+        draftModules: null,
+        template: 'films-only',
+        status: 'draft',
+        privacy: 'unlisted',
+        passcodeHash: null,
+        includedUntil: new Date(Date.now() + 90 * 864e5).toISOString(),
+        subStatus: 'included',
+        subPlan: null,
+        subUntil: null,
+        createdAt: new Date().toISOString(),
+        publishedAt: null,
+      })
+      createdCatalogues.push(id)
 
-    // The jsonb round-trip is the part most likely to be wrong: localised strings and the
-    // module array both go through it.
-    expect(created.coupleName).toEqual({ en: 'Integration & Test' })
-    expect(created.modules).toEqual([])
+      // The jsonb round-trip is the part most likely to be wrong: localised strings and the
+      // module array both go through it.
+      expect(created.coupleName).toEqual({ en: 'Integration & Test' })
+      expect(created.modules).toEqual([])
 
-    const fetched = await repository.getCatalogue(id, orgId)
-    expect(fetched?.slug).toBe(slug)
+      const fetched = await repository.getCatalogue(id, orgId)
+      expect(fetched?.slug).toBe(slug)
 
-    // Another org must not see it. This is the isolation claim, tested rather than asserted.
-    expect(await repository.getCatalogue(id, randomUUID())).toBeNull()
-  })
+      // Another org must not see it. This is the isolation claim, tested rather than asserted.
+      expect(await repository.getCatalogue(id, randomUUID())).toBeNull()
+    },
+    REMOTE_TIMEOUT,
+  )
 
   it('round-trips a title, including the arrays and the nullable columns', async () => {
     const { SupabaseRepository } = await import('@/lib/db/supabase-repository')
@@ -220,59 +256,64 @@ describe.skipIf(!hasSupabase)('Supabase Postgres, for real', () => {
    * the query broke is worse than no test at all. So: prove anon *can* read a published
    * catalogue, then prove it cannot read the draft.
    */
-  it('enforces RLS: anon reads a published catalogue but never a draft one', async () => {
-    const anonKey =
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-    expect(anonKey, 'the publishable key is required to test RLS').toBeTruthy()
+  it(
+    'enforces RLS: anon reads a published catalogue but never a draft one',
+    async () => {
+      const anonKey =
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+      expect(anonKey, 'the publishable key is required to test RLS').toBeTruthy()
 
-    const { createClient } = await import('@supabase/supabase-js')
-    const { SupabaseRepository } = await import('@/lib/db/supabase-repository')
-    const anon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, anonKey!, {
-      auth: { persistSession: false },
-    })
+      const { createClient } = await import('@supabase/supabase-js')
+      const { SupabaseRepository } = await import('@/lib/db/supabase-repository')
+      const anon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, anonKey!, {
+        auth: { persistSession: false },
+      })
 
-    const draftId = createdCatalogues[0]
-    expect(draftId, 'the catalogue test must run first').toBeTruthy()
+      const draftId = createdCatalogues[0]
+      expect(draftId, 'the catalogue test must run first').toBeTruthy()
 
-    // Positive control: publish a second catalogue and confirm anon can see it.
-    const repository = new SupabaseRepository()
-    const publishedId = randomUUID()
-    const publishedSlug = `itest-pub-${Date.now().toString(36)}`
-    await repository.createCatalogue({
-      id: publishedId,
-      orgId,
-      slug: publishedSlug,
-      customDomain: null,
-      coupleName: { en: 'Published & Visible' },
-      appName: { en: 'Published Originals' },
-      weddingDate: '2026-12-02',
-      occasion: 'wedding',
-      branding: {},
-      featuredTitleId: null,
-      modules: [],
-      draftModules: null,
-      template: 'films-only',
-      status: 'published',
-      privacy: 'unlisted',
-      passcodeHash: null,
-      includedUntil: new Date(Date.now() + 90 * 864e5).toISOString(),
-      subStatus: 'included',
-      subPlan: null,
-      subUntil: null,
-      createdAt: new Date().toISOString(),
-      publishedAt: new Date().toISOString(),
-    })
-    createdCatalogues.push(publishedId)
+      // Positive control: publish a second catalogue and confirm anon can see it.
+      const repository = new SupabaseRepository()
+      const publishedId = randomUUID()
+      const publishedSlug = `itest-pub-${Date.now().toString(36)}`
+      await repository.createCatalogue({
+        id: publishedId,
+        orgId,
+        slug: publishedSlug,
+        customDomain: null,
+        coupleName: { en: 'Published & Visible' },
+        appName: { en: 'Published Originals' },
+        weddingDate: '2026-12-02',
+        occasion: 'wedding',
+        branding: {},
+        featuredTitleId: null,
+        modules: [],
+        draftModules: null,
+        template: 'films-only',
+        status: 'published',
+        privacy: 'unlisted',
+        passcodeHash: null,
+        includedUntil: new Date(Date.now() + 90 * 864e5).toISOString(),
+        subStatus: 'included',
+        subPlan: null,
+        subUntil: null,
+        createdAt: new Date().toISOString(),
+        publishedAt: new Date().toISOString(),
+      })
+      createdCatalogues.push(publishedId)
 
-    const visible = await anon.from('catalogues').select('id').eq('id', publishedId)
-    expect(visible.error, 'the anon query itself must work').toBeNull()
-    expect(visible.data ?? [], 'anon must see a published catalogue').toHaveLength(1)
+      const visible = await anon.from('catalogues').select('id').eq('id', publishedId)
+      expect(visible.error, 'the anon query itself must work').toBeNull()
+      expect(visible.data ?? [], 'anon must see a published catalogue').toHaveLength(1)
 
-    // The actual assertion, now meaningful: same client, same query shape, draft row.
-    const hidden = await anon.from('catalogues').select('id').eq('id', draftId!)
-    expect(hidden.error).toBeNull()
-    expect(hidden.data ?? [], 'anon must NOT see a draft catalogue').toHaveLength(0)
-  })
+      // The actual assertion, now meaningful: same client, same query shape, draft row.
+      const hidden = await anon.from('catalogues').select('id').eq('id', draftId!)
+      expect(hidden.error).toBeNull()
+      expect(hidden.data ?? [], 'anon must NOT see a draft catalogue').toHaveLength(0)
+    },
+    REMOTE_TIMEOUT,
+  )
 
   it('enforces RLS: anon cannot write, only read', async () => {
     const anonKey =
