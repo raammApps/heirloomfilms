@@ -60,6 +60,10 @@ pnpm test:e2e
 | `pnpm test` | 168 unit and component tests |
 | `pnpm test:e2e` | All six journeys in doc 10 §2, plus the OG budget and a zero-axe-violations gate across eight page states |
 | `pnpm check:contrast` | Every colour pairing in doc 04 §2, read out of `globals.css` |
+| `pnpm check:bundle` | Browse first-load JS against doc 05 §6's 150KB. Needs `pnpm build` first. |
+| `pnpm test:integration` | The real Bunny and Supabase drivers. Opt-in; skips without credentials. |
+| `pnpm verify:playback` | Uploads to Bunny and proves signed playback works and unsigned does not |
+| `pnpm preflight` | Read-only readiness check for both external services |
 | `pnpm typecheck` | Strict TS, `noUncheckedIndexedAccess`, no `any` |
 
 The suite runs in about two seconds without a database. That is deliberate: a test suite that

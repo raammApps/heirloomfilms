@@ -216,6 +216,30 @@ comes from, exits non-zero when the configured drivers are not ready), `pnpm boo
 Note: `.env.local` holds the supplied credentials and is gitignored — verified, nothing
 committed. The Bunny account key was pasted into a chat transcript and should be rotated.
 
+## N-2 · Posters under token authentication — done 2026-08-09
+Built: `getAssetUrl` on the provider, poster candidates as provider-relative **file names**, and
+`app/api/poster/[titleId]` which mints a signature per request and 302s. Playback and posters
+share one `signDirectory()`.
+Files: lib/video/{provider,bunny,fake,index}.ts, app/api/poster/[titleId]/route.ts, the three
+status writers (webhook, retry, reconcile), tests/unit/poster.test.ts
+Note: **never persist a signed URL.** `titles.poster_url` is embedded in ISR-cached pages and
+the OG card, so a 4h token there yields a poster that works today and 403s when someone reopens
+their wedding. The database stores `/api/poster/<id>?file=…`, which cannot expire. Verified
+against live Bunny — signed manifest, child playlist and poster all 200; all three unsigned 403.
+
+## N-5 (part) · First-load JS budget gated — done 2026-08-09
+Built: `pnpm check:bundle`, in CI after the build. Computes gzipped first-load from
+`.next/app-build-manifest.json` rather than scraping the `next build` table, so a Next.js
+version bump does not silently disable it. Browse is 141.8KB against 150KB.
+Files: scripts/check-bundle.ts, .github/workflows/ci.yml
+Note: it warns below 5% headroom, before the budget actually breaks. LCP, CLS and playback start
+are still documented rather than gated — see NEXT.md N-5.
+
+## Also fixed
+With credentials present, `tests/integration` silently joined `pnpm test` and failed on the
+unapplied schema. The default suite must stay hermetic and fast or people stop running it, so
+integration is now opt-in behind `RUN_INTEGRATION=1`.
+
 ## Open, and deliberately so
 
 - **The browse route renders dynamically, not ISR.** Reading the locale cookie in

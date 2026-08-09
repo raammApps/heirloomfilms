@@ -51,6 +51,11 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # doc 05 §6: the browse page has 150KB gzip of first-load JS. It sat at 146KB with
+      # nothing watching it, which is how a budget quietly stops being one.
+      - name: First-load JS budget
+        run: pnpm check:bundle
+
   e2e:
     name: End-to-end journeys
     runs-on: ubuntu-latest

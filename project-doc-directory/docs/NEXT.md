@@ -25,7 +25,7 @@ few seconds and is more trustworthy than this paragraph.
 
 ## Tier 1 — unretired risk
 
-### N-1 · Finish the Supabase wiring  ·  blocked on a key  ·  ~1h once unblocked
+### N-1 · Finish the Supabase wiring  ·  one manual step  ·  ~30min
 
 `SupabaseRepository` (564 lines) and both migrations have still never executed. This is the last
 piece of production path with no coverage behind it.
@@ -69,12 +69,15 @@ Options, in order of preference: resolve the locale client-side after a static f
 move it into the path (`/hi/…`), which doc 03 argues against because the WhatsApp link is the
 product's front door. Measure before and after — the point is the number, not the refactor.
 
-### N-5 · Performance budgets enforced in CI  ·  ~3h  ·  doc 09 P1-14
+### N-5 · Lighthouse / QoE probe in CI  ·  ~3h  ·  doc 09 P1-14
 
-`lib/budgets.ts` declares them and only the OG one is enforced. Browse first-load JS was 146KB
-against a 150KB budget at last measurement — four kilobytes of headroom and nothing watching it.
-Add a check that reads `.next/build-manifest.json` after `pnpm build` and fails past budget.
-Lighthouse CI for LCP/CLS is the fuller version, but the JS budget is the one about to break.
+The first-load JS budget is now gated (`pnpm check:bundle`, in CI after the build; browse is
+141.8KB against 150KB). What is still only documented in `lib/budgets.ts` is **LCP, CLS and
+playback start time** — and playback start is the metric the product lives or dies on.
+
+Lighthouse CI against the built app covers LCP and CLS. Playback start needs a real QoE probe
+and cannot be honestly measured on CI hardware; doc 10 §3 M-9 keeps the authoritative number on
+a real phone on real 4G.
 
 ### N-6 · The demo catalogue needs real footage  ·  doc 13 §8 — **not to be delegated**
 
@@ -127,8 +130,8 @@ line — `tests/unit/registry.test.ts` fails the build otherwise. Remember `meta
 
 ## Facts a new session will want
 
-- **Credentials** live in `.env.local` (gitignored, verified). Bunny is fully configured;
-  `SUPABASE_SECRET_KEY` is empty and is the one thing missing.
+- **Credentials** live in `.env.local` (gitignored, verified). Bunny is fully configured and
+  the Supabase secret key works; only the schema is missing.
 - **Bunny**: library `mehfil` id `724076`, pull zone `6300168`, CDN `vz-98fb153e-d39.b-cdn.net`.
   Token auth **on**, IP pinning **off**, `BlockNoneReferrer` **off** — all three deliberate, see
   PROGRESS.
