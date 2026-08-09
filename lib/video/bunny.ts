@@ -47,14 +47,24 @@ export class BunnyProvider implements VideoProvider {
 
     if (!response.ok) {
       const body = await response.text().catch(() => '')
-      log.error('bunny: api call failed', { path, status: response.status, body: body.slice(0, 300) })
+      log.error('bunny: api call failed', {
+        path,
+        status: response.status,
+        body: body.slice(0, 300),
+      })
       throw new ApiError('INTERNAL', `Bunny responded ${response.status}`)
     }
 
     return (await response.json()) as T
   }
 
-  async createUpload({ title, sizeBytes }: { title: string; sizeBytes: number }): Promise<UploadTicket> {
+  async createUpload({
+    title,
+    sizeBytes,
+  }: {
+    title: string
+    sizeBytes: number
+  }): Promise<UploadTicket> {
     const video = await this.call<{ guid: string }>('/videos', {
       method: 'POST',
       body: JSON.stringify({ title }),
@@ -93,26 +103,39 @@ export class BunnyProvider implements VideoProvider {
   }): Promise<PlaybackTicket> {
     const host = env.BUNNY_CDN_HOSTNAME!
     const expires = Math.floor(Date.now() / 1000) + ttlS
-    const path = `/${providerId}/playlist.m3u8`
 
-    // Bunny token auth: sha256(securityKey + path + expiry), base64url. The scope is carried
-    // in a separate signed parameter so an audit can tell which catalogue a token was minted
-    // for — Bunny itself only enforces path + expiry.
+    /**
+     * Sign the **directory**, not the manifest.
+     *
+     * `token = base64url(sha256(securityKey + path + expires))` is Bunny's URL token
+     * authentication, and signing `/{guid}/playlist.m3u8` does authorise that one file — which
+     * is exactly the trap. HLS immediately fetches `/{guid}/240p/video.m3u8` and the segments
+     * beneath it, and those 403 with a file-scoped token. Playback would show the poster, load
+     * the manifest, and then die. Signing `/{guid}/` covers the whole rendition tree with one
+     * token, and the guid in the path is itself the scope: a token minted for one video cannot
+     * authorise another, whatever the caller claims.
+     *
+     * Verified against the live CDN by `pnpm verify:playback`, which asserts a child playlist
+     * as well as the manifest. Do not "simplify" this back to the file path.
+     */
+    const directory = `/${providerId}/`
     const token = createHash('sha256')
-      .update(`${env.BUNNY_TOKEN_AUTH_KEY}${path}${expires}`)
+      .update(`${env.BUNNY_TOKEN_AUTH_KEY}${directory}${expires}`)
       .digest('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=/g, '')
 
-    const scopeTag = createHash('sha256')
-      .update(`${env.BUNNY_TOKEN_AUTH_KEY}:${scope.catalogueId}:${scope.titleId}:${expires}`)
-      .digest('base64url')
-      .slice(0, 24)
+    // No extra query parameters on the signed URL: Bunny validates the request as a whole, and
+    // an audit tag appended here silently breaks playback. `scope` is enforced where it belongs
+    // — the token endpoint only mints a URL after checking this catalogue owns this title.
+    void scope
+
+    const query = `?token=${token}&expires=${expires}`
 
     return {
-      playbackUrl: `https://${host}${path}?token=${token}&expires=${expires}&scope=${scopeTag}`,
-      thumbnailsUrl: `https://${host}/${providerId}/seek/seek.vtt`,
+      playbackUrl: `https://${host}${directory}playlist.m3u8${query}`,
+      thumbnailsUrl: `https://${host}${directory}seek/seek.vtt${query}`,
       expiresAt: new Date(expires * 1000).toISOString(),
     }
   }
@@ -136,8 +159,9 @@ export class BunnyProvider implements VideoProvider {
       // operator picks from (doc 09 P0-10).
       posterCandidates:
         state === 'ready'
-          ? Array.from({ length: Math.min(3, Math.max(video.thumbnailCount, 1)) }, (_, i) =>
-              `https://${host}/${providerId}/thumbnail_${i + 1}.jpg`,
+          ? Array.from(
+              { length: Math.min(3, Math.max(video.thumbnailCount, 1)) },
+              (_, i) => `https://${host}/${providerId}/thumbnail_${i + 1}.jpg`,
             )
           : [],
       thumbnailsUrl: state === 'ready' ? `https://${host}/${providerId}/seek/seek.vtt` : null,

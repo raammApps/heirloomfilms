@@ -40,7 +40,10 @@ export default defineConfig({
     command: 'pnpm build && pnpm start',
     url: `${BASE_URL}/api/health`,
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    // A cold `next build` on a loaded machine exceeds three minutes. The suite itself runs in
+    // well under a minute, so a generous boot budget costs nothing and removes a CI failure
+    // that says "timed out" when nothing is actually wrong.
+    timeout: 420_000,
     env: {
       PORT: String(PORT),
       NODE_ENV: 'production',

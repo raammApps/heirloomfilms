@@ -229,9 +229,15 @@ Recorded honestly rather than left to be discovered. Details and reasoning in
 - **Poster candidates and trailers come from the provider, unstyled.** Doc 04 §6's generated
   artwork is implemented and used as the fallback everywhere, but three-frame extraction on
   `ready` is only as good as what Bunny returns.
-- **The Bunny and Supabase drivers have never run.** Every suite uses `fake` + `memory`; that is
-  1,104 lines of production path, including both migrations, with no execution behind them. This
-  is the largest open risk and the first thing to close.
+- **Poster thumbnails 403 under token authentication.** Enabling it protects every file in the
+  zone, including `/{guid}/thumbnail_1.jpg`, which `getStatus` returns as a plain URL and the
+  admin renders directly. Signing them with the 4-hour playback TTL is wrong: `posterUrl` is
+  persisted and embedded in ISR pages and the OG image. The fix is a redirect route
+  (`/api/poster/<titleId>` → 302 to a freshly signed URL) so the stored value never expires.
+  Until then, generated poster art is used — which is the default anyway.
+- **The Supabase driver has never run.** `SupabaseRepository` and both migrations still have no
+  execution behind them, pending the secret key and the bootstrap SQL. The Bunny driver is now
+  covered by `pnpm test:integration` and `pnpm verify:playback`.
 - **TUS resume against a real endpoint is unverified.** E2E-5 covers our half of the upload
   contract; resuming from a real acked offset after a real network drop needs a live provider and
   stays a device check (doc 10 §3 M-5).

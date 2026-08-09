@@ -23,11 +23,16 @@ if (existsSync('.env.local')) {
   }
 }
 
-type Result = { ok: boolean; label: string; detail: string; fix?: string }
+type Service = 'supabase' | 'bunny'
+type Result = { ok: boolean; service: Service; label: string; detail: string; fix?: string }
+
 const results: Result[] = []
-const pass = (label: string, detail: string) => results.push({ ok: true, label, detail })
+let current: Service = 'supabase'
+
+const pass = (label: string, detail: string) =>
+  results.push({ ok: true, service: current, label, detail })
 const fail = (label: string, detail: string, fix?: string) =>
-  results.push({ ok: false, label, detail, fix })
+  results.push({ ok: false, service: current, label, detail, fix })
 
 const env = process.env
 const dataDriver = env.DATA_DRIVER ?? 'memory'
@@ -100,8 +105,21 @@ async function checkBunny(): Promise<void> {
     return
   }
 
+  const libraryId = env.BUNNY_LIBRARY_ID
+
+  /**
+   * In a working setup `BUNNY_API_KEY` is the **library** key, which the account API rejects.
+   * So when a library id is configured, the library endpoint is the real check and the account
+   * listing is skipped entirely — otherwise a correct configuration reports a false failure.
+   */
+  if (libraryId) {
+    await checkLibrary(apiKey, libraryId)
+    return
+  }
+
+  const accountKey = env.BUNNY_ACCOUNT_API_KEY ?? apiKey
   const account = await fetch('https://api.bunny.net/videolibrary?page=1&perPage=50', {
-    headers: { AccessKey: apiKey, accept: 'application/json' },
+    headers: { AccessKey: accountKey, accept: 'application/json' },
   }).catch(() => null)
 
   if (!account) {
@@ -115,12 +133,12 @@ async function checkBunny(): Promise<void> {
     fail(
       'Bunny key',
       'rejected by the account API (401)',
-      'this may be a per-library key rather than the account key — Account Settings → API',
+      'this looks like a per-library key — set BUNNY_LIBRARY_ID too, and it will be checked against the library endpoint instead',
     )
     return
   }
 
-  pass('Bunny key', 'valid account key')
+  pass('Bunny account key', 'valid')
 
   const body = (await account.json()) as { Items?: { Id: number; Name: string }[] }
   const libraries = body.Items ?? []
@@ -147,32 +165,28 @@ async function checkBunny(): Promise<void> {
 
   pass('Stream library', `${libraries.length} found: ${libraries.map((l) => l.Name).join(', ')}`)
 
-  const libraryId = env.BUNNY_LIBRARY_ID
-  if (!libraryId) {
-    fail(
-      'BUNNY_LIBRARY_ID',
-      'not set',
-      `pick one of: ${libraries.map((l) => `${l.Id} (${l.Name})`).join(', ')}`,
-    )
-    return
-  }
+  fail(
+    'BUNNY_LIBRARY_ID',
+    'not set',
+    `pick one of: ${libraries.map((l) => `${l.Id} (${l.Name})`).join(', ')}`,
+  )
+}
 
-  // The per-library key, not the account key, is what the Stream endpoints accept.
+async function checkLibrary(apiKey: string, libraryId: string): Promise<void> {
   const videos = await fetch(
     `https://video.bunnycdn.com/library/${libraryId}/videos?page=1&itemsPerPage=1`,
-    {
-      headers: { AccessKey: apiKey, accept: 'application/json' },
-    },
+    { headers: { AccessKey: apiKey, accept: 'application/json' } },
   ).catch(() => null)
 
   if (!videos || !videos.ok) {
     fail(
       'Library API access',
       `HTTP ${videos?.status ?? 'unreachable'}`,
-      'BUNNY_API_KEY must be the library key (Stream → your library → API) for these endpoints',
+      'BUNNY_API_KEY must be the library key (Stream → your library → API), not the account key',
     )
   } else {
-    pass('Library API access', `library ${libraryId} reachable`)
+    const body = (await videos.json()) as { totalItems?: number }
+    pass('Library API access', `library ${libraryId}, ${body.totalItems ?? 0} video(s)`)
   }
 
   if (!env.BUNNY_CDN_HOSTNAME) {
@@ -185,10 +199,84 @@ async function checkBunny(): Promise<void> {
     fail(
       'BUNNY_TOKEN_AUTH_KEY',
       'not set — playback URLs would be unsigned',
-      'library → Security → Token Authentication Key, and turn token authentication ON',
+      'the pull zone Security tab; token authentication must also be ON',
+    )
+    return
+  }
+  pass('BUNNY_TOKEN_AUTH_KEY', 'set')
+
+  /**
+   * Holding the key is not the same as the zone enforcing it. An unenforced zone serves every
+   * `.m3u8` to anyone with the URL, which quietly makes doc 01 US-5's promise false — exactly
+   * the kind of thing nobody notices until a link is forwarded outside the family.
+   */
+  const accountKey = env.BUNNY_ACCOUNT_API_KEY
+  if (!accountKey) return
+
+  const libraries = await fetch('https://api.bunny.net/videolibrary?page=1&perPage=50', {
+    headers: { AccessKey: accountKey, accept: 'application/json' },
+  })
+    .then((r) =>
+      r.ok ? (r.json() as Promise<{ Items?: { Id: number; PullZoneId: number }[] }>) : null,
+    )
+    .catch(() => null)
+
+  const pullZoneId = libraries?.Items?.find((l) => String(l.Id) === libraryId)?.PullZoneId
+  if (!pullZoneId) return
+
+  const zone = await fetch(`https://api.bunny.net/pullzone/${pullZoneId}`, {
+    headers: { AccessKey: accountKey, accept: 'application/json' },
+  })
+    .then((r) =>
+      r.ok
+        ? (r.json() as Promise<{
+            ZoneSecurityEnabled?: boolean
+            ZoneSecurityIncludeHashRemoteIP?: boolean
+          }>)
+        : null,
+    )
+    .catch(() => null)
+
+  if (!zone?.ZoneSecurityEnabled) {
+    fail(
+      'Token auth enforced',
+      'the pull zone does not require a token',
+      'signed URLs are generated but never checked — enable Token Authentication on the pull zone',
+    )
+    return
+  }
+
+  pass('Token auth enforced', `pull zone ${pullZoneId}`)
+
+  /**
+   * A new Stream library ships with `BlockNoneReferrer: true`, which 403s any request that
+   * carries no `Referer`. Native HLS on iOS and several Android players send none, so this
+   * looks exactly like a broken token and costs an afternoon to diagnose.
+   */
+  const library = await fetch(`https://api.bunny.net/videolibrary/${libraryId}`, {
+    headers: { AccessKey: accountKey, accept: 'application/json' },
+  })
+    .then((r) => (r.ok ? (r.json() as Promise<{ BlockNoneReferrer?: boolean }>) : null))
+    .catch(() => null)
+
+  if (library?.BlockNoneReferrer) {
+    fail(
+      'Referrer blocking',
+      'the library blocks requests with no Referer',
+      'turn BlockNoneReferrer off — native HLS players send no referrer and will 403',
+    )
+  } else if (library) {
+    pass('Referrer blocking', 'off, so referrer-less players work')
+  }
+
+  if (zone.ZoneSecurityIncludeHashRemoteIP) {
+    fail(
+      'IP pinning',
+      'enabled',
+      'turn it off — Indian mobile IPs rotate mid-playback and it causes false failures (doc 05 §4)',
     )
   } else {
-    pass('BUNNY_TOKEN_AUTH_KEY', 'set')
+    pass('IP pinning', 'off, as doc 05 §4 requires')
   }
 }
 
@@ -196,7 +284,9 @@ async function checkBunny(): Promise<void> {
 async function main(): Promise<void> {
   console.log(`\nDrivers: data=${dataDriver} video=${videoDriver}\n`)
 
+  current = 'supabase'
   await checkSupabase()
+  current = 'bunny'
   await checkBunny()
 
   const width = Math.max(...results.map((r) => r.label.length))
@@ -205,23 +295,34 @@ async function main(): Promise<void> {
     if (r.fix) console.log(`${' '.repeat(width + 3)}→ ${r.fix}`)
   }
 
-  const blocking = results.filter((r) => !r.ok)
   const needsSupabase = dataDriver === 'supabase'
   const needsBunny = videoDriver === 'bunny'
 
+  // Only the services the configured drivers actually use can block.
+  const blocking = results.filter(
+    (r) =>
+      !r.ok &&
+      ((r.service === 'supabase' && needsSupabase) || (r.service === 'bunny' && needsBunny)),
+  )
+  const advisory = results.filter((r) => !r.ok && !blocking.includes(r))
+
   console.log()
-  if (blocking.length === 0) {
+  if (blocking.length > 0) {
     console.log(
-      'Ready. Flip DATA_DRIVER=supabase and VIDEO_DRIVER=bunny, then `pnpm test:integration`.',
+      `${blocking.length} item(s) block the configured drivers (data=${dataDriver}, video=${videoDriver}).`,
     )
-  } else if (!needsSupabase && !needsBunny) {
-    console.log(
-      `${blocking.length} item(s) outstanding, but the configured drivers are local (${dataDriver}/${videoDriver}),\nso nothing is broken right now. The list above is what remains before switching over.`,
-    )
-  } else {
-    console.log(`${blocking.length} item(s) block the configured drivers.`)
     process.exit(1)
   }
+
+  if (advisory.length > 0) {
+    console.log(
+      `Configured drivers (data=${dataDriver}, video=${videoDriver}) are ready.
+` + `${advisory.length} item(s) remain before the other service can be switched on.`,
+    )
+    return
+  }
+
+  console.log('Everything is ready. `pnpm test:integration` exercises both for real.')
 }
 
 void main()

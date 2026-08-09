@@ -27,7 +27,8 @@
     "bootstrap:sql": "tsx scripts/bootstrap-supabase.ts",
     "test:integration": "vitest run tests/integration",
     "make:sample-video": "node scripts/make-sample-video.mjs",
-    "preflight": "tsx scripts/preflight.ts"
+    "preflight": "tsx scripts/preflight.ts",
+    "verify:playback": "tsx scripts/verify-bunny-playback.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

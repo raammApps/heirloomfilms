@@ -158,7 +158,41 @@ catalogue younger than 14 days." Doc 01 §5.1 **cut** both features (VE-13, VE-1
 is stale against the product spec. Verified that neither feature exists in the code; doc 10
 wants updating, or the requirement rereading as "assert they are absent".
 
-## Real-service wiring — attempted 2026-08-09, blocked
+## Bunny is live — done 2026-08-09
+
+Built: Stream library `mehfil` (id 724076, pull zone 6300168, Singapore replication, CDN
+`vz-98fb153e-d39.b-cdn.net`), token authentication enforced, IP pinning off per doc 05 §4.
+`VIDEO_DRIVER=bunny` locally, four integration tests running against the live service, and
+`pnpm verify:playback` proving the whole playback path end to end.
+
+**`lib/video/bunny.ts` was signing the wrong path, and every guest would have got a 403.**
+Bunny's URL token authentication is `base64url(sha256(securityKey + path + expires))` — which
+was right — but signing `/{guid}/playlist.m3u8` authorises exactly that one file. HLS then
+fetches `/{guid}/240p/video.m3u8` and the segments under it, and those 403. Playback would have
+shown the poster, loaded the manifest and died. Signing the **directory** `/{guid}/` authorises
+the whole rendition tree with one token. Verified: master 200, child playlist 200, unsigned 403.
+
+Two traps worth knowing, both of which cost real time:
+
+- A new Stream library ships with **`BlockNoneReferrer: true`**, which 403s any request with no
+  `Referer`. It masked the token problem completely — every candidate algorithm returned 403,
+  including unsigned. Native HLS on iOS and several Android players send no referrer, so this
+  would have broken playback in production too. Now off, and `pnpm preflight` checks it.
+- The **account key and the per-library key are different**. The account key manages libraries
+  (`api.bunny.net`); the library key is what the Stream endpoints (`video.bunnycdn.com`) accept.
+  A 401 looks identical either way. `.env.local` keeps them in separate variables and preflight
+  reports which is which.
+
+**Open, and it is a real gap: poster thumbnails now 403.** Enabling token authentication applies
+to every file in the zone, including `/{guid}/thumbnail_1.jpg` and `preview.webp`, which
+`getStatus` returns as plain URLs and the admin renders directly in the poster picker. Verified
+403. Signing them with the 4-hour playback TTL is wrong — `posterUrl` is persisted, embedded in
+ISR pages and in the OG image, and a keepsake is supposed to last years. The right fix is a
+small redirect route (`/api/poster/<titleId>` → 302 to a freshly signed URL) so the stored value
+never expires; bytes still come from Bunny, so doc 07's "no server-side video proxy" holds.
+Not done. Until it is, generated poster art is used, which is the default anyway.
+
+## Real-service wiring — first attempt 2026-08-09, blocked
 
 Credentials arrived for both services. Neither is usable yet, and the blockers are external:
 

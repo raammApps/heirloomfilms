@@ -1,0 +1,165 @@
+#!/usr/bin/env tsx
+/**
+ * Prove the playback path against the real Bunny, end to end.
+ *
+ * The one thing no unit test can establish: whether *our* token signature is the signature
+ * Bunny expects. Get the algorithm subtly wrong and every unit test still passes, the URL still
+ * looks right, and every guest gets a 403 — discovered at a wedding.
+ *
+ * So this uploads a real file, waits for the transcode, and then asserts both directions:
+ * a signed URL is served, and an unsigned one is refused. Refusing matters as much as serving
+ * — an unenforced zone would serve both and the privacy promise in doc 01 US-5 would be false
+ * while every test stayed green.
+ *
+ *   pnpm verify:playback
+ *
+ * Consumes a few seconds of encoding. Deletes the video afterwards unless --keep is passed.
+ */
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
+
+if (existsSync('.env.local')) {
+  for (const line of readFileSync('.env.local', 'utf8').split('\n')) {
+    const match = /^\s*([A-Z0-9_]+)\s*=\s*(.*)$/.exec(line)
+    if (!match) continue
+    const value = match[2]!.trim().replace(/^["']|["']$/g, '')
+    if (value) process.env[match[1]!] ??= value
+  }
+}
+
+const LIBRARY = process.env.BUNNY_LIBRARY_ID
+const API_KEY = process.env.BUNNY_API_KEY
+const HOST = process.env.BUNNY_CDN_HOSTNAME
+const TOKEN_KEY = process.env.BUNNY_TOKEN_AUTH_KEY
+const KEEP = process.argv.includes('--keep')
+const SAMPLE = 'public/media/sample.webm'
+
+if (!LIBRARY || !API_KEY || !HOST || !TOKEN_KEY) {
+  console.error('Bunny is not configured. Run `pnpm preflight`.')
+  process.exit(1)
+}
+
+const api = (path: string, init?: RequestInit) =>
+  fetch(`https://video.bunnycdn.com/library/${LIBRARY}${path}`, {
+    ...init,
+    headers: { AccessKey: API_KEY, accept: 'application/json', ...init?.headers },
+  })
+
+function sign(path: string, expires: number): string {
+  // Must match lib/video/bunny.ts exactly. If these ever diverge, this script is what catches it.
+  return createHash('sha256')
+    .update(`${TOKEN_KEY}${path}${expires}`)
+    .digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '')
+}
+
+/** The first non-comment line of a master playlist: the rendition HLS will fetch next. */
+function firstRendition(manifest: string): string | null {
+  return manifest.split('\n').find((line) => line.trim() && !line.startsWith('#')) ?? null
+}
+
+async function main(): Promise<void> {
+  let guid: string | undefined
+
+  try {
+    console.log('1. creating the video object…')
+    const created = await api('/videos', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: `playback-verification-${Date.now()}` }),
+    })
+    if (!created.ok) throw new Error(`create failed: ${created.status} ${await created.text()}`)
+    guid = ((await created.json()) as { guid: string }).guid
+    console.log(`   guid ${guid}`)
+
+    console.log(`2. uploading ${SAMPLE}…`)
+    const body = readFileSync(SAMPLE)
+    const uploaded = await api(`/videos/${guid}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/octet-stream' },
+      body,
+    })
+    if (!uploaded.ok) throw new Error(`upload failed: ${uploaded.status} ${await uploaded.text()}`)
+    console.log(`   ${(body.byteLength / 1024).toFixed(0)}KB accepted`)
+
+    console.log('3. waiting for the transcode…')
+    let state = -1
+    for (let attempt = 0; attempt < 60; attempt++) {
+      await new Promise((r) => setTimeout(r, 5000))
+      const status = await api(`/videos/${guid}`)
+      const video = (await status.json()) as { status: number; encodeProgress: number }
+      state = video.status
+      process.stdout.write(`   status=${state} progress=${video.encodeProgress}%\r`)
+      if (state === 4) break
+      if (state === 5) throw new Error('the provider failed to encode the sample')
+    }
+    console.log()
+    if (state !== 4) throw new Error('timed out waiting for the transcode')
+    console.log('   ready')
+
+    // ── The actual question ───────────────────────────────────────────────────
+    // The directory is what gets signed; see the comment in lib/video/bunny.ts.
+    const directory = `/${guid}/`
+    const expires = Math.floor(Date.now() / 1000) + 3600
+    const query = `?token=${sign(directory, expires)}&expires=${expires}`
+    const signed = `https://${HOST}${directory}playlist.m3u8${query}`
+    const unsigned = `https://${HOST}${directory}playlist.m3u8`
+
+    console.log('4. fetching the SIGNED manifest…')
+    const withToken = await fetch(signed)
+    console.log(`   HTTP ${withToken.status}`)
+
+    console.log('5. fetching the UNSIGNED manifest…')
+    const without = await fetch(unsigned)
+    console.log(`   HTTP ${without.status}`)
+
+    // The step that matters most, and the one a manifest-only check misses: HLS fetches a
+    // rendition playlist immediately, and a file-scoped token 403s there.
+    let childStatus: number | string = 'not reached'
+    const manifest = withToken.ok ? await withToken.text() : ''
+    const rendition = manifest ? firstRendition(manifest) : null
+    if (rendition) {
+      console.log(`6. fetching the child playlist "${rendition}" with the SAME token…`)
+      childStatus = (await fetch(`https://${HOST}${directory}${rendition}${query}`)).status
+      console.log(`   HTTP ${childStatus}`)
+    }
+
+    console.log()
+    const servesSigned = withToken.ok
+    const refusesUnsigned = without.status === 403 || without.status === 401
+    const servesChild = childStatus === 200
+
+    if (servesSigned && refusesUnsigned && servesChild) {
+      const renditions = (manifest.match(/RESOLUTION=(\d+x\d+)/g) ?? []).join(', ')
+      console.log('PASS — signature accepted, whole rendition tree authorised, unsigned refused.')
+      if (renditions) console.log(`  ladder: ${renditions}`)
+      return
+    }
+
+    if (!servesSigned) {
+      console.error('FAIL — Bunny rejected our signed URL. The token algorithm does not match.')
+      console.error('  Every guest would get a 403. Check the sign() implementation against')
+      console.error('  lib/video/bunny.ts and Bunny’s URL token authentication docs.')
+    }
+    if (!refusesUnsigned) {
+      console.error(`FAIL — an unsigned URL returned ${without.status}.`)
+      console.error('  The pull zone is not enforcing token authentication, so a copied .m3u8')
+      console.error('  never expires. doc 01 US-5 would be false. Enable it on the pull zone.')
+    }
+    if (servesSigned && !servesChild) {
+      console.error(`FAIL — the manifest loaded but the child playlist returned ${childStatus}.`)
+      console.error('  The token is scoped to one file instead of the directory, so playback')
+      console.error('  would start and immediately stall. Sign `/{guid}/`, not the .m3u8.')
+    }
+    process.exitCode = 1
+  } finally {
+    if (guid && !KEEP) {
+      await api(`/videos/${guid}`, { method: 'DELETE' }).catch(() => {})
+      console.log(`\ncleaned up ${guid}`)
+    }
+  }
+}
+
+void main()
