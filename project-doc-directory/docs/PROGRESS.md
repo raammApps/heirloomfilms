@@ -240,6 +240,21 @@ With credentials present, `tests/integration` silently joined `pnpm test` and fa
 unapplied schema. The default suite must stay hermetic and fast or people stop running it, so
 integration is now opt-in behind `RUN_INTEGRATION=1`.
 
+## N-1 · Supabase live — done 2026-08-09
+Built: nothing new; the driver finally ran. Schema applied (11 tables, 16 RLS policies), first
+org and operator created, and the app verified on `DATA_DRIVER=supabase` + `VIDEO_DRIVER=bunny`:
+health reports both, login works against real Postgres, and create → publish → guest page
+round-trips. `pnpm test:integration` 10/10.
+Note: the RLS test now carries a **positive control** — it proves anon *can* read a published
+catalogue before proving it cannot read a draft. Without that, "anon saw nothing" also passes
+when the query simply errored, which is the worst possible way for a security test to be green.
+A second test proves anon cannot insert at all.
+Note: the first integration run after applying the DDL failed with `PGRST205`. PostgREST caches
+the schema and takes a few seconds to notice new tables — not a defect, but alarming if you do
+not expect it.
+Note: the real database has **no demo catalogue**. The nine-title fixture lives only in the
+memory/file drivers.
+
 ## Open, and deliberately so
 
 - **The browse route renders dynamically, not ISR.** Reading the locale cookie in

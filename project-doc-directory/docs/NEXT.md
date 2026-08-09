@@ -14,9 +14,10 @@ Update this file as items land — move them out, do not leave them ticked.
 
 Phase 0 is built: guest catalogue, player, admin, customizer, and the module registry. All six
 doc 10 §2 journeys run, plus an OG size budget and a zero-axe-violations gate. **180 unit and
-component tests, 69 E2E, all green.** Bunny is live and verified end to end against the real
-CDN. Supabase has a working secret key but **the schema is still unapplied**, so `DATA_DRIVER` is
-still `file` locally. Working tree clean on `master`.
+component tests, 69 E2E, all green.** **Both external services are live and verified end to end**: the app boots on
+`DATA_DRIVER=supabase` + `VIDEO_DRIVER=bunny`, an operator logs in against real Postgres, and
+create → publish → guest page works. `pnpm test:integration` is 10/10. Local development stays
+on `file` + `bunny` so the demo catalogue is available. Working tree clean on `master`.
 
 Run `pnpm preflight` first in any new session: it reports the real state of both services in a
 few seconds and is more trustworthy than this paragraph.
@@ -24,26 +25,6 @@ few seconds and is more trustworthy than this paragraph.
 ---
 
 ## Tier 1 — unretired risk
-
-### N-1 · Finish the Supabase wiring  ·  one manual step  ·  ~30min
-
-`SupabaseRepository` (564 lines) and both migrations have still never executed. This is the last
-piece of production path with no coverage behind it.
-
-1. ~~Secret key into `.env.local`.~~ Done.
-2. `pnpm bootstrap:sql > /tmp/bootstrap.sql`, paste into the Supabase SQL editor, run. It
-   applies both migrations (11 tables, 16 RLS policies) and the first org in one transaction.
-   **This is the only remaining step** — it cannot be automated, because PostgREST does not
-   execute DDL and the Management API needs a personal access token rather than the secret key.
-3. Create the operator in Authentication → Users, then run the `insert into operators`
-   statement printed at the end of that script.
-4. `DATA_DRIVER=supabase`, then `pnpm preflight` and `pnpm test:integration`. Four Supabase
-   integration tests exist and currently skip; they should go green, including the RLS one
-   (doc 10 §1 test 12 — anon must not see a draft catalogue).
-
-**Blocked on:** step 2 only. The secret key is in `.env.local` and works; `pnpm preflight`
-confirms everything except the schema. `pnpm test:integration` currently fails its three
-Supabase tests for exactly that reason — that is the harness working, not a defect.
 
 ### N-3 · A real upload through the browser, against Bunny  ·  ~1h
 
@@ -130,8 +111,14 @@ line — `tests/unit/registry.test.ts` fails the build otherwise. Remember `meta
 
 ## Facts a new session will want
 
-- **Credentials** live in `.env.local` (gitignored, verified). Bunny is fully configured and
-  the Supabase secret key works; only the schema is missing.
+- **Credentials** live in `.env.local` (gitignored, verified). Both services are fully
+  configured; `pnpm preflight` is all green.
+- **Supabase**: schema applied, org `kalyanam`, operator `operator@mehfil.test`. The app
+  verifies its own scrypt hash, so the Supabase Auth password on that account is random and
+  unused — it exists only to satisfy `operators.id → auth.users.id`. The app login is
+  `operator@mehfil.test` / `mehfil-dev`.
+- **The real database has no demo catalogue.** The nine-title fixture only exists in the
+  `memory`/`file` drivers. Seeding a real one properly is N-6 (it needs real footage).
 - **Bunny**: library `mehfil` id `724076`, pull zone `6300168`, CDN `vz-98fb153e-d39.b-cdn.net`.
   Token auth **on**, IP pinning **off**, `BlockNoneReferrer` **off** — all three deliberate, see
   PROGRESS.

@@ -22,7 +22,7 @@ const hasBunny = Boolean(
 )
 const hasSupabase = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY),
+  (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY),
 )
 
 describe.skipIf(!hasBunny)('Bunny Stream, for real', () => {
@@ -211,19 +211,82 @@ describe.skipIf(!hasSupabase)('Supabase Postgres, for real', () => {
     expect(await repository.listTitles(catalogueId!, { publishedOnly: true })).toHaveLength(0)
   })
 
-  it('enforces RLS: the anon key cannot read a draft catalogue', async () => {
+  /**
+   * doc 10 §1 test 12 and §5's pre-launch checklist — the single most important assertion in
+   * this file.
+   *
+   * It needs a positive control. "anon sees nothing" also happens when the request errored, the
+   * key was wrong, or the table name was misspelled, and a security test that passes because
+   * the query broke is worse than no test at all. So: prove anon *can* read a published
+   * catalogue, then prove it cannot read the draft.
+   */
+  it('enforces RLS: anon reads a published catalogue but never a draft one', async () => {
     const anonKey =
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-    if (!anonKey) return
+    expect(anonKey, 'the publishable key is required to test RLS').toBeTruthy()
 
     const { createClient } = await import('@supabase/supabase-js')
-    const anon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, anonKey, {
+    const { SupabaseRepository } = await import('@/lib/db/supabase-repository')
+    const anon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, anonKey!, {
       auth: { persistSession: false },
     })
 
-    // doc 10 §1 test 12 and §5's pre-launch checklist. The catalogue created above is `draft`.
-    const { data } = await anon.from('catalogues').select('id').eq('id', createdCatalogues[0]!)
-    expect(data ?? [], 'anon must not see a draft catalogue').toHaveLength(0)
+    const draftId = createdCatalogues[0]
+    expect(draftId, 'the catalogue test must run first').toBeTruthy()
+
+    // Positive control: publish a second catalogue and confirm anon can see it.
+    const repository = new SupabaseRepository()
+    const publishedId = randomUUID()
+    const publishedSlug = `itest-pub-${Date.now().toString(36)}`
+    await repository.createCatalogue({
+      id: publishedId,
+      orgId,
+      slug: publishedSlug,
+      customDomain: null,
+      coupleName: { en: 'Published & Visible' },
+      appName: { en: 'Published Originals' },
+      weddingDate: '2026-12-02',
+      occasion: 'wedding',
+      branding: {},
+      featuredTitleId: null,
+      modules: [],
+      draftModules: null,
+      template: 'films-only',
+      status: 'published',
+      privacy: 'unlisted',
+      passcodeHash: null,
+      includedUntil: new Date(Date.now() + 90 * 864e5).toISOString(),
+      subStatus: 'included',
+      subPlan: null,
+      subUntil: null,
+      createdAt: new Date().toISOString(),
+      publishedAt: new Date().toISOString(),
+    })
+    createdCatalogues.push(publishedId)
+
+    const visible = await anon.from('catalogues').select('id').eq('id', publishedId)
+    expect(visible.error, 'the anon query itself must work').toBeNull()
+    expect(visible.data ?? [], 'anon must see a published catalogue').toHaveLength(1)
+
+    // The actual assertion, now meaningful: same client, same query shape, draft row.
+    const hidden = await anon.from('catalogues').select('id').eq('id', draftId!)
+    expect(hidden.error).toBeNull()
+    expect(hidden.data ?? [], 'anon must NOT see a draft catalogue').toHaveLength(0)
+  })
+
+  it('enforces RLS: anon cannot write, only read', async () => {
+    const anonKey =
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    const { createClient } = await import('@supabase/supabase-js')
+    const anon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, anonKey!, {
+      auth: { persistSession: false },
+    })
+
+    // There is no anon insert policy on catalogues, so this must be refused outright.
+    const { error } = await anon
+      .from('catalogues')
+      .insert({ slug: `itest-evil-${Date.now()}`, org_id: orgId })
+    expect(error, 'anon must not be able to create a catalogue').not.toBeNull()
   })
 })
 
