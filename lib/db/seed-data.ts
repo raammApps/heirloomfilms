@@ -1,5 +1,4 @@
-import { hashSecret } from '@/lib/auth'
-import { env } from '@/lib/env'
+import { hashSecret } from '@/lib/crypto'
 import type { Snapshot } from './memory-repository'
 import { emptySnapshot } from './memory-repository'
 import type { Album, Catalogue, ModuleInstance, Photo, Title } from '@/lib/schema'
@@ -292,7 +291,16 @@ function buildCatalogue(): Catalogue {
   }
 }
 
-export function demoSnapshot(): Snapshot {
+export type SeedOperator = { email: string; password: string }
+
+/**
+ * `operator` is a parameter rather than a read of `lib/env` so this module stays importable
+ * from a plain Node script — the seed script is the main consumer, and it must not need the
+ * server-only configuration module to write a JSON file.
+ */
+export function demoSnapshot(
+  operator: SeedOperator = { email: 'operator@mehfil.test', password: 'mehfil-dev' },
+): Snapshot {
   const album: Album = {
     id: ALBUM_ID,
     catalogueId: CATALOGUE_ID,
@@ -315,10 +323,10 @@ export function demoSnapshot(): Snapshot {
       {
         id: OPERATOR_ID,
         orgId: ORG_ID,
-        email: env.DEV_OPERATOR_EMAIL,
+        email: operator.email,
         name: 'Demo Operator',
         role: 'admin',
-        passwordHash: hashSecret(env.DEV_OPERATOR_PASSWORD),
+        passwordHash: hashSecret(operator.password),
         createdAt: CREATED_AT,
       },
     ],

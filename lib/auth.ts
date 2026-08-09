@@ -1,5 +1,8 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import { hashSecret, verifySecret } from './crypto'
 import { env } from './env'
+
+export { hashSecret, verifySecret }
 
 /**
  * Operator sessions and passcode secrets.
@@ -8,28 +11,6 @@ import { env } from './env'
  * HMAC-signed stateless cookies rather than a session table so a Vercel edge deploy does not
  * need a round trip to verify a request. Both are standard-library only.
  */
-
-const SCRYPT_KEYLEN = 32
-
-export function hashSecret(plain: string): string {
-  const salt = randomBytes(16)
-  const key = scryptSync(plain.normalize('NFKC'), salt, SCRYPT_KEYLEN)
-  return `scrypt$${salt.toString('base64url')}$${key.toString('base64url')}`
-}
-
-/** Constant-time verification. Returns false rather than throwing on a malformed stored hash. */
-export function verifySecret(plain: string, stored: string | null | undefined): boolean {
-  if (!stored) return false
-  const [scheme, saltB64, keyB64] = stored.split('$')
-  if (scheme !== 'scrypt' || !saltB64 || !keyB64) return false
-  try {
-    const expected = Buffer.from(keyB64, 'base64url')
-    const actual = scryptSync(plain.normalize('NFKC'), Buffer.from(saltB64, 'base64url'), expected.length)
-    return expected.length === actual.length && timingSafeEqual(expected, actual)
-  } catch {
-    return false
-  }
-}
 
 // ── Signed, stateless tokens ──────────────────────────────────────────────────
 

@@ -2,7 +2,7 @@
   "name": "mehfil",
   "version": "0.1.0",
   "private": true,
-  "description": "Mehfil — a white-label platform that presents a wedding's best moments as a private, cinematic streaming service.",
+  "description": "Mehfil \u2014 a white-label platform that presents a wedding's best moments as a private, cinematic streaming service.",
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20.11"
@@ -23,7 +23,10 @@
     "seed": "tsx scripts/seed-demo.ts",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm check:contrast",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "bootstrap:sql": "tsx scripts/bootstrap-supabase.ts",
+    "test:integration": "vitest run tests/integration",
+    "make:sample-video": "node scripts/make-sample-video.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

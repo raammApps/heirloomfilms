@@ -150,13 +150,42 @@ Standalone output, non-root user, health check on `/api/health`. No secret is ba
 image: `lib/env.ts` skips its production guards during the build phase precisely so the build
 can run without real configuration.
 
-### First run against Supabase
+### First run against Supabase and Bunny
 
-1. Apply `supabase/migrations/0001_initial_schema.sql`, then `0002_row_level_security.sql`.
-2. Create the org row and the operator row (the operator's `id` is their `auth.users` id).
-3. Set `DATA_DRIVER=supabase` and the three Supabase keys, plus the Bunny keys and
-   `VIDEO_DRIVER=bunny`.
-4. `GET /api/health` reports which drivers actually came up — check it after every deploy. A
+```bash
+pnpm bootstrap:sql > /tmp/bootstrap.sql
+```
+
+1. Paste that into the Supabase dashboard's SQL editor and run it. It applies both migrations
+   and creates the first org, in one transaction. Generating the script rather than executing it
+   is deliberate: running arbitrary DDL would need an `exec_sql` RPC, and that is a permanent
+   remote-code-execution hole in a database holding people's weddings.
+2. Create the operator in Authentication → Users, then run the `insert into operators` statement
+   printed at the end of the script (`operators.id` references `auth.users.id`).
+3. In Bunny, create a **Stream video library**. Its dashboard gives you the library id, the CDN
+   hostname (`vz-….b-cdn.net`) and, under Security, the token authentication key.
+4. Fill in `.env.local`, then flip the drivers:
+
+   ```
+   DATA_DRIVER=supabase
+   VIDEO_DRIVER=bunny
+   ```
+
+   Supabase's newer key names are accepted as-is: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and
+   `SUPABASE_SECRET_KEY` work alongside the older `…ANON_KEY` / `…SERVICE_ROLE_KEY`.
+
+5. Verify against the real services:
+
+   ```bash
+   pnpm test:integration
+   ```
+
+   These skip silently without credentials, so CI and offline work are unaffected. With
+   credentials they exercise the Bunny and Supabase drivers directly — TUS ticket shape, signed
+   playback URLs, jsonb round-trips, org scoping, and that the anon key cannot read a draft
+   catalogue. Everything they create is prefixed `itest-` and torn down afterwards.
+
+6. `GET /api/health` reports which drivers actually came up — check it after every deploy. A
    deployment that silently came up on the memory driver is the failure that probe exists for.
 
 ### What is enforced where

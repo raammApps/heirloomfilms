@@ -1,6 +1,20 @@
+import { existsSync, readFileSync } from 'node:fs'
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
+
+/**
+ * Load `.env.local` if it exists, so `tests/integration` picks up real credentials without
+ * any extra ceremony. Absent — which is the case in CI — the integration suites skip.
+ */
+if (existsSync('.env.local')) {
+  for (const line of readFileSync('.env.local', 'utf8').split('\n')) {
+    const match = /^\s*([A-Z0-9_]+)\s*=\s*(.*)$/.exec(line)
+    if (!match) continue
+    const value = match[2]!.trim().replace(/^["']|["']$/g, '')
+    if (value) process.env[match[1]!] ??= value
+  }
+}
 
 process.env.SESSION_SECRET ??= 'test-session-secret-0123456789abcdefghijklmnop'
 process.env.ROOT_DOMAIN ??= 'mehfil.app'

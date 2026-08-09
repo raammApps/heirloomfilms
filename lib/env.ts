@@ -37,8 +37,17 @@ const schema = z
     DATA_DIR: nonEmpty.default('.data'),
 
     NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional().or(z.literal('')),
+
+    /**
+     * Supabase renamed its keys: `anon` → publishable (`sb_publishable_…`) and `service_role`
+     * → secret (`sb_secret_…`). New projects only show the new names, older ones the old, so
+     * both spellings are accepted and normalised below rather than making the operator
+     * translate between a dashboard and a doc.
+     */
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+    SUPABASE_SECRET_KEY: z.string().optional(),
 
     VIDEO_DRIVER: z.enum(['fake', 'bunny']).default('fake'),
     BUNNY_LIBRARY_ID: z.string().optional(),
@@ -57,6 +66,13 @@ const schema = z
     /** Set by Vercel; surfaced on /api/health so a deploy can be identified. */
     VERCEL_GIT_COMMIT_SHA: z.string().optional(),
   })
+  .transform((env) => ({
+    ...env,
+    // One canonical name downstream, whichever spelling the dashboard offered.
+    NEXT_PUBLIC_SUPABASE_ANON_KEY:
+      env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY,
+  }))
   .superRefine((env, ctx) => {
     if (env.DATA_DRIVER === 'supabase') {
       for (const key of [
@@ -68,7 +84,10 @@ const schema = z
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: [key],
-            message: `${key} is required when DATA_DRIVER=supabase`,
+            message:
+              key === 'SUPABASE_SERVICE_ROLE_KEY'
+                ? 'SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY, sb_secret_…) is required when DATA_DRIVER=supabase'
+                : `${key} is required when DATA_DRIVER=supabase`,
           })
         }
       }

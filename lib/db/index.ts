@@ -26,7 +26,7 @@ function build(): Repository {
       const path = defaultStorePath()
       const repo = new FileRepository(path)
       if (repo.snapshot().orgs.length === 0) {
-        repo.load(demoSnapshot())
+        repo.load(demoSnapshot({ email: env.DEV_OPERATOR_EMAIL, password: env.DEV_OPERATOR_PASSWORD }))
         log.info('repository: file store seeded with the demo catalogue', { path })
       }
       log.info('repository: file', { path })
@@ -34,7 +34,9 @@ function build(): Repository {
     }
     default: {
       log.info('repository: memory (seeded)')
-      return new MemoryRepository(demoSnapshot())
+      return new MemoryRepository(
+        demoSnapshot({ email: env.DEV_OPERATOR_EMAIL, password: env.DEV_OPERATOR_PASSWORD }),
+      )
     }
   }
 }
