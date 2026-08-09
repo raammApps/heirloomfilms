@@ -75,6 +75,30 @@ Note: the demo fixture uses **generated** imagery, not stock footage of stranger
 explicit that the sales artefact needs real cleared footage; what this fixture proves is the
 mechanics. Sourcing the real thing is still open.
 
+## Gap-closing pass — doc 10 §2 journeys and the two gates — done 2026-08-09
+
+Built: E2E-1 (watch and resume) and E2E-5 (upload resilience), the last two of the six named
+journeys; the OG ≤300KB assertion (doc 10 §1 test 11); and axe-core as a zero-violations gate
+across eight page states (doc 10 §4). All six journeys and both gates now run in CI.
+Files: e2e/{playback,upload,gates,helpers}.spec.ts, lib/budgets.ts,
+scripts/make-sample-video.mjs, public/media/sample.webm
+
+Note: **the `fake` driver now serves a real clip.** `scripts/make-sample-video.mjs` renders a
+12s 155KB WebM from a canvas in headless Chromium — our own bytes, so no licence question
+(doc 12 §1) and no footage of strangers (doc 13 §8). Without it E2E-1 could only assert that a
+`<video>` element existed; with it, playback, seek, resume and the `?t=` deep link are all
+verified for real. It also means an offline demo plays something.
+
+Note: E2E-5 verifies our half of the upload contract — container rejected before a byte moves,
+the `titles` row created immediately, survives a reload, survives navigation, retry available.
+**TUS resuming from a real acked offset after a real network drop is not covered** and cannot be
+without a live provider; it stays a device check (doc 10 §3 M-5). Faking it would assert the
+stub.
+
+Note: E2E suites that write content now create their own catalogue (`e2e/helpers.ts`). Server
+state is shared across a Playwright run, and uploading into the demo catalogue raced the other
+suites for the 15-title cap.
+
 ---
 
 ## Visual pass — defects found by looking at the running product
@@ -110,13 +134,42 @@ have been caught by a test that did not have eyes on it.
    untappable — caught by the Hindi E2E on the mobile project, not visible at desktop width.
    Replaced with the avatar doc 02 §4 actually specifies.
 
+## Defects the accessibility gate found on its first run
+
+Both were violations of the project's own rules that nothing else was checking.
+
+1. **Accent text below 19px in five places** — the billboard date, the couple's name on the
+   renewal and passcode screens, the nav wordmark, and the player's "Start over". Doc 04 §2 is
+   explicit: `--accent` is 3.6:1 on black, UI and large text only, and "red body copy on black
+   is not permitted". Metadata dropped to `--text-mid`; brand signals moved to `--accent-hi`,
+   which is 4.9:1 and keeps the red.
+2. **The language toggle signalled its active state with colour alone**, at 13px in `--accent` —
+   both a contrast failure and WCAG 1.4.1. It is now a filled pill, white on accent at 5.4:1.
+3. **The credits list was an invalid `<dl>`** — a bare `<dt>` heading mixed with `<div>` groups,
+   which breaks the list for a screen reader (WCAG 1.3.1).
+
+`pnpm check:contrast` covers the tokens; axe covers what they compose into on a page. The two
+gates are complementary and both now run in CI.
+
+## A stale requirement in doc 10
+
+Doc 10 §1 test 4 requires "Trending suppression: hidden below `minPlays`; New suppressed on a
+catalogue younger than 14 days." Doc 01 §5.1 **cut** both features (VE-13, VE-14). The test list
+is stale against the product spec. Verified that neither feature exists in the code; doc 10
+wants updating, or the requirement rereading as "assert they are absent".
+
 ## Open, and deliberately so
 
 - **The browse route renders dynamically, not ISR.** Reading the locale cookie in
   `app/c/[slug]/page.tsx` opts the route out of static generation, which doc 05 §6 wants. Fix is
   to move locale into the path or resolve it client-side. Real LCP cost, not yet paid.
-- **No Lighthouse or QoE probe in CI** (doc 09 P1-14). Budgets are documented; nothing fails the
-  build if first-load JS regresses past 150KB.
+- **No Lighthouse or QoE probe in CI** (doc 09 P1-14). The budgets are now declared in
+  `lib/budgets.ts` and the OG one is enforced; first-load JS, LCP and playback start are still
+  documented rather than gated.
+- **The Bunny and Supabase drivers have never executed** — 1,104 lines including both SQL
+  migrations. Every suite runs on `fake` + `memory`. Doc 09's sequencing rationale says to find
+  out early whether resumable upload against a third-party API works; that remains unretired and
+  is the single largest risk in the project.
 - **Doc 04 §2's contrast table is approximate.** `--text-lo` computes to 6.4:1 not 5.4:1, and
   `--accent` to 3.6:1 not 4.1:1. Every pairing still clears its minimum; the numbers are pinned
   in `tests/unit/contrast.test.ts` so a palette edit shows up in review.

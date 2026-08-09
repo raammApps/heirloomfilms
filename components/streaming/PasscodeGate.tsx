@@ -54,7 +54,7 @@ export function PasscodeGate({
 
   return (
     <main className="gutter-x flex min-h-svh flex-col items-center justify-center text-center">
-      <p className="type-label mb-4 text-accent">{coupleName}</p>
+      <p className="type-label mb-4 text-accent-hi">{coupleName}</p>
       <h1 className="type-display-lg mb-2">{strings.heading}</h1>
       <p className="type-body mb-8 max-w-[40ch] text-text-mid">{strings.body}</p>
 

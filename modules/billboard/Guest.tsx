@@ -113,7 +113,7 @@ export default function Guest({ config, ctx }: GuestProps<BillboardConfig>) {
           }}
         />
 
-        <p className="type-label mb-3 text-accent">
+        <p className="type-label mb-3 text-text-mid">
           {formatWeddingDate(ctx.catalogue.weddingDate, ctx.locale)}
         </p>
 

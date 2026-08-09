@@ -27,7 +27,7 @@ export default async function RenewPage({ params }: { params: Promise<{ slug: st
     <>
       <ThemeStyle branding={verdict.catalogue.branding} />
       <main className="gutter-x mx-auto flex min-h-svh max-w-[640px] flex-col justify-center py-16">
-        <p className="type-label mb-4 text-accent">
+        <p className="type-label mb-4 text-accent-hi">
           {resolveLocalised(verdict.catalogue.coupleName, locale)}
         </p>
         <h1 className="type-display-lg mb-3">{t('renew.heading')}</h1>

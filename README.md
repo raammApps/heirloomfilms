@@ -58,7 +58,7 @@ pnpm test:e2e
 | Command | Covers |
 |---|---|
 | `pnpm test` | 168 unit and component tests |
-| `pnpm test:e2e` | The six journeys in doc 10 §2, mobile and desktop |
+| `pnpm test:e2e` | All six journeys in doc 10 §2, plus the OG budget and a zero-axe-violations gate across eight page states |
 | `pnpm check:contrast` | Every colour pairing in doc 04 §2, read out of `globals.css` |
 | `pnpm typecheck` | Strict TS, `noUncheckedIndexedAccess`, no `any` |
 
@@ -187,8 +187,14 @@ Recorded honestly rather than left to be discovered. Details and reasoning in
 - **Poster candidates and trailers come from the provider, unstyled.** Doc 04 §6's generated
   artwork is implemented and used as the fallback everywhere, but three-frame extraction on
   `ready` is only as good as what Bunny returns.
-- **No Lighthouse or QoE probe in CI.** Doc 05 §6's budgets are documented and the first-load JS
-  is inside 150KB, but nothing fails the build if that regresses. Doc 09 P1-14.
+- **The Bunny and Supabase drivers have never run.** Every suite uses `fake` + `memory`; that is
+  1,104 lines of production path, including both migrations, with no execution behind them. This
+  is the largest open risk and the first thing to close.
+- **TUS resume against a real endpoint is unverified.** E2E-5 covers our half of the upload
+  contract; resuming from a real acked offset after a real network drop needs a live provider and
+  stays a device check (doc 10 §3 M-5).
+- **No Lighthouse or QoE probe in CI.** Budgets live in `lib/budgets.ts` and the OG one is
+  enforced; first-load JS, LCP and playback start are documented, not gated. Doc 09 P1-14.
 - **Phase 1 modules are not built.** `continue_watching`, `timeline`, `checklist`, `randomiser`
   are Phase 1 by plan; the registry and `module_state` are ready for them.
 

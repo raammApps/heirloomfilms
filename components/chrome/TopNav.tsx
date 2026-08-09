@@ -52,7 +52,7 @@ export function TopNav({ appName, logoUrl, locale, t }: Props) {
             <img src={logoUrl} alt={appName} className="h-7 w-auto max-w-[140px] object-contain" />
           ) : (
             <span
-              className="type-label truncate text-accent md:text-[13px]"
+              className="type-label truncate text-accent-hi md:text-[13px]"
               style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.16em' }}
             >
               {appName.toUpperCase()}
@@ -103,10 +103,14 @@ function LanguageToggle({ locale, t }: { locale: Locale; t: Translator }) {
           type="button"
           onClick={() => switchTo(candidate)}
           aria-pressed={candidate === locale}
-          // Not `type-label`: 11px on a 1.2 line-height clips the matra on हिं (doc 04 §3,
-          // manual check M-6). Devanagari sets the floor for this control.
-          className={`flex h-11 min-w-11 items-center justify-center rounded-[var(--radius-pill)] px-1 text-[13px] font-semibold leading-[1.7] tracking-[0.06em] ${
-            candidate === locale ? 'text-accent' : 'text-text-lo hover:text-text-hi'
+          // Two things this control has to get right. Not `type-label`: 11px on a 1.2
+          // line-height clips the matra on हिं (doc 04 §3, manual check M-6). And the active
+          // state is a filled pill rather than red text — colour alone is not a state signal
+          // (WCAG 1.4.1), and red-on-black at 13px is below 4.5:1 (doc 04 §2).
+          className={`flex h-11 min-w-11 items-center justify-center rounded-[var(--radius-pill)] px-2 text-[13px] font-semibold leading-[1.7] tracking-[0.06em] ${
+            candidate === locale
+              ? 'bg-accent text-accent-ink'
+              : 'text-text-lo hover:text-text-hi'
           }`}
         >
           {LOCALE_LABELS[candidate]}

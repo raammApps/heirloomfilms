@@ -28,3 +28,6 @@ blob-report/
 
 # runtime data written by the file-backed repository in local dev
 .data/
+
+# public/media/sample.webm IS committed — it is our own generated fixture, see
+# scripts/make-sample-video.mjs. Nothing else belongs in there.

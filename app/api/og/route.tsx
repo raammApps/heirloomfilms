@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { OG_MAX_BYTES, OG_SIZE } from '@/lib/budgets'
 import { resolveAccess } from '@/lib/catalogue-access'
 import { formatWeddingDate } from '@/lib/format'
 import { parseLocale, resolveLocalised } from '@/lib/i18n'
@@ -6,9 +7,7 @@ import { paletteFor } from '@/lib/poster'
 
 export const runtime = 'nodejs'
 
-/** doc 05 §6 budget. Asserted in `tests/unit/og.test.ts`. */
-export const OG_MAX_BYTES = 300 * 1024
-export const OG_SIZE = { width: 1200, height: 630 }
+export { OG_MAX_BYTES, OG_SIZE }
 
 /**
  * `GET /api/og` — the WhatsApp link preview (doc 07, CLAUDE.md constraint 3).

@@ -123,7 +123,9 @@ export function Player({
     if (hideTimer.current) window.clearTimeout(hideTimer.current)
     hideTimer.current = window.setTimeout(() => {
       // Never auto-hide while a control has focus (doc 08).
-      const focusInControls = shell.current?.querySelector('[data-controls]')?.contains(document.activeElement)
+      const focusInControls = shell.current
+        ?.querySelector('[data-controls]')
+        ?.contains(document.activeElement)
       if (!focusInControls && !video.current?.paused) setControlsVisible(false)
     }, CONTROLS_HIDE_MS)
   }, [])
@@ -236,7 +238,7 @@ export function Player({
       ) : null}
 
       {resumeNotice !== null ? (
-        <div className="absolute inset-x-0 top-20 flex justify-center px-4">
+        <div className="absolute inset-x-0 top-20 z-20 flex justify-center px-4">
           <div className="edge flex items-center gap-3 rounded-[var(--radius-pill)] bg-surface-1/90 px-4 py-2 backdrop-blur-sm">
             <span className="type-meta text-text-hi">
               {t('player.resumingFrom', { time: formatClock(resumeNotice) })}
@@ -248,7 +250,7 @@ export function Player({
                 if (el) el.currentTime = 0
                 setResumeNotice(null)
               }}
-              className="type-meta h-9 rounded-[var(--radius-pill)] px-3 text-accent"
+              className="type-meta h-9 rounded-[var(--radius-pill)] px-3 text-accent-hi"
             >
               {t('player.startOver')}
             </button>
@@ -256,21 +258,26 @@ export function Player({
         </div>
       ) : null}
 
+      {/*
+        `pointer-events-none` on the container, re-enabled on each cluster: an overlay spanning
+        the whole picture otherwise swallows the tap that should pause it, and blocks the resume
+        affordance sitting above it.
+      */}
       <div
         data-controls
-        className={`absolute inset-0 flex flex-col justify-between transition-opacity duration-300 ${
-          controlsVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
+        className={`pointer-events-none absolute inset-0 z-10 flex flex-col justify-between transition-opacity duration-300 ${
+          controlsVisible ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,.6), transparent 22%, transparent 62%, rgba(0,0,0,.75))' }}
       >
-        <div className="flex items-center gap-3 p-3">
+        <div className="pointer-events-auto flex items-center gap-3 p-3">
           <IconButton label={t('player.back')} onClick={() => history.back()}>
             <ArrowLeft size={22} strokeWidth={1.5} aria-hidden />
           </IconButton>
           <p className="type-title truncate text-text-hi">{titleName}</p>
         </div>
 
-        <div className="flex flex-col gap-2 p-3">
+        <div className="pointer-events-auto flex flex-col gap-2 p-3">
           <div className="flex items-center gap-3">
             <span className="type-meta w-14 shrink-0 tabular-nums text-text-hi">
               {formatClock(position)}

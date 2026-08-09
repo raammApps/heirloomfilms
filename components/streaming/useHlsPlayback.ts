@@ -64,9 +64,13 @@ export function useHlsPlayback({ video, catalogueSlug, titleSlug, profileId, onT
       setTicket(fresh)
       setError(null)
 
+      // A source that is not a manifest is played directly. Production is always HLS; the
+      // `fake` driver serves a progressive clip, and a provider that ever returns an MP4
+      // should not need a code change here either.
+      const isManifest = /\.m3u8(\?|$)/.test(fresh.playbackUrl)
       const nativeHls = el.canPlayType('application/vnd.apple.mpegurl') !== ''
 
-      if (nativeHls) {
+      if (!isManifest || nativeHls) {
         // Safari and most Android browsers play HLS natively; hls.js would be dead weight.
         el.src = fresh.playbackUrl
         onTicket?.(fresh)

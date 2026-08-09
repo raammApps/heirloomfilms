@@ -41,7 +41,14 @@ describe('POST /api/playback/token', () => {
     expect(response.status).toBe(200)
 
     const body = (await response.json()) as { playbackUrl: string; expiresAt: string }
-    expect(body.playbackUrl).toContain(title.providerId!)
+
+    // The URL carries a signature and an expiry. The asset it points at is the provider's
+    // business — the `fake` driver serves one shared sample clip — so what is asserted here is
+    // the shape of the grant, not the path. Scoping is the next test.
+    const url = new URL(body.playbackUrl, 'http://localhost')
+    expect(url.searchParams.get('token')).toBeTruthy()
+    expect(Number(url.searchParams.get('expires'))).toBeGreaterThan(Date.now() / 1000)
+
     expect(new Date(body.expiresAt).getTime()).toBeGreaterThan(Date.now())
     expect(response.headers.get('cache-control')).toBe('no-store')
   })

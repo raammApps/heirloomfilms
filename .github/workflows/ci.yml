@@ -72,6 +72,8 @@ jobs:
       - name: Install browsers
         run: pnpm exec playwright install --with-deps chromium
 
+      # Covers the six journeys in doc 10 §2, the OG size budget (doc 10 §1 test 11) and the
+      # zero-axe-violations gate (doc 10 §4).
       - name: Run Playwright
         run: pnpm test:e2e
         env:

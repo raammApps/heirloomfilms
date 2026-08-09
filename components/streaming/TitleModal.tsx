@@ -165,15 +165,20 @@ export function TitleModal({ catalogue, titles, locale, t, shareBaseUrl }: Props
           {synopsis ? <p className="type-body-lg mt-6 text-text-mid">{synopsis}</p> : null}
 
           {title.credits.length > 0 ? (
-            <dl className="mt-8 grid gap-x-6 gap-y-2 sm:grid-cols-2">
-              <dt className="type-label col-span-full mb-1 text-text-lo">{t('title.credits')}</dt>
-              {title.credits.map((credit) => (
-                <div key={`${credit.role}-${credit.name}`} className="flex gap-2">
-                  <dt className="type-meta shrink-0">{credit.role}</dt>
-                  <dd className="type-meta text-text-mid">{credit.name}</dd>
-                </div>
-              ))}
-            </dl>
+            <section className="mt-8">
+              {/* The label is a heading, not a term: a <dl> may only contain <dt>/<dd> groups
+                  or <div>s wrapping them, and a stray <dt> breaks the list for a screen
+                  reader (WCAG 1.3.1). */}
+              <h3 className="type-label mb-2 text-text-lo">{t('title.credits')}</h3>
+              <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                {title.credits.map((credit) => (
+                  <div key={`${credit.role}-${credit.name}`} className="flex gap-2">
+                    <dt className="type-meta shrink-0">{credit.role}</dt>
+                    <dd className="type-meta text-text-mid">{credit.name}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
           ) : null}
         </div>
       </div>
