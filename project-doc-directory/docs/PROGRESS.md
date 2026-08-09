@@ -158,6 +158,26 @@ catalogue younger than 14 days." Doc 01 §5.1 **cut** both features (VE-13, VE-1
 is stale against the product spec. Verified that neither feature exists in the code; doc 10
 wants updating, or the requirement rereading as "assert they are absent".
 
+## Real-service wiring — attempted 2026-08-09, blocked
+
+Credentials arrived for both services. Neither is usable yet, and the blockers are external:
+
+- **Supabase** — project is live and the publishable key authenticates, but the **schema is not
+  applied** (no `catalogues`, `titles`, `orgs`, `operators`) and no **secret key**
+  (`sb_secret_…`) was supplied. `SupabaseRepository` runs on the secret key; the publishable one
+  cannot do server-side work.
+- **Bunny** — the supplied 72-character string is a valid **account** key (neither GUID half
+  works alone). The account has **no Stream library**, and creating one returns
+  `user.insufficient_balance`: Bunny refuses to create zones at a zero balance. That reads like
+  a permissions error and is not one.
+
+Built while blocked: `pnpm preflight` (read-only, reports exactly what is missing and where it
+comes from, exits non-zero when the configured drivers are not ready), `pnpm bootstrap:sql`, and
+`tests/integration` which skips without credentials and runs the moment they exist.
+
+Note: `.env.local` holds the supplied credentials and is gitignored — verified, nothing
+committed. The Bunny account key was pasted into a chat transcript and should be rotated.
+
 ## Open, and deliberately so
 
 - **The browse route renders dynamically, not ISR.** Reading the locale cookie in

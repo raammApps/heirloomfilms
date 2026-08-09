@@ -153,6 +153,15 @@ can run without real configuration.
 ### First run against Supabase and Bunny
 
 ```bash
+pnpm preflight
+```
+
+Read-only. Probes both services and prints exactly what is missing and where to get it —
+whether the Bunny key is an account key or a library key, whether the schema is applied, whether
+token authentication is on. Exits non-zero when the *configured* drivers are not ready, so it
+can gate a deploy. Run it first; the steps below are what it will ask for.
+
+```bash
 pnpm bootstrap:sql > /tmp/bootstrap.sql
 ```
 
@@ -163,7 +172,11 @@ pnpm bootstrap:sql > /tmp/bootstrap.sql
 2. Create the operator in Authentication → Users, then run the `insert into operators` statement
    printed at the end of the script (`operators.id` references `auth.users.id`).
 3. In Bunny, create a **Stream video library**. Its dashboard gives you the library id, the CDN
-   hostname (`vz-….b-cdn.net`) and, under Security, the token authentication key.
+   hostname (`vz-….b-cdn.net`) and, under Security, the token authentication key. Note that
+   Bunny refuses to create any zone while the account balance is zero — it returns
+   `user.insufficient_balance`, which reads like a permissions error and is not one. Note also
+   that the Stream endpoints want the **per-library** key, not the account key; `pnpm preflight`
+   tells the two apart.
 4. Fill in `.env.local`, then flip the drivers:
 
    ```
