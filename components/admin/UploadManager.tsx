@@ -3,6 +3,7 @@
 import { Pause, Play, Upload, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import type { Upload as TusUpload } from 'tus-js-client'
 import { ACCEPTED_VIDEO_EXTENSIONS, isAcceptedVideo, MAX_UPLOAD_BYTES } from '@/lib/video/provider'
 
 /**
@@ -24,7 +25,7 @@ type Item = {
   titleId?: string
   progress: number
   bytesUploaded: number
-  state: 'queued' | 'uploading' | 'paused' | 'done' | 'error'
+  state: 'queued' | 'uploading' | 'paused' | 'interrupted' | 'done' | 'error'
   message?: string
   startedAt: number
   abort?: () => void
@@ -33,6 +34,13 @@ type Item = {
 
 const PARALLELISM = 2
 const RESUME_KEY = 'mehfil.uploads.'
+
+/**
+ * Backoff for a transient wobble. Deliberately short: a long tail here does nothing for the
+ * case that actually happens — a laptop that sleeps for an hour — which is handled by resuming
+ * on the `online` event instead of by waiting.
+ */
+const RETRY_DELAYS = [0, 2000, 6000, 15_000, 30_000]
 
 export function UploadManager({
   catalogueId,
@@ -46,9 +54,41 @@ export function UploadManager({
   const [dragging, setDragging] = useState(false)
   const running = useRef(0)
 
+  /** Live tus handles, so an interrupted upload can be picked up again rather than restarted. */
+  const uploads = useRef(new Map<string, TusUpload>())
+
   const patch = useCallback((key: string, changes: Partial<Item>) => {
-    setItems((current) => current.map((item) => (item.key === key ? { ...item, ...changes } : item)))
+    setItems((current) =>
+      current.map((item) => (item.key === key ? { ...item, ...changes } : item)),
+    )
   }, [])
+
+  /**
+   * Pick an interrupted upload back up from the provider's last acked offset.
+   *
+   * `findPreviousUploads` reads the fingerprint tus stored locally and `resumeFromPreviousUpload`
+   * makes it HEAD the provider for the true offset — so this continues from what the server
+   * actually has, not from what the browser believed before it lost connectivity.
+   */
+  const resume = useCallback(
+    async (key: string) => {
+      const upload = uploads.current.get(key)
+      if (!upload) return
+
+      patch(key, { state: 'uploading', message: undefined })
+      running.current += 1
+
+      try {
+        const previous = await upload.findPreviousUploads()
+        if (previous[0]) upload.resumeFromPreviousUpload(previous[0])
+        upload.start()
+      } catch (error) {
+        patch(key, { state: 'interrupted', message: (error as Error).message })
+        running.current -= 1
+      }
+    },
+    [patch],
+  )
 
   const start = useCallback(
     async (item: Item) => {
@@ -95,7 +135,24 @@ export function UploadManager({
           chunkSize: ticket.chunkSizeBytes,
           // Exponential backoff; the last entry is a two-minute wait, which covers a laptop
           // that slept through a wifi change.
-          retryDelays: [0, 3000, 10_000, 30_000, 120_000],
+          retryDelays: RETRY_DELAYS,
+          /**
+           * Be explicit about what is worth retrying. The default policy gives up on a bare
+           * network failure, which is precisely the case this whole mechanism exists for — a
+           * dropped connection produces no response at all, and that has to count as retryable
+           * or a wifi blip ends a six-gigabyte upload.
+           */
+          onShouldRetry: (_error, retryAttempt, options) => {
+            const status = (
+              _error as { originalResponse?: { getStatus(): number } }
+            ).originalResponse?.getStatus()
+            // No response: the network went away. Always worth another go.
+            if (status === undefined) return retryAttempt < (options.retryDelays?.length ?? 0)
+            // 4xx is our mistake and will not fix itself; 409/423 are tus offset conflicts,
+            // which resolve on a retry.
+            if (status >= 400 && status < 500 && status !== 409 && status !== 423) return false
+            return retryAttempt < (options.retryDelays?.length ?? 0)
+          },
           metadata: { filename: item.file.name, filetype: item.file.type },
           storeFingerprintForResuming: true,
           removeFingerprintOnSuccess: true,
@@ -110,10 +167,14 @@ export function UploadManager({
             onChanged?.()
           },
           onError: (error) => {
-            patch(item.key, { state: 'error', message: error.message })
+            // Not terminal. `interrupted` is the honest word: the bytes already at the provider
+            // are still there, and either the `online` handler or the operator picks it up.
+            patch(item.key, { state: 'interrupted', message: shortReason(error) })
             running.current -= 1
           },
         })
+
+        uploads.current.set(item.key, upload)
 
         // Resume from the last acked offset rather than from zero.
         const previous = await upload.findPreviousUploads()
@@ -122,15 +183,29 @@ export function UploadManager({
         upload.start()
         patch(item.key, {
           abort: () => void upload.abort(),
-          resume: () => upload.start(),
+          resume: () => void resume(item.key),
         })
       } catch (error) {
         patch(item.key, { state: 'error', message: (error as Error).message })
         running.current -= 1
       }
     },
-    [catalogueId, patch, router, onChanged],
+    [catalogueId, patch, router, onChanged, resume],
   )
+
+  /**
+   * The case doc 05 §3 is actually about: the laptop slept, or the venue wifi came back. No
+   * backoff schedule is long enough for that, so the network coming back is the signal.
+   */
+  useEffect(() => {
+    const onOnline = () => {
+      for (const item of items) {
+        if (item.state === 'interrupted') void resume(item.key)
+      }
+    }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [items, resume])
 
   // Queue pump: parallelism 2, so a 6GB file does not starve the four short ones behind it.
   useEffect(() => {
@@ -193,7 +268,9 @@ export function UploadManager({
           add(event.dataTransfer.files)
         }}
         className={`rounded-[var(--radius-card)] border-2 border-dashed p-6 text-center ${
-          dragging ? 'border-accent bg-[color-mix(in_srgb,var(--color-accent)_6%,white)]' : 'border-[var(--color-l-line)]'
+          dragging
+            ? 'border-accent bg-[color-mix(in_srgb,var(--color-accent)_6%,white)]'
+            : 'border-[var(--color-l-line)]'
         }`}
       >
         <Upload size={22} aria-hidden className="mx-auto mb-2 text-[var(--color-l-text-mid)]" />
@@ -228,7 +305,9 @@ export function UploadManager({
                     ? 'Uploaded'
                     : item.state === 'error'
                       ? 'Failed'
-                      : `${Math.round(item.progress * 100)}%`}
+                      : item.state === 'interrupted'
+                        ? `Waiting for the network · ${Math.round(item.progress * 100)}%`
+                        : `${Math.round(item.progress * 100)}%`}
                 </span>
 
                 {item.state === 'uploading' ? (
@@ -245,13 +324,12 @@ export function UploadManager({
                   </button>
                 ) : null}
 
-                {item.state === 'paused' || item.state === 'error' ? (
+                {item.state === 'paused' ||
+                item.state === 'error' ||
+                item.state === 'interrupted' ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      item.resume?.()
-                      patch(item.key, { state: 'uploading', message: undefined })
-                    }}
+                    onClick={() => item.resume?.()}
                     aria-label={`Resume ${item.file.name}`}
                     className="flex h-9 w-9 items-center justify-center rounded"
                   >
@@ -262,7 +340,8 @@ export function UploadManager({
                 <button
                   type="button"
                   onClick={() => {
-                    if (item.state === 'uploading' && !window.confirm(`Cancel ${item.file.name}?`)) return
+                    if (item.state === 'uploading' && !window.confirm(`Cancel ${item.file.name}?`))
+                      return
                     item.abort?.()
                     setItems((current) => current.filter((i) => i.key !== item.key))
                   }}
@@ -296,6 +375,17 @@ export function UploadManager({
       ) : null}
     </section>
   )
+}
+
+/**
+ * tus reports failures as `tus: failed to upload chunk at offset 5242880, caused by
+ * [object ProgressEvent], origin: …`. True, and useless to the person watching the bar.
+ */
+function shortReason(error: Error): string {
+  if (/ProgressEvent|NetworkError|Failed to fetch|ERR_INTERNET/i.test(error.message)) {
+    return 'The connection dropped. This will pick up where it left off when you are back online.'
+  }
+  return error.message.split(',')[0] ?? error.message
 }
 
 /** A realistic time estimate, from observed throughput rather than a guess (doc 05 §3.4). */

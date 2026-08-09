@@ -255,6 +255,22 @@ not expect it.
 Note: the real database has **no demo catalogue**. The nine-title fixture lives only in the
 memory/file drivers.
 
+## N-3 · Resumable upload, proved and fixed — done 2026-08-09
+Built: `pnpm verify:upload` — boots the app on `VIDEO_DRIVER=bunny`, drives a real browser,
+uploads 25MB to real Bunny, drops the network with `context.setOffline`, restores it, and
+asserts the upload continues rather than restarting.
+Files: scripts/verify-upload-resume.ts, components/admin/UploadManager.tsx,
+tests/component/upload-manager.test.tsx
+Note: **the first run failed, and the bug was real.** tus-js-client's default retry policy gives
+up on a bare network error — no response, no status — which is exactly the case the whole
+mechanism exists for. The row said "Failed" four seconds after the drop and nothing ever picked
+it up. A wifi blip would have ended a six-gigabyte upload.
+Fixed three ways: an explicit `onShouldRetry` that treats a response-less failure as retryable
+(and still refuses 4xx, except tus's 409/423 offset conflicts); a `interrupted` state instead of
+`error`, because the bytes are still at the provider and "Failed" reads as over; and resumption
+on the `online` event, since no backoff schedule covers a laptop that slept for an hour.
+Now: dropped at 20%, resumed to 100%, never restarted.
+
 ## Open, and deliberately so
 
 - **The browse route renders dynamically, not ISR.** Reading the locale cookie in

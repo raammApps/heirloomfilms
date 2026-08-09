@@ -16,8 +16,9 @@ Phase 0 is built: guest catalogue, player, admin, customizer, and the module reg
 doc 10 §2 journeys run, plus an OG size budget and a zero-axe-violations gate. **180 unit and
 component tests, 69 E2E, all green.** **Both external services are live and verified end to end**: the app boots on
 `DATA_DRIVER=supabase` + `VIDEO_DRIVER=bunny`, an operator logs in against real Postgres, and
-create → publish → guest page works. `pnpm test:integration` is 10/10. Local development stays
-on `file` + `bunny` so the demo catalogue is available. Working tree clean on `master`.
+create → publish → guest page works. `pnpm test:integration` is 10/10, and `pnpm verify:upload` proves a real
+TUS upload survives a network drop. Local development stays on `file` + `bunny` so the demo
+catalogue is available. Working tree clean on `master`.
 
 Run `pnpm preflight` first in any new session: it reports the real state of both services in a
 few seconds and is more trustworthy than this paragraph.
@@ -26,15 +27,8 @@ few seconds and is more trustworthy than this paragraph.
 
 ## Tier 1 — unretired risk
 
-### N-3 · A real upload through the browser, against Bunny  ·  ~1h
-
-`pnpm verify:playback` uploads via a plain `PUT`. The product uploads via **TUS from the
-browser**, which is the path doc 09 says the schedule slips on, and it has never run against a
-real endpoint. E2E-5 covers our half of the contract only.
-
-Do it by hand: `pnpm dev` with `VIDEO_DRIVER=bunny`, drop a large file into the admin, kill the
-network at ~60%, restore, confirm it resumes from ~60% and not from zero. Then reload the tab
-mid-upload and confirm it continues. This is doc 10 §2 E2E-5's untestable half and doc 10 §3 M-5.
+Empty. The three things doc 09 called out as schedule risk — the video provider, the database,
+and resumable upload — have all now run against the real services.
 
 ---
 
@@ -126,8 +120,11 @@ line — `tests/unit/registry.test.ts` fails the build otherwise. Remember `meta
   (Stream endpoints); `BUNNY_ACCOUNT_API_KEY` manages libraries. A 401 looks identical either way.
 - **Playback tokens sign the directory `/{guid}/`, not the manifest.** Signing the file 403s
   every rendition and segment. `pnpm verify:playback` guards this; do not "simplify" it.
+- **An interrupted upload is not a failed one.** `UploadManager` marks it `interrupted` and
+  resumes on the `online` event; tus's default retry policy gives up on a bare network error,
+  so `onShouldRetry` is set explicitly. `pnpm verify:upload` guards this against real Bunny.
 - Commands: `pnpm preflight` · `pnpm verify` · `pnpm test:e2e` · `pnpm test:integration` ·
-  `pnpm verify:playback` · `pnpm bootstrap:sql` · `pnpm seed`.
+  `pnpm verify:playback` · `pnpm verify:upload` · `pnpm check:bundle` · `pnpm bootstrap:sql`.
 
 ## Picking up an item
 
