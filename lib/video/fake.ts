@@ -89,12 +89,22 @@ export class FakeVideoProvider implements VideoProvider {
     return {
       state: ready ? 'ready' : 'processing',
       durationS: ready ? asset.durationS : null,
-      posterCandidates: ready
-        ? [1, 2, 3].map((n) => `/api/poster/frame?asset=${providerId}&n=${n}`)
-        : [],
+      posterCandidates: ready ? [1, 2, 3].map((n) => `frame-${n}`) : [],
       thumbnailsUrl: null,
       errorMessage: null,
     }
+  }
+
+  async getAssetUrl({
+    providerId,
+    file,
+  }: {
+    providerId: string
+    file: string
+    ttlS: number
+  }): Promise<string> {
+    // Deterministic generated artwork, so an offline demo shows three distinguishable frames.
+    return `/api/poster/frame?asset=${encodeURIComponent(providerId)}&n=${encodeURIComponent(file)}`
   }
 
   async deleteAsset(providerId: string): Promise<void> {

@@ -26,6 +26,14 @@ export type PlaybackTicket = {
 export type AssetStatus = {
   state: 'uploading' | 'processing' | 'ready' | 'failed'
   durationS: number | null
+  /**
+   * Provider-relative file names (`thumbnail_1.jpg`), not URLs.
+   *
+   * A protected zone only serves signed URLs, and a signed URL expires — so persisting one in
+   * `titles.poster_url`, which is embedded in ISR-cached pages and the OG image, produces a
+   * poster that works today and 403s later. The app stores a stable route and signs at request
+   * time; see `app/api/poster/[titleId]/route.ts`.
+   */
   posterCandidates: string[]
   thumbnailsUrl: string | null
   errorMessage: string | null
@@ -56,6 +64,13 @@ export interface VideoProvider {
   }): Promise<PlaybackTicket>
 
   getStatus(providerId: string): Promise<AssetStatus>
+
+  /**
+   * A short-lived URL for one file belonging to an asset — a poster frame, the scrub VTT.
+   * Separate from `getPlaybackToken` because these are images fetched by the browser directly,
+   * not a manifest handed to a player.
+   */
+  getAssetUrl(input: { providerId: string; file: string; ttlS: number }): Promise<string>
 
   deleteAsset(providerId: string): Promise<void>
 

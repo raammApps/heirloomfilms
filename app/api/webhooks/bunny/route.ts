@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { getRepository } from '@/lib/db'
 import { route } from '@/lib/http/handler'
 import { log } from '@/lib/log'
-import { getVideoProvider } from '@/lib/video'
+import { getVideoProvider, posterRoute } from '@/lib/video'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -45,13 +45,14 @@ export async function POST(request: Request) {
       }
 
       const status = await getVideoProvider().getStatus(verified.providerId)
+      const candidates = status.posterCandidates.map((file) => posterRoute(title.id, file))
       await repository.updateTitle(title.id, {
         status: 'ready',
         durationS: status.durationS ?? title.durationS,
-        posterCandidates: status.posterCandidates,
+        posterCandidates: candidates,
         // Only auto-assign a poster when the operator has not chosen one.
         posterUrl:
-          title.posterSource === 'custom' ? title.posterUrl : (status.posterCandidates[0] ?? title.posterUrl),
+          title.posterSource === 'custom' ? title.posterUrl : (candidates[0] ?? title.posterUrl),
         posterSource: title.posterSource === 'custom' ? 'custom' : 'auto',
         thumbnailsUrl: status.thumbnailsUrl,
         errorMessage: null,

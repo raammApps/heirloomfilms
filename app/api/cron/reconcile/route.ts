@@ -4,7 +4,7 @@ import { getRepository } from '@/lib/db'
 import { env } from '@/lib/env'
 import { route } from '@/lib/http/handler'
 import { log } from '@/lib/log'
-import { getVideoProvider } from '@/lib/video'
+import { getVideoProvider, posterRoute } from '@/lib/video'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,16 +47,14 @@ export async function GET(request: Request) {
         const status = await provider.getStatus(title.providerId)
         if (status.state === 'processing') continue
 
+        const candidates = status.posterCandidates.map((file) => posterRoute(title.id, file))
+
         await repository.updateTitle(title.id, {
           status: status.state,
           durationS: status.durationS ?? title.durationS,
-          posterCandidates: status.posterCandidates.length
-            ? status.posterCandidates
-            : title.posterCandidates,
+          posterCandidates: candidates.length ? candidates : title.posterCandidates,
           posterUrl:
-            title.posterSource === 'custom'
-              ? title.posterUrl
-              : (status.posterCandidates[0] ?? title.posterUrl),
+            title.posterSource === 'custom' ? title.posterUrl : (candidates[0] ?? title.posterUrl),
           thumbnailsUrl: status.thumbnailsUrl ?? title.thumbnailsUrl,
           errorMessage: status.errorMessage,
         })

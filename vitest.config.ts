@@ -15,8 +15,17 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.{ts,tsx}'],
-    // Playwright owns e2e/; vitest must not try to run those specs.
-    exclude: ['node_modules', '.next', 'e2e'],
+    /**
+     * Playwright owns e2e/. `tests/integration` is opt-in via `pnpm test:integration`: it talks
+     * to real Bunny and Supabase, so letting it into the default run would make `pnpm test`
+     * depend on someone else's uptime and on a schema being applied.
+     */
+    exclude: [
+      'node_modules',
+      '.next',
+      'e2e',
+      ...(process.env.RUN_INTEGRATION === '1' ? [] : ['tests/integration/**']),
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'lcov'],

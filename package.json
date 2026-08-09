@@ -25,7 +25,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "bootstrap:sql": "tsx scripts/bootstrap-supabase.ts",
-    "test:integration": "vitest run tests/integration",
+    "test:integration": "RUN_INTEGRATION=1 vitest run tests/integration",
     "make:sample-video": "node scripts/make-sample-video.mjs",
     "preflight": "tsx scripts/preflight.ts",
     "verify:playback": "tsx scripts/verify-bunny-playback.ts"

@@ -17,4 +17,14 @@ export function setVideoProvider(provider: VideoProvider): void {
   ;(globalThis as Global)[KEY] = provider
 }
 
+/**
+ * Turn provider-relative poster file names into stable app URLs.
+ *
+ * The database must never hold a signed URL — see `app/api/poster/[titleId]/route.ts`. Every
+ * path that persists `posterCandidates` or `posterUrl` goes through here.
+ */
+export function posterRoute(titleId: string, file: string): string {
+  return `/api/poster/${titleId}?file=${encodeURIComponent(file)}`
+}
+
 export * from './provider'

@@ -118,26 +118,46 @@ export class BunnyProvider implements VideoProvider {
      * Verified against the live CDN by `pnpm verify:playback`, which asserts a child playlist
      * as well as the manifest. Do not "simplify" this back to the file path.
      */
-    const directory = `/${providerId}/`
-    const token = createHash('sha256')
-      .update(`${env.BUNNY_TOKEN_AUTH_KEY}${directory}${expires}`)
-      .digest('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '')
-
     // No extra query parameters on the signed URL: Bunny validates the request as a whole, and
     // an audit tag appended here silently breaks playback. `scope` is enforced where it belongs
     // — the token endpoint only mints a URL after checking this catalogue owns this title.
     void scope
 
-    const query = `?token=${token}&expires=${expires}`
+    const query = BunnyProvider.signDirectory(providerId, expires)
 
     return {
-      playbackUrl: `https://${host}${directory}playlist.m3u8${query}`,
-      thumbnailsUrl: `https://${host}${directory}seek/seek.vtt${query}`,
+      playbackUrl: `https://${host}/${providerId}/playlist.m3u8${query}`,
+      thumbnailsUrl: `https://${host}/${providerId}/seek/seek.vtt${query}`,
       expiresAt: new Date(expires * 1000).toISOString(),
     }
+  }
+
+  /**
+   * `?token=…&expires=…` authorising everything under `/{providerId}/`.
+   * Shared by playback and by poster frames so the two can never drift apart.
+   */
+  private static signDirectory(providerId: string, expires: number): string {
+    const token = createHash('sha256')
+      .update(`${env.BUNNY_TOKEN_AUTH_KEY}/${providerId}/${expires}`)
+      .digest('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+    return `?token=${token}&expires=${expires}`
+  }
+
+  async getAssetUrl({
+    providerId,
+    file,
+    ttlS,
+  }: {
+    providerId: string
+    file: string
+    ttlS: number
+  }): Promise<string> {
+    const expires = Math.floor(Date.now() / 1000) + ttlS
+    const query = BunnyProvider.signDirectory(providerId, expires)
+    return `https://${env.BUNNY_CDN_HOSTNAME}/${providerId}/${file}${query}`
   }
 
   async getStatus(providerId: string): Promise<AssetStatus> {
@@ -150,21 +170,22 @@ export class BunnyProvider implements VideoProvider {
     }>(`/videos/${providerId}`)
 
     const state = STATUS_MAP[video.status] ?? 'processing'
-    const host = env.BUNNY_CDN_HOSTNAME!
 
     return {
       state,
       durationS: video.length > 0 ? Math.round(video.length) : null,
       // Bunny generates evenly spaced stills; the first three are the poster candidates the
-      // operator picks from (doc 09 P0-10).
+      // operator picks from (doc 09 P0-10). File names, not URLs — see AssetStatus.
       posterCandidates:
         state === 'ready'
           ? Array.from(
               { length: Math.min(3, Math.max(video.thumbnailCount, 1)) },
-              (_, i) => `https://${host}/${providerId}/thumbnail_${i + 1}.jpg`,
+              (_, i) => `thumbnail_${i + 1}.jpg`,
             )
           : [],
-      thumbnailsUrl: state === 'ready' ? `https://${host}/${providerId}/seek/seek.vtt` : null,
+      // Null rather than an unsigned URL: only a signed one is fetchable, and the playback
+      // ticket already carries a fresh one. Persisting a stale URL here would be a trap.
+      thumbnailsUrl: null,
       errorMessage: state === 'failed' ? 'The provider could not encode this file' : null,
     }
   }

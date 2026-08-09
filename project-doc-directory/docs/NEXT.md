@@ -13,10 +13,10 @@ Update this file as items land — move them out, do not leave them ticked.
 ## Where things stand, in one paragraph
 
 Phase 0 is built: guest catalogue, player, admin, customizer, and the module registry. All six
-doc 10 §2 journeys run, plus an OG size budget and a zero-axe-violations gate. **173 unit and
+doc 10 §2 journeys run, plus an OG size budget and a zero-axe-violations gate. **180 unit and
 component tests, 69 E2E, all green.** Bunny is live and verified end to end against the real
-CDN. Supabase is not — the schema is unapplied and no secret key has been supplied, so
-`DATA_DRIVER` is still `file` locally. Eight commits on `master`, working tree clean.
+CDN. Supabase has a working secret key but **the schema is still unapplied**, so `DATA_DRIVER` is
+still `file` locally. Working tree clean on `master`.
 
 Run `pnpm preflight` first in any new session: it reports the real state of both services in a
 few seconds and is more trustworthy than this paragraph.
@@ -30,42 +30,20 @@ few seconds and is more trustworthy than this paragraph.
 `SupabaseRepository` (564 lines) and both migrations have still never executed. This is the last
 piece of production path with no coverage behind it.
 
-1. Get the **`sb_secret_…`** key from Project Settings → API Keys into `.env.local` as
-   `SUPABASE_SECRET_KEY`.
+1. ~~Secret key into `.env.local`.~~ Done.
 2. `pnpm bootstrap:sql > /tmp/bootstrap.sql`, paste into the Supabase SQL editor, run. It
-   applies both migrations and the first org in one transaction.
+   applies both migrations (11 tables, 16 RLS policies) and the first org in one transaction.
+   **This is the only remaining step** — it cannot be automated, because PostgREST does not
+   execute DDL and the Management API needs a personal access token rather than the secret key.
 3. Create the operator in Authentication → Users, then run the `insert into operators`
    statement printed at the end of that script.
 4. `DATA_DRIVER=supabase`, then `pnpm preflight` and `pnpm test:integration`. Four Supabase
    integration tests exist and currently skip; they should go green, including the RLS one
    (doc 10 §1 test 12 — anon must not see a draft catalogue).
 
-**Blocked on:** the secret key. Nothing else.
-
-### N-2 · Poster thumbnails 403 under token authentication  ·  ~2h
-
-Enabling token auth protects *every* file in the Bunny zone, including
-`/{guid}/thumbnail_1.jpg` and `preview.webp`. `getStatus` returns those as plain URLs and
-`components/admin/TitleList.tsx` renders them directly in the poster picker. **Verified 403.**
-
-Do **not** sign them with the 4-hour playback TTL: `titles.poster_url` is persisted, embedded in
-ISR-cached pages and in the OG image. A token that expires in a year is a time bomb in a product
-whose whole promise is that the wedding is still there years later.
-
-The fix: a redirect route, so the stored value never expires.
-
-```
-app/api/poster/[titleId]/route.ts
-  → look up the title, mint a short-lived signed URL, 302 to it
-  → short Cache-Control so tokens stay fresh
-  → store `/api/poster/<titleId>?n=1` in poster_url instead of the Bunny URL
-```
-
-Bytes still come from Bunny, so doc 07's "no server-side video proxy" holds — this is a
-redirect, not a proxy. Same treatment for `thumbnails_url` (the scrub VTT).
-
-**Acceptance:** the admin poster picker shows three real frames; a published catalogue's poster
-still resolves after the playback token would have expired.
+**Blocked on:** step 2 only. The secret key is in `.env.local` and works; `pnpm preflight`
+confirms everything except the schema. `pnpm test:integration` currently fails its three
+Supabase tests for exactly that reason — that is the harness working, not a defect.
 
 ### N-3 · A real upload through the browser, against Bunny  ·  ~1h
 

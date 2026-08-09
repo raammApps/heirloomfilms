@@ -126,12 +126,21 @@ async function main(): Promise<void> {
       console.log(`   HTTP ${childStatus}`)
     }
 
+    // Posters live in the same protected directory, and the whole reason for the redirect route
+    // is that a signed URL cannot be persisted. Prove a signed poster resolves.
+    console.log('7. fetching a signed POSTER frame…')
+    const posterQuery = `?token=${sign(directory, expires)}&expires=${expires}`
+    const poster = await fetch(`https://${HOST}${directory}thumbnail_1.jpg${posterQuery}`)
+    const posterUnsigned = await fetch(`https://${HOST}${directory}thumbnail_1.jpg`)
+    console.log(`   signed HTTP ${poster.status} · unsigned HTTP ${posterUnsigned.status}`)
+
     console.log()
+    const servesPoster = poster.ok && posterUnsigned.status !== 200
     const servesSigned = withToken.ok
     const refusesUnsigned = without.status === 403 || without.status === 401
     const servesChild = childStatus === 200
 
-    if (servesSigned && refusesUnsigned && servesChild) {
+    if (servesSigned && refusesUnsigned && servesChild && servesPoster) {
       const renditions = (manifest.match(/RESOLUTION=(\d+x\d+)/g) ?? []).join(', ')
       console.log('PASS — signature accepted, whole rendition tree authorised, unsigned refused.')
       if (renditions) console.log(`  ladder: ${renditions}`)
@@ -147,6 +156,11 @@ async function main(): Promise<void> {
       console.error(`FAIL — an unsigned URL returned ${without.status}.`)
       console.error('  The pull zone is not enforcing token authentication, so a copied .m3u8')
       console.error('  never expires. doc 01 US-5 would be false. Enable it on the pull zone.')
+    }
+    if (!servesPoster) {
+      console.error(`FAIL — a signed poster returned ${poster.status}.`)
+      console.error('  The admin poster picker and every generated card would show a broken')
+      console.error('  image. See app/api/poster/[titleId]/route.ts.')
     }
     if (servesSigned && !servesChild) {
       console.error(`FAIL — the manifest loaded but the child playlist returned ${childStatus}.`)
