@@ -45,3 +45,12 @@ described in text in doc 14 §1).
 **"Mehfil"** is a working name. Before any public launch, run a trademark search on the
 Indian TM registry (classes 42 and 45) and a domain check. Do not print it on planner
 collateral until that clears. See `docs/12-compliance-and-risk.md §3`.
+
+---
+
+## Working files (not part of the specification)
+
+| File | What it is |
+|---|---|
+| `PROGRESS.md` | What has been built, and the reasoning that is not obvious from the code |
+| `NEXT.md` | The ordered backlog. Start here to decide what to do next. |

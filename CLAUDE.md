@@ -8,8 +8,11 @@ This file covers the **codebase**: what exists, and the rules that keep it coher
 
 ## Context discipline
 
-- `project-doc-directory/docs/PROGRESS.md` is the handoff file. Read it after CLAUDE.md; a cold
-  start is then ~4k tokens regardless of repo size. Append after every ticket.
+- `project-doc-directory/docs/PROGRESS.md` is what was built and why.
+  `project-doc-directory/docs/NEXT.md` is **what is left, in the order to take it up**. Read
+  CLAUDE.md → PROGRESS → NEXT; a cold start is then ~5k tokens regardless of repo size.
+  Append to PROGRESS and remove the item from NEXT as each lands.
+- Run `pnpm preflight` before trusting anything either file says about Supabase or Bunny.
 - Never read the `.svg` wireframes into context. `docs/03-wireframes.md` carries the text.
 - Never read `archive/` — superseded invite-site work.
 

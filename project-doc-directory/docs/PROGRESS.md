@@ -1,7 +1,11 @@
 # PROGRESS
 
 Append one entry per completed ticket. Keep entries to ~3 lines.
-A fresh agent session reads CLAUDE.md → this file → the next ticket's files (doc 13 §2).
+
+This file is **what was built**. [`NEXT.md`](NEXT.md) is **what is left, in order** — read that
+to decide what to do; read this to understand why the code looks the way it does.
+
+A fresh agent session reads CLAUDE.md → NEXT.md → this file → the item's own docs (doc 13 §2).
 
 Format:
 
