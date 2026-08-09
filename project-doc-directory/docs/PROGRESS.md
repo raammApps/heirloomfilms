@@ -271,6 +271,21 @@ Fixed three ways: an explicit `onShouldRetry` that treats a response-less failur
 on the `online` event, since no backoff schedule covers a laptop that slept for an hour.
 Now: dropped at 20%, resumed to 100%, never restarted.
 
+## Observability — done 2026-08-09
+Built: `lib/observability.ts` (a swappable `reportError` sink, stdout today, a vendor later
+without touching call sites), `/api/qoe` plus `useQoe` measuring press-play → first frame and
+the rebuffer ratio, `/api/cron/usage` writing `usage_rollup` and alerting past 300GB, a global
+error boundary with `/api/client-error`, and correlation ids on unhandled route errors.
+Files: lib/observability.ts, app/api/qoe, app/api/cron/usage, app/api/client-error,
+app/global-error.tsx, components/streaming/useQoe.ts, lib/db/* (listAllCatalogues, upsertUsage)
+Note: **`usage_rollup` and `getUsage()` already existed and nothing called them.** A half-built
+guardrail is worse than an absent one, because it reads as done. doc 05 §2 says to build these,
+not document them.
+Note: playback start is measured **press-play → first frame** on the `playing` event, not
+`canplay` — `canplay` fires before anything is painted, which would have flattered the number
+against the one metric doc 05 §6 says the product lives or dies on.
+Note: QoE beacons carry no guest identity. doc 06 §5 applies to telemetry too.
+
 ## Open, and deliberately so
 
 - **The browse route renders dynamically, not ISR.** Reading the locale cookie in

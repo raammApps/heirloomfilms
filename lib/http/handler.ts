@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { log } from '@/lib/log'
+import { reportError } from '@/lib/observability'
 import { ApiError, errorResponse } from './errors'
 
 /**
@@ -27,7 +27,9 @@ export function route<T>(
     // Next's redirect() and notFound() throw control-flow errors that must propagate.
     if (error && typeof error === 'object' && 'digest' in error) throw error
 
-    log.error('unhandled route error', { route: name, reason: (error as Error)?.message })
+    // An unhandled route error is the class worth alerting on, and it needs a stack — `log`
+    // alone gave a one-line reason with no way to find the code.
+    reportError(error, { scope: name }, 'error')
     return errorResponse(new ApiError('INTERNAL', 'Something went wrong'))
   })
 }

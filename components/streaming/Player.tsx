@@ -17,6 +17,7 @@ import { formatClock } from '@/lib/format'
 import type { Translator } from '@/lib/i18n'
 import { useHlsPlayback, type PlaybackTicketResponse } from './useHlsPlayback'
 import { useProgressHeartbeat } from './useProgressHeartbeat'
+import { useQoe } from './useQoe'
 
 type Props = {
   catalogueSlug: string
@@ -84,6 +85,10 @@ export function Player({
 
   useProgressHeartbeat({ video, catalogueSlug, titleId, profileId, playing })
 
+  // doc 05 §6's metric. `markIntent` starts the clock the moment the guest asks for playback;
+  // the hook stops it on the first painted frame.
+  const { markIntent } = useQoe({ video, catalogueSlug, titleId })
+
   // ── Element events ──────────────────────────────────────────────────────────
   useEffect(() => {
     const el = video.current
@@ -141,9 +146,15 @@ export function Player({
   const togglePlay = useCallback(() => {
     const el = video.current
     if (!el) return
-    if (el.paused) void el.play().catch(() => {})
-    else el.pause()
-  }, [])
+    if (el.paused) {
+      // Before `play()`, not after: the interval being measured is the one the guest feels,
+      // and it starts at the tap.
+      markIntent()
+      void el.play().catch(() => {})
+    } else {
+      el.pause()
+    }
+  }, [markIntent])
 
   const seekBy = useCallback((delta: number) => {
     const el = video.current

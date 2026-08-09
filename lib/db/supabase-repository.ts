@@ -552,6 +552,44 @@ export class SupabaseRepository implements Repository {
     if (error) throw new ApiError('INTERNAL', error.message)
   }
 
+  async listAllCatalogues(): Promise<Catalogue[]> {
+    const { data, error } = await this.db.from('catalogues').select('*')
+    if (error) throw new ApiError('INTERNAL', error.message)
+    return (data ?? []).map(SupabaseRepository.toCatalogue)
+  }
+
+  async upsertUsage(usage: {
+    catalogueId: string
+    month: string
+    storedGb: number
+    deliveredGb: number
+  }): Promise<void> {
+    const { error } = await this.db.from('usage_rollup').upsert(
+      {
+        catalogue_id: usage.catalogueId,
+        month: usage.month,
+        stored_gb: usage.storedGb,
+        delivered_gb: usage.deliveredGb,
+      },
+      { onConflict: 'catalogue_id,month' },
+    )
+    if (error) throw new ApiError('INTERNAL', error.message)
+  }
+
+  async listUsage(catalogueId: string) {
+    const { data } = await this.db
+      .from('usage_rollup')
+      .select('*')
+      .eq('catalogue_id', catalogueId)
+      .order('month', { ascending: false })
+    return (data ?? []).map((r: Row) => ({
+      catalogueId: r.catalogue_id,
+      month: r.month,
+      storedGb: Number(r.stored_gb),
+      deliveredGb: Number(r.delivered_gb),
+    }))
+  }
+
   async listStalledTitles(olderThanMinutes: number): Promise<Title[]> {
     const cutoff = new Date(Date.now() - olderThanMinutes * 60_000).toISOString()
     const { data } = await this.db

@@ -89,6 +89,24 @@ export interface Repository {
 
   /** Titles stuck in `processing` past `olderThanMinutes` — the reconciliation job's input. */
   listStalledTitles(olderThanMinutes: number): Promise<Title[]>
+
+  /**
+   * Every catalogue, unscoped. Operations jobs only — the usage rollup has to walk all of them.
+   * No request path may call this; org scoping is the isolation boundary (doc 10 §5).
+   */
+  listAllCatalogues(): Promise<Catalogue[]>
+
+  /** Per-catalogue monthly usage (doc 05 §2 cost guardrails). `month` is the first of a month. */
+  upsertUsage(usage: {
+    catalogueId: string
+    month: string
+    storedGb: number
+    deliveredGb: number
+  }): Promise<void>
+
+  listUsage(catalogueId: string): Promise<
+    { catalogueId: string; month: string; storedGb: number; deliveredGb: number }[]
+  >
 }
 
 /** Convenience: draft modules if the customizer has unpublished edits, otherwise live. */

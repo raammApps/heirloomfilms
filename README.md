@@ -205,6 +205,30 @@ pnpm bootstrap:sql > /tmp/bootstrap.sql
 6. `GET /api/health` reports which drivers actually came up — check it after every deploy. A
    deployment that silently came up on the memory driver is the failure that probe exists for.
 
+### Observability
+
+Vendor-neutral by design: everything is structured JSON on stdout, which Vercel, Docker and a
+plain `node server.js` all capture. No account is needed and nothing is added to the browser
+bundle. Putting Sentry or Axiom behind it later is `lib/observability.ts` and nothing else — no
+call sites change.
+
+| Signal | Log line | Why it exists |
+|---|---|---|
+| Playback start, press-play → first frame | `qoe.playback_start` with `overBudget` | doc 05 §6's "the metric the product lives or dies on"; doc 01 §8 targets p75 < 1.5s |
+| Rebuffer ratio | `qoe.rebuffer` with `overBudget` | doc 01 §8 targets < 1% |
+| Playback failure | `qoe.playback_error` | Distinguishes "still processing" from a real fault |
+| Per-catalogue monthly usage | `usage rollup complete`, nightly | doc 05 §2 cost guardrails |
+| Delivery over 300GB/month | `usage.delivery_alert` (warn) | doc 05 §2 — flaunted hard, or a leaked link |
+| Unhandled server error | `error.report` with a trimmed stack | Was a one-line reason with no way to find the code |
+| Client crash | `error.report` scope `client` | Was visible only in a console nobody reads |
+
+Alert on `usage.delivery_alert` and on `error.report` with `severity: error`. The two
+`overBudget` booleans are pre-computed so a query filters on a flag rather than parsing a
+threshold.
+
+Guest telemetry carries **no identity** — a catalogue, a title, a duration, a coarse connection
+label. Doc 06 §5 keeps the viewer side free of personal data and telemetry gets no exemption.
+
 ### What is enforced where
 
 | Concern | Enforcement |

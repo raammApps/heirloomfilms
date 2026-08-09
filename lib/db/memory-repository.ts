@@ -25,6 +25,7 @@ export type Snapshot = {
   progress: PlaybackProgress[]
   moduleStates: ModuleState[]
   playEvents: PlayEvent[]
+  usage: { catalogueId: string; month: string; storedGb: number; deliveredGb: number }[]
 }
 
 export function emptySnapshot(): Snapshot {
@@ -39,6 +40,7 @@ export function emptySnapshot(): Snapshot {
     progress: [],
     moduleStates: [],
     playEvents: [],
+    usage: [],
   }
 }
 
@@ -292,6 +294,29 @@ export class MemoryRepository implements Repository {
     const title = this.data.titles.find((t) => t.id === event.titleId)
     if (title) title.watchSeconds += event.seconds
     this.touched()
+  }
+
+  async listAllCatalogues(): Promise<Catalogue[]> {
+    return this.clone(this.data.catalogues)
+  }
+
+  async upsertUsage(usage: {
+    catalogueId: string
+    month: string
+    storedGb: number
+    deliveredGb: number
+  }): Promise<void> {
+    this.data.usage ??= []
+    const index = this.data.usage.findIndex(
+      (u) => u.catalogueId === usage.catalogueId && u.month === usage.month,
+    )
+    if (index === -1) this.data.usage.push(this.clone(usage))
+    else this.data.usage[index] = this.clone(usage)
+    this.touched()
+  }
+
+  async listUsage(catalogueId: string) {
+    return this.clone((this.data.usage ?? []).filter((u) => u.catalogueId === catalogueId))
   }
 
   async listStalledTitles(olderThanMinutes: number): Promise<Title[]> {

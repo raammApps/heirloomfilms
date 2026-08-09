@@ -34,6 +34,17 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
+### N-11 · Actually deploy  ·  ~1h + DNS
+
+Nothing has ever run outside localhost: no linked Vercel project, no wildcard DNS. Everything is
+prepared — Dockerfile, `vercel.json` pinned to `bom1`, both crons declared, CI, boot-time env
+validation, `pnpm preflight`. What is needed is `vercel link`, the environment variables,
+`*.mehfil.app` + `admin.mehfil.app` pointed at the project, and a first deploy verified with
+`/api/health` reporting `supabase` + `bunny`.
+
+Set `SESSION_SECRET` to something new for production — the local one is a dev value, and
+`lib/env.ts` refuses to boot on the example string.
+
 ### N-4 · The browse route renders dynamically, not ISR  ·  ~2h
 
 `app/c/[slug]/page.tsx` reads the locale cookie, which opts the whole route out of static
@@ -44,15 +55,15 @@ Options, in order of preference: resolve the locale client-side after a static f
 move it into the path (`/hi/…`), which doc 03 argues against because the WhatsApp link is the
 product's front door. Measure before and after — the point is the number, not the refactor.
 
-### N-5 · Lighthouse / QoE probe in CI  ·  ~3h  ·  doc 09 P1-14
+### N-5 · Lighthouse in CI  ·  ~2h  ·  doc 09 P1-14
 
-The first-load JS budget is now gated (`pnpm check:bundle`, in CI after the build; browse is
-141.8KB against 150KB). What is still only documented in `lib/budgets.ts` is **LCP, CLS and
-playback start time** — and playback start is the metric the product lives or dies on.
+First-load JS is gated (`pnpm check:bundle`) and playback start and rebuffer ratio are now
+measured in production (`qoe.playback_start`, `qoe.rebuffer`). What remains is **LCP and CLS**,
+which Lighthouse CI against the built app covers.
 
-Lighthouse CI against the built app covers LCP and CLS. Playback start needs a real QoE probe
-and cannot be honestly measured on CI hardware; doc 10 §3 M-9 keeps the authoritative number on
-a real phone on real 4G.
+Playback start deliberately stays out of CI: it cannot be honestly measured on CI hardware, and
+doc 10 §3 M-9 keeps the authoritative number on a real phone on real 4G. Production telemetry is
+the continuous version of it.
 
 ### N-6 · The demo catalogue needs real footage  ·  doc 13 §8 — **not to be delegated**
 
