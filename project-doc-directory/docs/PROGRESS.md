@@ -353,3 +353,30 @@ Not yet done: the deployment is behind Vercel Deployment Protection, so it is no
 guest, and the Bunny webhook signature remains the one thing never verified against a real
 delivery. Both are N-11.
 
+## Validated against real infrastructure — 11 Aug 2026
+
+Ran the product end to end on production Supabase and production Bunny: signed in, created a
+catalogue, uploaded a film, transcoded it, published, opened it as a guest and played it. Every
+step against live services, none against a stub.
+
+It worked, eventually. It found four bugs first, and every one of them was fatal in the
+configuration actually deployed:
+
+- **Play was a 404 in path mode.** Components pushed `/watch/<slug>`, which is right only when
+  the catalogue is the site root. The wordmark and the passcode redirect shared the assumption.
+  `cataloguePath` now answers this beside `catalogueUrl`.
+- **Playback failed on every Chromium browser.** `canPlayType` returns 'maybe' for HLS and then
+  cannot decode; the code read anything non-empty as native support. Android Chrome is the
+  primary target platform.
+- **hls.js could not load a byte.** Bunny signs the directory; hls.js resolves children
+  relative to the manifest and drops the query string, so every child 403'd.
+- **Reconcile was blind to `uploading`**, the one state a lost webhook actually produces.
+
+The lesson is in N-12. Two hundred and twenty unit tests and sixty-nine E2E tests passed
+throughout, because the suite only ever exercises subdomain mode and the playback check proves
+the CDN rather than the player. A test suite that cannot see the deployed configuration is not
+measuring the product.
+
+Still unverified: the Bunny webhook against a real delivery. It needs a public URL, and the
+deployment is behind Vercel Deployment Protection.
+

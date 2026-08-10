@@ -34,6 +34,25 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
+### N-12 · Two blind spots the suite has, now that we know they exist  ·  ~2h
+
+Validation against real infrastructure found three fatal bugs that 220 unit tests and 69 E2E
+tests all passed straight through. Both blind spots are structural, not oversights:
+
+1. **E2E only ever runs `TENANCY_MODE=subdomain`.** `playwright.config.ts` sets
+   `ROOT_DOMAIN=mehfil.localhost:3000` and never sets the mode, so path mode — *what production
+   runs* — has no coverage at all. That is how Play could 404 for every guest with a green
+   suite. Add a third Playwright project running the guest journey in path mode; the routes
+   differ, so it is a real second surface, not a duplicate.
+
+2. **`verify:playback` proves the CDN, not the player.** It appends the token with curl and
+   asserts 200/403. A real player resolves child playlists relative to the manifest, drops the
+   query string, and gets 403 on every one — which is exactly what happened, invisibly, behind
+   a passing script. Drive the actual `<video>` through hls.js in that script and assert
+   `readyState === 4`, the way `verify:upload` already drives a real browser.
+
+Until both exist, "the tests pass" says nothing about the configuration that is deployed.
+
 ### N-11 · Finish the deploy  ·  ~30m + DNS
 
 **Deployed and running** at `marquee-film-pub` (Vercel, Hobby, `sandeep-bh5-7354s-projects`).
