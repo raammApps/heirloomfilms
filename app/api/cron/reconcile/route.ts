@@ -9,8 +9,11 @@ import { getVideoProvider, posterRoute } from '@/lib/video'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-/** Anything still `processing` after this long is presumed to have lost its webhook. */
-const STALL_MINUTES = 120
+/**
+ * Anything still in a non-terminal state after this long is presumed to have lost its webhook.
+ * Configurable because a dead webhook makes the default wrong — see `RECONCILE_STALL_MINUTES`.
+ */
+const STALL_MINUTES = env.RECONCILE_STALL_MINUTES
 
 /**
  * Nightly reconciliation (doc 05 §8, doc 07 webhooks).

@@ -77,6 +77,18 @@ const schema = z
      */
     CRON_SECRET: z.string().min(16).optional(),
 
+    /**
+     * How long a title may sit in a non-terminal state before reconcile asks the provider what
+     * actually happened. Two hours by default so the job never races a healthy webhook.
+     *
+     * It is configuration because a dead webhook makes it wrong: an operator then watches
+     * "UPLOADING" for two hours on a film the provider finished in thirty seconds. Setting it
+     * to 0 makes reconcile authoritative immediately, which is what you want while webhook
+     * delivery is unproven — as it is behind Vercel Deployment Protection, where the provider's
+     * POST is bounced to an SSO login and never reaches the app at all.
+     */
+    RECONCILE_STALL_MINUTES: z.coerce.number().int().nonnegative().default(120),
+
     DEV_OPERATOR_EMAIL: z.string().email().default('operator@mehfil.test'),
     DEV_OPERATOR_PASSWORD: nonEmpty.default('mehfil-dev'),
 
