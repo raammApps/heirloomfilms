@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { catalogueUrl, normaliseHost, resolveTenant } from '@/lib/tenant'
+import {
+  adminUrl,
+  catalogueUrl,
+  isLocalDomain,
+  normaliseHost,
+  resolveTenant,
+} from '@/lib/tenant'
 
 /**
  * doc 10 §1 test 1: `resolveTenant` for every host shape.
@@ -93,5 +99,80 @@ describe('catalogueUrl', () => {
     expect(catalogueUrl('aanya-vikram', 'mehfil.localhost:3000')).toBe(
       'http://aanya-vikram.mehfil.localhost:3000/',
     )
+  })
+
+  /**
+   * The domain and the addressing strategy are both configuration. Nothing downstream may
+   * assume either — a move from a wildcard to a single CNAME must not reach a component.
+   */
+  it('addresses a catalogue by path when the mode says so', () => {
+    expect(catalogueUrl('aanya-vikram', 'raammcorp.in', '/', 'path')).toBe(
+      'https://raammcorp.in/c/aanya-vikram',
+    )
+    expect(catalogueUrl('aanya-vikram', 'marquee.raammcorp.in', '/watch/x', 'path')).toBe(
+      'https://marquee.raammcorp.in/c/aanya-vikram/watch/x',
+    )
+  })
+
+  it('keeps the subdomain shape when the mode says so', () => {
+    expect(catalogueUrl('aanya-vikram', 'raammcorp.in', '/watch/x', 'subdomain')).toBe(
+      'https://aanya-vikram.raammcorp.in/watch/x',
+    )
+  })
+
+  it('works for any domain, which is the whole point', () => {
+    for (const domain of ['mehfil.app', 'raammcorp.in', 'marquee.film', 'example.co.uk']) {
+      expect(catalogueUrl('couple', domain)).toBe(`https://couple.${domain}/`)
+      expect(catalogueUrl('couple', domain, '/', 'path')).toBe(`https://${domain}/c/couple`)
+    }
+  })
+})
+
+describe('isLocalDomain', () => {
+  it.each(['localhost:3000', 'lvh.me:3000', 'lvh.me', 'app.localhost', '127.0.0.1:3000'])(
+    'treats %s as local, so links use http',
+    (domain) => {
+      expect(isLocalDomain(domain)).toBe(true)
+    },
+  )
+
+  it.each(['raammcorp.in', 'marquee.film', 'mehfil.app'])(
+    'treats %s as public, so links use https',
+    (domain) => {
+      expect(isLocalDomain(domain)).toBe(false)
+    },
+  )
+})
+
+describe('adminUrl', () => {
+  it('follows the tenancy mode too', () => {
+    expect(adminUrl('raammcorp.in')).toBe('https://admin.raammcorp.in')
+    expect(adminUrl('raammcorp.in', 'path')).toBe('https://raammcorp.in/admin')
+    expect(adminUrl('lvh.me:3000', 'path')).toBe('http://lvh.me:3000/admin')
+  })
+})
+
+describe('resolveTenant against a real registrable domain', () => {
+  // Guards against anything that quietly assumed a `.app` TLD or a two-label domain.
+  it('handles a .in domain identically', () => {
+    expect(resolveTenant('raammcorp.in', 'raammcorp.in')).toEqual({ kind: 'marketing' })
+    expect(resolveTenant('admin.raammcorp.in', 'raammcorp.in')).toEqual({ kind: 'admin' })
+    expect(resolveTenant('aanya-vikram.raammcorp.in', 'raammcorp.in')).toEqual({
+      kind: 'catalogue',
+      slug: 'aanya-vikram',
+      source: 'subdomain',
+    })
+  })
+
+  it('handles a root that is itself a subdomain', () => {
+    // `marquee.raammcorp.in` as the root makes `<slug>.marquee.raammcorp.in` a catalogue.
+    expect(resolveTenant('marquee.raammcorp.in', 'marquee.raammcorp.in')).toEqual({
+      kind: 'marketing',
+    })
+    expect(resolveTenant('aanya-vikram.marquee.raammcorp.in', 'marquee.raammcorp.in')).toEqual({
+      kind: 'catalogue',
+      slug: 'aanya-vikram',
+      source: 'subdomain',
+    })
   })
 })

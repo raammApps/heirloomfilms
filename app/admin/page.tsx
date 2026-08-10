@@ -51,7 +51,7 @@ export default async function CatalogueListPage() {
               </p>
 
               <p className="mt-3 truncate text-[12px] text-[var(--color-l-text-mid)]">
-                {catalogueUrl(catalogue.slug, env.ROOT_DOMAIN)}
+                {catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '/', env.TENANCY_MODE)}
               </p>
 
               <div className="mt-4 flex gap-2">

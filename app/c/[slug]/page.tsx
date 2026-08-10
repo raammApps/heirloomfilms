@@ -34,7 +34,7 @@ export async function generateMetadata({
   const locale = parseLocale((await cookies()).get('mehfil_locale')?.value)
   const coupleName = resolveLocalised(catalogue.coupleName, locale)
   const description = resolveLocalised(catalogue.synopsis, locale) || `${coupleName} — the films.`
-  const url = catalogueUrl(catalogue.slug, env.ROOT_DOMAIN)
+  const url = catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '/', env.TENANCY_MODE)
 
   // The WhatsApp preview is a P0 feature, not polish (CLAUDE.md constraint 3). `?v=` is a
   // cache-buster the pre-handover runbook relies on — WhatsApp caches previews for days.
@@ -103,7 +103,7 @@ export default async function CataloguePage({
         locale={locale}
         initialTitleSlug={titleParam ?? null}
         initialProgress={progress}
-        shareBaseUrl={catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '').replace(/\/$/, '')}
+        shareBaseUrl={catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '', env.TENANCY_MODE).replace(/\/$/, '')}
       />
     </>
   )

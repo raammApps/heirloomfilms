@@ -27,7 +27,7 @@ export default async function CatalogueOverviewPage({
   const ready = titles.filter((t) => t.status === 'ready').length
   const published = titles.filter((t) => t.published).length
   const failed = titles.filter((t) => t.status === 'failed')
-  const url = catalogueUrl(catalogue.slug, env.ROOT_DOMAIN)
+  const url = catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '/', env.TENANCY_MODE)
 
   return (
     <AdminChrome

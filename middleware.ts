@@ -14,7 +14,15 @@ export const config = {
 
 export function middleware(request: NextRequest) {
   const url = request.nextUrl.clone()
-  const rootDomain = process.env.ROOT_DOMAIN ?? 'mehfil.localhost:3000'
+  const rootDomain = process.env.ROOT_DOMAIN ?? 'lvh.me:3000'
+
+  /**
+   * Path mode needs no host inspection at all: `/c/<slug>` and `/admin` are already the real
+   * routes, and subdomain mode only exists to rewrite onto them. So the whole of this file is
+   * a no-op here — which is the point, and why switching modes cannot break routing.
+   */
+  if ((process.env.TENANCY_MODE ?? 'subdomain') === 'path') return NextResponse.next()
+
   const resolution = resolveTenant(request.headers.get('host'), rootDomain)
 
   /**

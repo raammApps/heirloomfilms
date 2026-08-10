@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ThemeStyle } from '@/components/chrome/ThemeStyle'
 import { resolveAccess } from '@/lib/catalogue-access'
 import { getRepository } from '@/lib/db'
+import { env } from '@/lib/env'
 import { createTranslator, parseLocale, resolveLocalised } from '@/lib/i18n'
 
 export const dynamic = 'force-dynamic'
@@ -42,7 +43,7 @@ export default async function RenewPage({ params }: { params: Promise<{ slug: st
         </ul>
 
         <a
-          href="mailto:hello@mehfil.app"
+          href={`mailto:${env.SUPPORT_EMAIL}`}
           className="inline-flex h-12 w-fit items-center rounded-[var(--radius-pill)] bg-accent px-6 font-semibold text-accent-ink"
         >
           {t('renew.cta')}

@@ -31,7 +31,18 @@ const schema = z
      */
     ALLOW_EPHEMERAL_DATA: z.enum(['0', '1']).default('0'),
 
-    ROOT_DOMAIN: nonEmpty.default('mehfil.localhost:3000'),
+    /** The domain everything hangs off. Changing it must never require a code change. */
+    ROOT_DOMAIN: nonEmpty.default('lvh.me:3000'),
+
+    /**
+     * How a catalogue is addressed. `subdomain` is what doc 02 §1 specifies and what production
+     * wants; `path` needs only one CNAME rather than a wildcard, which on Vercel would mean
+     * delegating the whole domain's nameservers.
+     */
+    TENANCY_MODE: z.enum(['subdomain', 'path']).default('subdomain'),
+
+    /** Shown to a couple whose subscription lapsed. Not a code constant. */
+    SUPPORT_EMAIL: z.string().email().default('hello@example.com'),
 
     DATA_DRIVER: z.enum(['memory', 'file', 'supabase']).default('memory'),
     DATA_DIR: nonEmpty.default('.data'),
