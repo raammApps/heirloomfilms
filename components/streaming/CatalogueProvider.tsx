@@ -23,6 +23,11 @@ import type { Locale, PlaybackProgress } from '@/lib/schema'
 export type CatalogueContextValue = {
   locale: Locale
   catalogueSlug: string
+  /**
+   * Prefix for every in-app guest link: `''` in subdomain mode, `/c/<slug>` in path mode.
+   * Components must not build guest paths from the slug themselves — see `cataloguePath`.
+   */
+  basePath: string
   profileId: string | null
   setProfileId: (id: string | null) => void
   /** Slug of the title whose modal is open, or null. */
@@ -52,6 +57,7 @@ type Props = {
   children: ReactNode
   locale: Locale
   catalogueSlug: string
+  basePath?: string
   initialTitleSlug: string | null
   initialProgress: PlaybackProgress[]
   firstRowId: string | null
@@ -62,6 +68,7 @@ export function CatalogueProvider({
   children,
   locale,
   catalogueSlug,
+  basePath = '',
   initialTitleSlug,
   initialProgress,
   firstRowId,
@@ -141,15 +148,18 @@ export function CatalogueProvider({
     (slug: string, atSeconds?: number) => {
       if (preview) return
       const suffix = atSeconds && atSeconds > 0 ? `?t=${Math.floor(atSeconds)}` : ''
-      router.push(`/watch/${encodeURIComponent(slug)}${suffix}`)
+      // `basePath` is empty in subdomain mode and `/c/<slug>` in path mode. Hardcoding
+      // `/watch/...` here sent every path-mode guest to the marketing page instead of the film.
+      router.push(`${basePath}/watch/${encodeURIComponent(slug)}${suffix}`)
     },
-    [router, preview],
+    [router, preview, basePath],
   )
 
   const value = useMemo<CatalogueContextValue>(
     () => ({
       locale,
       catalogueSlug,
+      basePath,
       profileId,
       setProfileId,
       openTitleSlug,
@@ -163,6 +173,7 @@ export function CatalogueProvider({
     [
       locale,
       catalogueSlug,
+      basePath,
       profileId,
       setProfileId,
       openTitleSlug,

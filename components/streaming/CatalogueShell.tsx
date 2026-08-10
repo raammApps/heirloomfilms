@@ -17,6 +17,8 @@ type Props = {
   initialTitleSlug: string | null
   initialProgress: PlaybackProgress[]
   shareBaseUrl: string
+  /** '' in subdomain mode, '/c/<slug>' in path mode. See `cataloguePath`. */
+  basePath?: string
   /** Set inside the customizer's preview pane: navigation, history and the gate go inert. */
   preview?: boolean
 }
@@ -39,6 +41,7 @@ export function CatalogueShell({
   initialTitleSlug,
   initialProgress,
   shareBaseUrl,
+  basePath = '',
   preview = false,
 }: Props) {
   const { catalogue, titles, albums, photos } = bundle
@@ -50,6 +53,7 @@ export function CatalogueShell({
     <CatalogueProvider
       locale={locale}
       catalogueSlug={catalogue.slug}
+      basePath={basePath}
       initialTitleSlug={initialTitleSlug}
       initialProgress={initialProgress}
       firstRowId={firstRowInstanceId(modules)}

@@ -26,7 +26,7 @@ const AVATAR_COLOURS = ['#f2933a', '#d4547e', '#3b3f8f', '#1f6b52', '#e0b155', '
  * row fit.
  */
 export function TopNav({ appName, logoUrl, locale, t }: Props) {
-  const { setProfileId, preview } = useCatalogue()
+  const { setProfileId, preview, basePath } = useCatalogue()
   const [solid, setSolid] = useState(false)
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export function TopNav({ appName, logoUrl, locale, t }: Props) {
       style={{ ['--nav-h' as string]: '64px' }}
     >
       <div className="gutter-x flex h-full items-center justify-between gap-2">
-        <Link href="/" className="flex min-w-0 items-center gap-2 no-underline">
+        <Link href={basePath || '/'} className="flex min-w-0 items-center gap-2 no-underline">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- tenant logo, arbitrary host
             <img src={logoUrl} alt={appName} className="h-7 w-auto max-w-[140px] object-contain" />

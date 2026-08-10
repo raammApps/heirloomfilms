@@ -68,10 +68,21 @@ export function useHlsPlayback({ video, catalogueSlug, titleSlug, profileId, onT
       // `fake` driver serves a progressive clip, and a provider that ever returns an MP4
       // should not need a code change here either.
       const isManifest = /\.m3u8(\?|$)/.test(fresh.playbackUrl)
-      const nativeHls = el.canPlayType('application/vnd.apple.mpegurl') !== ''
+      // `canPlayType` answers 'probably', 'maybe' or ''. **'maybe' is not a promise** — Chromium
+      // returns it for this MIME type and then fails to decode, which is how every Chrome and
+      // Edge guest, desktop and Android, got a black screen and MEDIA_ERR_SRC_NOT_SUPPORTED
+      // while the manifest and token were perfectly fine.
+      //
+      // The reliable discriminator is Media Source Extensions, not the codec string: the
+      // browsers that genuinely need the native path are exactly the ones without MSE (iPhone
+      // Safari). Anything with MSE can run hls.js, so let it. Checking this before the dynamic
+      // import also keeps hls.js off the iPhone, where it would be ~100KB of dead weight
+      // against doc 05 §1's start-time budget.
+      const claimsNative = el.canPlayType('application/vnd.apple.mpegurl') !== ''
+      const hasMse = 'MediaSource' in window || 'ManagedMediaSource' in window
 
-      if (!isManifest || nativeHls) {
-        // Safari and most Android browsers play HLS natively; hls.js would be dead weight.
+      if (!isManifest || (claimsNative && !hasMse)) {
+        // iPhone Safari: real native HLS, no MSE. hls.js would be dead weight.
         el.src = fresh.playbackUrl
         onTicket?.(fresh)
         return
@@ -86,6 +97,21 @@ export function useHlsPlayback({ video, catalogueSlug, titleSlug, profileId, onT
         return
       }
 
+      // The signature travels with the directory, so hold on to both halves of the manifest URL.
+      const signed = (() => {
+        try {
+          const parsed = new URL(fresh.playbackUrl)
+          return {
+            query: parsed.search,
+            prefix: parsed.href.slice(0, parsed.href.lastIndexOf('/') + 1),
+          }
+        } catch {
+          return { query: '', prefix: '' }
+        }
+      })()
+      const signedQuery = signed.query
+      const signedPrefix = signed.prefix
+
       const hls = new Hls({
         // Short segments and a modest buffer: the first segment has to arrive fast, and a
         // mid-range Android on 4G is memory-constrained.
@@ -94,9 +120,19 @@ export function useHlsPlayback({ video, catalogueSlug, titleSlug, profileId, onT
         startLevel: -1,
         capLevelToPlayerSize: true,
         lowLatencyMode: false,
-        // Ask for a fresh token instead of failing when Bunny rejects an expired one.
-        xhrSetup: (xhr) => {
+        xhrSetup: (xhr, url) => {
           xhr.withCredentials = false
+
+          // Bunny signs the *directory*, so the child playlists and every segment need the same
+          // `?token=&expires=` the manifest carried. hls.js resolves those URLs relative to the
+          // manifest, and relative resolution drops the query string — so each one arrived
+          // unsigned and came back 403, leaving a player that had attached cleanly and could
+          // never load a byte.
+          //
+          // `verify:playback` missed this because it appends the token with curl: it proved the
+          // CDN's signing, never that a player could walk the manifest.
+          if (!signedQuery || url.includes('token=') || !url.startsWith(signedPrefix)) return
+          xhr.open('GET', url + signedQuery, true)
         },
       })
 

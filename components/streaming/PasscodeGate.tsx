@@ -17,10 +17,13 @@ export function PasscodeGate({
   catalogueSlug,
   coupleName,
   strings,
+  basePath = '',
 }: {
   catalogueSlug: string
   coupleName: string
   strings: Strings
+  /** '' in subdomain mode, '/c/<slug>' in path mode. See `cataloguePath`. */
+  basePath?: string
 }) {
   const router = useRouter()
   const [value, setValue] = useState('')
@@ -40,7 +43,9 @@ export function PasscodeGate({
     })
 
     if (response.ok) {
-      router.replace('/')
+      // The catalogue, not the site root — in path mode those are different places, and '/'
+      // drops a guest who just typed the right passcode onto the marketing page.
+      router.replace(basePath || '/')
       router.refresh()
       return
     }

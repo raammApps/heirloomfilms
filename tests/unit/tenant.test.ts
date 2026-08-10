@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   adminUrl,
+  cataloguePath,
   catalogueUrl,
   isLocalDomain,
   normaliseHost,
@@ -124,6 +125,30 @@ describe('catalogueUrl', () => {
     for (const domain of ['mehfil.app', 'raammcorp.in', 'marquee.film', 'example.co.uk']) {
       expect(catalogueUrl('couple', domain)).toBe(`https://couple.${domain}/`)
       expect(catalogueUrl('couple', domain, '/', 'path')).toBe(`https://${domain}/c/couple`)
+    }
+  })
+})
+
+describe('cataloguePath', () => {
+  /**
+   * The relative counterpart of `catalogueUrl`, and the fix for a bug that made the player
+   * unreachable in path mode: components pushed `/watch/<slug>`, which is the catalogue root
+   * only when the catalogue *is* the site root. In path mode that is the marketing page.
+   */
+  it('is empty in subdomain mode, where the catalogue is already the root', () => {
+    expect(cataloguePath('aanya-vikram', 'subdomain')).toBe('')
+    expect(cataloguePath('aanya-vikram')).toBe('')
+  })
+
+  it('prefixes every guest route in path mode', () => {
+    expect(cataloguePath('aanya-vikram', 'path')).toBe('/c/aanya-vikram')
+  })
+
+  it('composes into the same place `catalogueUrl` points at, in both modes', () => {
+    for (const mode of ['subdomain', 'path'] as const) {
+      const absolute = catalogueUrl('aanya-vikram', 'raammcorp.in', '/watch/the-ceremony', mode)
+      const relative = `${cataloguePath('aanya-vikram', mode)}/watch/the-ceremony`
+      expect(absolute.endsWith(relative)).toBe(true)
     }
   })
 })

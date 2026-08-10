@@ -323,7 +323,10 @@ export class MemoryRepository implements Repository {
     const cutoff = Date.now() - olderThanMinutes * 60_000
     return this.clone(
       this.data.titles.filter(
-        (t) => t.status === 'processing' && Date.parse(t.createdAt) < cutoff,
+        // `uploading` counts too — see the note in SupabaseRepository.listStalledTitles.
+        (t) =>
+          (t.status === 'processing' || t.status === 'uploading') &&
+          Date.parse(t.createdAt) < cutoff,
       ),
     )
   }

@@ -595,7 +595,10 @@ export class SupabaseRepository implements Repository {
     const { data } = await this.db
       .from('titles')
       .select('*')
-      .eq('status', 'processing')
+      // `uploading` belongs here as much as `processing` does. A title is created `uploading`
+      // and it is the webhook that moves it on, so a lost webhook strands it in `uploading` —
+      // the exact failure this job exists to catch, and the one it used to be blind to.
+      .in('status', ['uploading', 'processing'])
       .lt('created_at', cutoff)
     return (data ?? []).map(SupabaseRepository.toTitle)
   }

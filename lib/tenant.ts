@@ -102,6 +102,20 @@ export function catalogueUrl(
   return `${protocol}://${slug}.${rootDomain}${path}`
 }
 
+/**
+ * The in-app base path for a catalogue's own pages — the relative counterpart of
+ * `catalogueUrl`.
+ *
+ * Client navigation cannot use `catalogueUrl`: that returns an absolute URL meant for sharing.
+ * In subdomain mode the catalogue *is* the site root, so the base is empty and every guest path
+ * is already correct. In path mode the catalogue hangs off `/c/<slug>`, and a component that
+ * pushes `/watch/...` sends the guest to the marketing page instead of the film. Both modes
+ * answer here rather than in a component, which is what makes addressing configuration.
+ */
+export function cataloguePath(slug: string, mode: TenancyMode = 'subdomain'): string {
+  return mode === 'path' ? `/c/${slug}` : ''
+}
+
 /** Where the operator console lives, which also differs by mode. */
 export function adminUrl(rootDomain: string, mode: TenancyMode = 'subdomain'): string {
   const protocol = isLocalDomain(rootDomain) ? 'http' : 'https'

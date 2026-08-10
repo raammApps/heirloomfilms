@@ -48,7 +48,10 @@ export async function GET(request: Request) {
 
       try {
         const status = await provider.getStatus(title.providerId)
-        if (status.state === 'processing') continue
+        // Act only on a verdict. Now that `uploading` rows are examined too, a genuinely
+        // in-flight upload — a six-gigabyte film on a slow line can outlast the stall window —
+        // must be left alone rather than rewritten with the state it already has.
+        if (status.state === 'processing' || status.state === 'uploading') continue
 
         const candidates = status.posterCandidates.map((file) => posterRoute(title.id, file))
 

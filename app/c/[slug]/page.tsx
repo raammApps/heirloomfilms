@@ -7,7 +7,7 @@ import { loadBundle, resolveAccess } from '@/lib/catalogue-access'
 import { getRepository } from '@/lib/db'
 import { env } from '@/lib/env'
 import { createTranslator, parseLocale, resolveLocalised } from '@/lib/i18n'
-import { catalogueUrl } from '@/lib/tenant'
+import { cataloguePath, catalogueUrl } from '@/lib/tenant'
 import { effectiveModules } from '@/lib/db/repository'
 import type { PlaybackProgress } from '@/lib/schema'
 
@@ -104,6 +104,7 @@ export default async function CataloguePage({
         initialTitleSlug={titleParam ?? null}
         initialProgress={progress}
         shareBaseUrl={catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '', env.TENANCY_MODE).replace(/\/$/, '')}
+        basePath={cataloguePath(catalogue.slug, env.TENANCY_MODE)}
       />
     </>
   )
