@@ -33,12 +33,23 @@ No Supabase project and no Bunny account are needed. The default drivers are in-
 deterministic, which is what lets the whole test suite — and a planner demo on venue wifi — run
 with nothing behind them.
 
-### Subdomains without DNS
+### Addressing is configuration
 
-In production a catalogue lives at `<slug>.mehfil.app`, resolved in `middleware.ts`. Locally,
-`?__catalogue=<slug>` reaches the same route and sticks for the session, so client-side
-navigation to `/watch/<slug>` behaves exactly as it will on a real subdomain. The override is
-refused in production unless `ALLOW_EPHEMERAL_DATA=1` is set, which only the test harness does.
+`ROOT_DOMAIN` and `TENANCY_MODE` decide how catalogues are addressed, and neither reaches a
+component — `catalogueUrl()` and `adminUrl()` in `lib/tenant.ts` are the only places that know.
+
+| Mode | Catalogue | Admin | DNS |
+|---|---|---|---|
+| `subdomain` | `<slug>.example.com` | `admin.example.com` | Wildcard (needs nameserver delegation on Vercel) |
+| `path` | `example.com/c/<slug>` | `example.com/admin` | One CNAME |
+
+`/c/<slug>` is the real route in both; subdomain mode rewrites onto it, so path mode makes
+`middleware.ts` a no-op.
+
+**Locally**, the default `ROOT_DOMAIN=lvh.me:3000` gives you subdomain mode with no setup —
+`*.lvh.me` is public DNS pointing at `127.0.0.1`, so `http://aanya-vikram.lvh.me:3000` just
+works. `?__catalogue=<slug>` still works on a bare `localhost` and is what CI uses; it is
+refused in production unless `ALLOW_EPHEMERAL_DATA=1`.
 
 ---
 

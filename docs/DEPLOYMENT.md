@@ -62,7 +62,8 @@ Then, in the library's settings:
 | Library **read-only** key | Same page | `BUNNY_WEBHOOK_SECRET`. Bunny signs webhooks with it. |
 | Token authentication key | Pull zone → Security | `BUNNY_TOKEN_AUTH_KEY`. Signs playback and poster URLs. |
 
-**Webhook**: point the library's webhook at `https://admin.mehfil.app/api/webhooks/bunny`.
+**Webhook**: point the library's webhook at `https://<your-domain>/api/webhooks/bunny` — the
+admin host in subdomain mode, the single host in path mode.
 
 Verify: `pnpm preflight` should show token auth enforced, referrer blocking off, IP pinning off.
 Then `pnpm verify:playback` uploads a real clip and asserts a signed manifest, a signed child
@@ -95,22 +96,67 @@ Verify: `pnpm preflight` shows the schema and the first org. `pnpm test:integrat
 > If the integration run fails immediately after applying the DDL with `PGRST205`, wait thirty
 > seconds. PostgREST caches the schema and takes a moment to notice new tables.
 
-## 5. DNS
+## 5. DNS and addressing — pick a mode first
 
-Two records, both pointing at Vercel:
+`TENANCY_MODE` decides how a catalogue is addressed, and it decides your DNS. Both modes are
+configuration; moving between them is an environment variable and a redeploy, never a code
+change.
 
-| Record | Type | Value | Serves |
-|---|---|---|---|
-| `*` | CNAME | `cname.vercel-dns.com` | Every catalogue, `<slug>.mehfil.app` |
-| `admin` | CNAME | `cname.vercel-dns.com` | The operator console |
-| `@` | A / ALIAS | per Vercel | The signpost |
+### Mode A — `path` (start here)
 
-The wildcard is the one that matters — without it, no guest can reach any catalogue. Add
-`*.mehfil.app` and `admin.mehfil.app` as domains on the Vercel project so it provisions TLS for
-both.
+```
+TENANCY_MODE=path
+ROOT_DOMAIN=marquee.raammcorp.in
+```
+
+| Surface | URL |
+|---|---|
+| Catalogue | `marquee.raammcorp.in/c/aanya-vikram` |
+| Admin | `marquee.raammcorp.in/admin` |
+
+**DNS: one record.**
+
+| Record | Type | Value |
+|---|---|---|
+| `marquee` | CNAME | the value Vercel shows for the domain |
+
+Nothing else about `raammcorp.in` changes — its nameservers stay at GoDaddy, and any email on
+the domain is untouched. This is the right starting point while the name and the domain are
+still moving.
+
+### Mode B — `subdomain` (what the product wants)
+
+```
+TENANCY_MODE=subdomain
+ROOT_DOMAIN=raammcorp.in
+```
+
+| Surface | URL |
+|---|---|
+| Catalogue | `aanya-vikram.raammcorp.in` |
+| Admin | `admin.raammcorp.in` |
+
+This is what doc 02 §1 specifies and what the product is actually for — a couple's link that
+reads as *their* site is a large part of the double-take doc 01 §2 is selling. A guest seeing
+`/c/aanya-vikram` in the address bar is on someone's platform; a guest seeing
+`aanya-vikram.…` is on the couple's.
+
+**The cost:** Vercel's docs are explicit that a wildcard domain *"must use the nameservers
+method for verification"*. Adding `*.raammcorp.in` therefore means pointing GoDaddy's
+nameservers at Vercel, after which **all** DNS for `raammcorp.in` is managed at Vercel — every
+existing record, MX included, has to be recreated there first. On a corp domain that carries
+email, do this deliberately, not on a Friday.
+
+A middle path: delegate a *subdomain* instead. Point `marquee.raammcorp.in`'s nameservers at
+Vercel (GoDaddy supports NS records on a subdomain), set
+`ROOT_DOMAIN=marquee.raammcorp.in`, and catalogues become
+`aanya-vikram.marquee.raammcorp.in`. Wildcard behaviour, apex DNS untouched. `resolveTenant`
+handles a root that is itself a subdomain — there is a test for exactly this.
 
 Reserved labels (`www`, `admin`, `api`, `app`, `cdn`, `demo`, `staging`, …) can never be
 catalogue slugs; `lib/schema.ts` rejects them at creation.
+
+> Hobby plan: 50 custom domains per project. Fine for either mode — in `path` mode you use one.
 
 ## 6. Environment variables
 
@@ -122,7 +168,9 @@ Set these on the Vercel project (Production, and Preview if you want previews to
 |---|---|---|
 | `DATA_DRIVER` | `supabase` | |
 | `VIDEO_DRIVER` | `bunny` | |
-| `ROOT_DOMAIN` | `mehfil.app` — no protocol, no port | |
+| `ROOT_DOMAIN` | e.g. `marquee.raammcorp.in` — no protocol, no port | |
+| `TENANCY_MODE` | `path` or `subdomain` — see §5 | |
+| `SUPPORT_EMAIL` | Shown on the renewal screen | |
 | `SESSION_SECRET` | `openssl rand -hex 32`. **Generate a new one; do not reuse the dev value.** Signs operator sessions and passcode grants. | ● |
 | `CRON_SECRET` | `openssl rand -hex 32`. See the warning below. | ● |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` | |
@@ -152,6 +200,9 @@ rather than on a guest's first request.
 
 ## 7. Deploy
 
+Connect the GitHub repo (`raammApps/marquee.film`) to the Vercel project and every push to
+`main` deploys. Or from the CLI:
+
 ```bash
 vercel link
 vercel --prod
@@ -166,7 +217,10 @@ and 69 E2E specs — so a red pipeline is a real signal.
 In order. Each one catches a different class of mistake.
 
 ```bash
-curl https://admin.mehfil.app/api/health
+# subdomain mode
+curl https://admin.raammcorp.in/api/health
+# path mode
+curl https://marquee.raammcorp.in/api/health
 ```
 
 Must report `"drivers":{"data":"supabase","video":"bunny"}`. **A deploy that silently came up on
@@ -175,7 +229,7 @@ lose everything on the next restart.
 
 Then:
 
-1. **Sign in** at `admin.mehfil.app` and create a catalogue.
+1. **Sign in** at the admin URL for your mode (§5) and create a catalogue.
 2. **Upload a real film.** Watch it reach `ready` on its own — that proves the webhook signature
    is right. If it sits in `processing`, the webhook is being rejected: check the logs for
    `bunny webhook: signature mismatch`, which prints the headers it actually received. The
