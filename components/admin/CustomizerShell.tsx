@@ -419,7 +419,7 @@ function Advisories({ notes }: { notes: string[] }) {
 
 function collectAdvisories(
   modules: ModuleInstance[],
-  ctx: Omit<GuestContext, 't' | 'locale' | 'heading' | 'instanceId'>,
+  ctx: Omit<GuestContext, 't' | 'locale' | 'heading' | 'instanceId' | 'consumedTitleIds'>,
 ): string[] {
   const notes: string[] = []
 

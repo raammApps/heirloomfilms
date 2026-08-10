@@ -1,4 +1,5 @@
 import { defineModule } from '../contract'
+import { resolveFeatured } from './resolve'
 import Editor from './Editor'
 import Guest from './Guest'
 import { configSchema, type BillboardConfig } from './schema'
@@ -29,14 +30,19 @@ export default defineModule<BillboardConfig>({
     showCoupleName: true,
   }),
 
+  consumes: (config, ctx) => {
+    const featured = resolveFeatured(config.featuredRef, ctx.catalogue.featuredTitleId, ctx.titles)
+    return featured ? [featured.id] : []
+  },
+
   advise: (config, ctx) => {
     const notes: string[] = []
-    const featured =
-      ctx.titles.find((t) => t.id === config.featuredRef) ??
-      ctx.titles.find((t) => t.id === ctx.catalogue.featuredTitleId)
+    // Same fallback chain Guest renders. Reading only the two explicit refs made this claim a
+    // billboard would not appear while the preview beside it was showing one.
+    const featured = resolveFeatured(config.featuredRef, ctx.catalogue.featuredTitleId, ctx.titles)
 
     if (!featured) {
-      notes.push('No featured film is set, so the billboard will not appear.')
+      notes.push('There are no published films yet, so the billboard has nothing to feature.')
       return notes
     }
 

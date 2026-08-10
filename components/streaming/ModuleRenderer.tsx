@@ -33,6 +33,11 @@ export function ModuleRenderer({
   const resolved = resolveInstances(modules)
   const t = createTranslator(locale)
 
+  // Accumulated in page order so each section knows what the guest has already been shown, and
+  // a self-filling row does not repeat the row above it. Driven entirely by each module's own
+  // `consumes`, so this file still names no module type.
+  const consumed: string[] = []
+
   return (
     <>
       {resolved.map(({ instance, definition, config }) => {
@@ -46,7 +51,11 @@ export function ModuleRenderer({
           profileId,
           heading: resolveLocalised(instance.title, locale),
           instanceId: instance.id,
+          consumedTitleIds: [...consumed],
         }
+
+        const spend = definition.consumes?.(config, ctx) ?? []
+        for (const id of spend) if (!consumed.includes(id)) consumed.push(id)
 
         const Guest = definition.Guest as React.ComponentType<{ config: unknown; ctx: GuestContext }>
 

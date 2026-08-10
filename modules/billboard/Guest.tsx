@@ -7,6 +7,7 @@ import { formatWeddingDate } from '@/lib/format'
 import { resolveLocalised } from '@/lib/i18n'
 import { posterDataUri } from '@/lib/poster'
 import type { GuestProps } from '../contract'
+import { resolveFeatured } from './resolve'
 import type { BillboardConfig } from './schema'
 
 /**
@@ -20,9 +21,7 @@ export default function Guest({ config, ctx }: GuestProps<BillboardConfig>) {
   const [trailerVisible, setTrailerVisible] = useState(false)
 
   const featured =
-    ctx.titles.find((t) => t.id === config.featuredRef) ??
-    ctx.titles.find((t) => t.id === ctx.catalogue.featuredTitleId) ??
-    ctx.titles[0]
+    resolveFeatured(config.featuredRef, ctx.catalogue.featuredTitleId, ctx.titles)
 
   const trailerUrl = featured?.trailerUrl ?? null
 

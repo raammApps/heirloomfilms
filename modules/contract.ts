@@ -47,6 +47,14 @@ export type GuestContext = {
   /** The section heading the operator wrote, already locale-resolved. May be empty. */
   heading: string
   instanceId: string
+  /**
+   * Titles already shown by sections above this one, in page order.
+   *
+   * Lets a section fill itself without repeating what the guest has just scrolled past. The
+   * renderer accumulates it from each module's own `consumes`, so nothing outside `modules/`
+   * needs to know which types participate.
+   */
+  consumedTitleIds: string[]
 }
 
 export type GuestProps<C> = { config: C; ctx: GuestContext }
@@ -74,7 +82,17 @@ export interface ModuleDefinition<C = unknown> {
    * Curation nudges for this instance, surfaced in the customizer (doc 14 §5.9).
    * Suggestions with a dismiss — never blockers.
    */
-  advise?: (config: C, ctx: Omit<GuestContext, 't' | 'locale' | 'heading' | 'instanceId'>) => string[]
+  advise?: (
+    config: C,
+    ctx: Omit<GuestContext, 't' | 'locale' | 'heading' | 'instanceId' | 'consumedTitleIds'>,
+  ) => string[]
+  /**
+   * Which titles this instance puts on screen, so later sections can avoid repeating them.
+   *
+   * Optional: a module that shows no films omits it. Must agree with what `Guest` renders —
+   * both should read from one selection function rather than two copies of the rule.
+   */
+  consumes?: (config: C, ctx: GuestContext) => string[]
 }
 
 /** Helper so a module file can stay strongly typed without repeating the generic. */

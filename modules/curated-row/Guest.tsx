@@ -8,22 +8,16 @@ import { resolveLocalised } from '@/lib/i18n'
 import { categoryEyebrow } from '@/lib/poster'
 import type { GuestProps } from '../contract'
 import type { CuratedRowConfig } from './schema'
+import { selectRowTitles } from './select'
 
 export default function Guest({ config, ctx }: GuestProps<CuratedRowConfig>) {
   const { openTitle, progressByTitleId, firstRowId } = useCatalogue()
 
-  const byId = new Map(ctx.titles.map((title) => [title.id, title]))
+  const items: RowItem[] = selectRowTitles(config, ctx.titles, ctx.consumedTitleIds).map(
+    (title) => {
+      const progress = config.showProgress ? progressByTitleId[title.id] : undefined
 
-  // Order comes from the operator's list, not from the titles table. A title that was deleted
-  // or unpublished simply drops out — the row shrinks rather than erroring.
-  const items: RowItem[] = config.titleIds.flatMap((id) => {
-    const title = byId.get(id)
-    if (!title) return []
-
-    const progress = config.showProgress ? progressByTitleId[title.id] : undefined
-
-    return [
-      {
+      return {
         id: title.id,
         key: title.slug,
         label: resolveLocalised(title.name, ctx.locale),
@@ -32,9 +26,9 @@ export default function Guest({ config, ctx }: GuestProps<CuratedRowConfig>) {
         durationBadge: formatDurationBadge(title.durationS),
         ...(progress ? { progress: progress.positionS / Math.max(1, progress.durationS) } : {}),
         alt: resolveLocalised(title.name, ctx.locale),
-      },
-    ]
-  })
+      }
+    },
+  )
 
   return (
     <PosterRow
