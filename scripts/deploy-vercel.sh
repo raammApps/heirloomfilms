@@ -10,12 +10,19 @@
 #   vercel login          # once, interactive — this script cannot do it for you
 #   ./scripts/deploy-vercel.sh
 #
+# The filename matters. Next.js auto-loads `.env.production.local` on *any* production build,
+# so holding deploy values there silently applies them to local builds too — which cost an
+# afternoon: TENANCY_MODE=path leaked in, middleware became a no-op, and 44 E2E tests failed
+# pointing at Next rather than at a filename. Next only ever loads `.env.local` and
+# `.env.<NODE_ENV>.local`, and NODE_ENV is development|production|test, so `.env.vercel.local`
+# is inert while `.env*.local` still keeps it out of git.
+#
 # Idempotent: re-running replaces each variable rather than erroring on a duplicate.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-ENV_FILE=".env.production.local"
+ENV_FILE=".env.vercel.local"
 PROJECT="${VERCEL_PROJECT:-marquee-film-pub}"
 TARGET="${VERCEL_TARGET:-production}"
 

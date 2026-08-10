@@ -61,6 +61,11 @@ test.describe('doc 10 §1 test 11 — the WhatsApp preview stays inside its budg
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
 async function audit(page: import('@playwright/test').Page) {
+  // Next streams metadata, so `<title>` can arrive after the body it describes. Auditing in that
+  // window reports a `document-title` violation that is gone a tick later — a failure that moves
+  // between runs and says nothing about the page. Waiting for the document to be titled makes
+  // the audit deterministic instead of lucky.
+  await page.waitForFunction(() => document.title.length > 0, null, { timeout: 10_000 })
   return new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
 }
 
@@ -132,8 +137,21 @@ test.describe('doc 10 §4 — accessibility, zero violations', () => {
     test.skip(Boolean(test.info().project.use.isMobile), 'the admin is a desktop tool')
     await signIn(page)
     await page.getByRole('link', { name: 'Aanya & Vikram' }).click()
+    // Let the catalogue page arrive before clicking the next link. Firing the second click while
+    // the first client navigation is still hydrating gets it swallowed, and the audit then runs
+    // against the overview page — which passes or fails depending on machine load rather than on
+    // accessibility. operator.spec.ts's openCustomizer settles here for the same reason.
+    await expect(page.getByRole('heading', { name: 'Aanya & Vikram' })).toBeVisible()
     await page.getByRole('link', { name: 'Customizer' }).click()
-    await expect(page.getByTestId('preview-viewport').getByTestId('poster-row').first()).toBeVisible()
+    await page.waitForURL(/\/customizer$/)
+    // Wait for *any* module, not a poster row. This audits the shared demo catalogue, and
+    // operator.spec.ts is concurrently entitled to reorder and hide that catalogue's sections —
+    // so "a poster row is visible" is a readiness gate that another test can legitimately
+    // falsify. `[data-module-id]` comes from ModuleRenderer, the one tree both the guest page
+    // and the preview mount, and it survives any reordering.
+    await expect(
+      page.getByTestId('preview-viewport').locator('[data-module-id]').first(),
+    ).toBeVisible({ timeout: 15_000 })
 
     const results = await audit(page)
     expect(describeViolations(results)).toBe('')

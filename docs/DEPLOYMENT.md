@@ -200,7 +200,7 @@ rather than on a guest's first request.
 
 ## 7. Deploy
 
-`.env.production.local` holds all fifteen variables, already assembled and gitignored. Rather
+`.env.vercel.local` holds all fifteen variables, already assembled and gitignored. Rather
 than typing them into a web form — where one typo in `BUNNY_TOKEN_AUTH_KEY` produces a green
 build and a 403 for every guest — push them from the file that the local verification scripts
 already proved works:
@@ -209,6 +209,12 @@ already proved works:
 vercel login                  # once; interactive, needs a browser
 ./scripts/deploy-vercel.sh
 ```
+
+> The filename is deliberate. Next.js auto-loads `.env.production.local` on any production
+> build, so deploy values kept under that name leak into local builds — `TENANCY_MODE=path`
+> got in that way once and turned middleware into a no-op, failing 44 E2E tests with a
+> symptom that pointed at Next.js. `.env.vercel.local` is never loaded by Next, and `.env*.local`
+> still keeps it out of git.
 
 The script links the project, replaces every variable (idempotent — safe to re-run), deploys,
 and prints the verification steps.

@@ -31,3 +31,5 @@ blob-report/
 
 # public/media/sample.webm IS committed — it is our own generated fixture, see
 # scripts/make-sample-video.mjs. Nothing else belongs in there.
+.vercel
+.env*
