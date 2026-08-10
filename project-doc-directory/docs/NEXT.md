@@ -34,15 +34,25 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
-### N-11 · Actually deploy  ·  ~1h + DNS
+### N-11 · Finish the deploy  ·  ~30m + DNS
 
-Nothing has ever run outside localhost: no linked Vercel project, no wildcard DNS.
+**Deployed and running** at `marquee-film-pub` (Vercel, Hobby, `sandeep-bh5-7354s-projects`).
+`/api/health` reports `supabase` + `bunny`, so the environment took. Three things remain, and
+none of them are code:
 
-**Follow [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md).** It has the full procedure, the
-environment variable table, and the settings that fail silently if wrong.
+1. **It is not public.** Vercel Deployment Protection is on by default and 302s every request to
+   an SSO login, so a guest cannot open a catalogue. Turning it off is what makes this a real
+   deployment — Settings → Deployment Protection → Vercel Authentication → Disabled (or limit it
+   to Preview). `vercel curl` is how to verify anything until then.
+2. **The Bunny webhook has still never been verified**, because it needs a public URL. Point the
+   library's webhook at `<deployment>/api/webhooks/bunny`, upload one film, and watch it reach
+   `ready` unaided. Until this passes, transcode completion depends on the reconcile cron.
+3. **No GitHub auto-deploy.** Connecting the repo failed: *"private and owned by an
+   organization, which is not supported on the Hobby plan"*. Either make the repo public, move it
+   to a personal account, or keep deploying with `./scripts/deploy-vercel.sh`.
 
-The two that bite: `CRON_SECRET` must be set or Vercel's crons 401 and never run, and the
-wildcard `*.mehfil.app` CNAME is what makes any catalogue reachable at all.
+Then DNS, per [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md) §5 — one CNAME for `path` mode,
+and `ROOT_DOMAIN` updated to match.
 
 ### N-4 · The browse route renders dynamically, not ISR  ·  ~2h
 

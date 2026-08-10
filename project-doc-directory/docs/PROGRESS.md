@@ -328,3 +328,28 @@ now, with a 30s budget and parallel table checks (5s+ → 806ms).
   in `tests/unit/contrast.test.ts` so a palette edit shows up in review.
 - **The two things doc 13 §8 says not to delegate** — real cleared footage, and measuring
   playback start on real 4G at a venue — are untouched.
+
+## Deployed — 10 Aug 2026
+
+Live on Vercel as `marquee-film-pub`, on Supabase and Bunny, at commit `f2f573b`.
+
+The first attempt was refused outright: *"Vulnerable version of Next.js detected"*. 15.1.3
+carries two criticals, one an authorization bypass in middleware — the single component that
+resolves the tenant on every request. Upgraded to 15.5.23 and lifted postcss and sharp, both
+pinned inside Next, via pnpm overrides. `pnpm audit --prod` is clean.
+
+The upgrade then appeared to break 44 E2E tests. It had not. `.env.production.local` — the file
+written to hold the deploy values — is a name Next auto-loads on *any* production build, so
+`TENANCY_MODE=path` leaked into local builds, middleware became a no-op, and every guest page
+rendered the marketing root. The symptom pointed at Next; the cause was a filename. It is now
+`.env.vercel.local`, which Next never loads and `.env*.local` still ignores.
+
+Two genuine test races surfaced alongside it, both fixed at the source rather than by raising a
+timeout: the a11y audit ran before Next's streamed `<title>` landed, and the customizer audit
+clicked two links back to back, the second landing mid-hydration and being swallowed. Five
+consecutive full runs: 69 passed, no flakes.
+
+Not yet done: the deployment is behind Vercel Deployment Protection, so it is not reachable by a
+guest, and the Bunny webhook signature remains the one thing never verified against a real
+delivery. Both are N-11.
+
