@@ -380,3 +380,20 @@ measuring the product.
 Still unverified: the Bunny webhook against a real delivery. It needs a public URL, and the
 deployment is behind Vercel Deployment Protection.
 
+## Webhook verified — 11 Aug 2026
+
+The last unverified thing in the system, closed. Bunny's `WebhookUrl` had never been set at all
+— the field was empty, so delivery was not failing, it had nowhere to go. Vercel Deployment
+Protection was the second cause: it 302s an unauthenticated POST to an SSO login, so the
+callback could not have arrived even once configured. Neither had anything to do with the Hobby
+plan, which does not restrict inbound requests.
+
+With protection off and the webhook set, a film uploaded to the live deployment reached `ready`
+in under fifteen seconds, unaided. The handler rejects unsigned bodies with a 401, so the HMAC
+verified for real — the three-way header/algorithm/key mistake found earlier is genuinely fixed.
+
+Proved twice: once against the deployment URL, then again through the stable alias
+`marquee-film-pub.vercel.app` after redeploying. The alias is what the webhook now points at.
+A per-deployment URL would have kept answering after the next deploy while running the previous
+build — a webhook that looks healthy and is quietly stale.
+

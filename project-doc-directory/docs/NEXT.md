@@ -53,25 +53,20 @@ tests all passed straight through. Both blind spots are structural, not oversigh
 
 Until both exist, "the tests pass" says nothing about the configuration that is deployed.
 
-### N-11 · Finish the deploy  ·  ~30m + DNS
+### N-11 · Domain  ·  ~30m + DNS propagation
 
-**Deployed and running** at `marquee-film-pub` (Vercel, Hobby, `sandeep-bh5-7354s-projects`).
-`/api/health` reports `supabase` + `bunny`, so the environment took. Three things remain, and
-none of them are code:
+**Deployed, public and fully verified** at `https://marquee-film-pub.vercel.app` — Supabase,
+Bunny, and webhook delivery all confirmed against real traffic. Nothing is unverified any more.
 
-1. **It is not public.** Vercel Deployment Protection is on by default and 302s every request to
-   an SSO login, so a guest cannot open a catalogue. Turning it off is what makes this a real
-   deployment — Settings → Deployment Protection → Vercel Authentication → Disabled (or limit it
-   to Preview). `vercel curl` is how to verify anything until then.
-2. **The Bunny webhook has still never been verified**, because it needs a public URL. Point the
-   library's webhook at `<deployment>/api/webhooks/bunny`, upload one film, and watch it reach
-   `ready` unaided. Until this passes, transcode completion depends on the reconcile cron.
-3. **No GitHub auto-deploy.** Connecting the repo failed: *"private and owned by an
-   organization, which is not supported on the Hobby plan"*. Either make the repo public, move it
-   to a personal account, or keep deploying with `./scripts/deploy-vercel.sh`.
+What is left is the name. Per [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md) §5, `path` mode
+needs one CNAME. Afterwards, update **two** things or transcodes silently stop:
 
-Then DNS, per [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md) §5 — one CNAME for `path` mode,
-and `ROOT_DOMAIN` updated to match.
+1. `ROOT_DOMAIN` on the Vercel project.
+2. The Bunny library's `WebhookUrl`.
+
+> The webhook must always point at the **stable alias**, never at a `marquee-film-<hash>` URL.
+> A per-deployment URL keeps answering after the next deploy — from the *old* build — so the
+> failure is a webhook that appears healthy while running superseded code.
 
 ### N-4 · The browse route renders dynamically, not ISR  ·  ~2h
 
