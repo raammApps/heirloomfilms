@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+#
+# Push every production environment variable to Vercel, then deploy.
+#
+# Exists because setting fifteen variables by hand in a web form is where a deploy goes wrong:
+# one typo in BUNNY_TOKEN_AUTH_KEY and every guest gets a 403, with a green build and no error
+# anywhere. This reads `.env.production.local`, which is generated and gitignored, so the values
+# are the same ones the local verification scripts already proved work.
+#
+#   vercel login          # once, interactive — this script cannot do it for you
+#   ./scripts/deploy-vercel.sh
+#
+# Idempotent: re-running replaces each variable rather than erroring on a duplicate.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+ENV_FILE=".env.production.local"
+PROJECT="${VERCEL_PROJECT:-marquee-film-pub}"
+TARGET="${VERCEL_TARGET:-production}"
+
+command -v vercel >/dev/null 2>&1 || {
+  echo "The Vercel CLI is not installed."
+  echo "  npm i -g vercel   (or: pnpm dlx vercel ...)"
+  exit 1
+}
+
+[ -f "$ENV_FILE" ] || {
+  echo "$ENV_FILE not found. It is generated and gitignored; see docs/DEPLOYMENT.md §6."
+  exit 1
+}
+
+# Fails fast and clearly rather than deep inside `vercel env add`.
+vercel whoami >/dev/null 2>&1 || {
+  echo "Not authenticated. Run 'vercel login' first — it needs a browser, so it cannot be"
+  echo "scripted. Alternatively export VERCEL_TOKEN."
+  exit 1
+}
+
+echo "→ linking project '$PROJECT'"
+vercel link --yes --project "$PROJECT" >/dev/null
+
+echo "→ pushing environment ($TARGET)"
+pushed=0
+while IFS= read -r line; do
+  # Skip comments and blanks.
+  [[ "$line" =~ ^[[:space:]]*# ]] && continue
+  [[ -z "${line// }" ]] && continue
+  [[ "$line" != *=* ]] && continue
+
+  name="${line%%=*}"
+  value="${line#*=}"
+  [ -z "$value" ] && { echo "   ! $name is empty, skipping"; continue; }
+
+  # Remove first so a re-run updates rather than fails. The redirect is deliberate: a missing
+  # variable is not an error on a first run.
+  vercel env rm "$name" "$TARGET" --yes >/dev/null 2>&1 || true
+  printf '%s' "$value" | vercel env add "$name" "$TARGET" >/dev/null
+  echo "   ✓ $name"
+  pushed=$((pushed + 1))
+done < "$ENV_FILE"
+
+echo "→ $pushed variables set"
+echo "→ deploying"
+vercel --prod --yes
+
+cat <<'NEXT'
+
+Deployed. Now verify, in this order — each catches a different failure:
+
+  1. curl https://<deployment>/api/health
+     Expect "drivers":{"data":"supabase","video":"bunny"}.
+     Anything else means the environment did not take.
+
+  2. Sign in at /admin and create a catalogue.
+
+  3. Point the Bunny library's webhook at https://<deployment>/api/webhooks/bunny,
+     upload one film, and watch it reach `ready` on its own. That is the only way to
+     confirm the webhook signature — it needs a public URL, so it cannot be tested
+     locally. If it sits in `processing`, check the logs for
+     'bunny webhook: signature mismatch', which prints the headers it actually saw.
+
+  4. If ROOT_DOMAIN does not match the real deployment URL, update it and redeploy.
+     In path mode a wrong value only breaks share links and the OG card, not routing.
+
+NEXT

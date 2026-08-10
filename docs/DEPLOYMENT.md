@@ -200,13 +200,24 @@ rather than on a guest's first request.
 
 ## 7. Deploy
 
-Connect the GitHub repo (`raammApps/marquee.film`) to the Vercel project and every push to
-`main` deploys. Or from the CLI:
+`.env.production.local` holds all fifteen variables, already assembled and gitignored. Rather
+than typing them into a web form — where one typo in `BUNNY_TOKEN_AUTH_KEY` produces a green
+build and a 403 for every guest — push them from the file that the local verification scripts
+already proved works:
 
 ```bash
-vercel link
-vercel --prod
+vercel login                  # once; interactive, needs a browser
+./scripts/deploy-vercel.sh
 ```
+
+The script links the project, replaces every variable (idempotent — safe to re-run), deploys,
+and prints the verification steps.
+
+After the first deploy, connecting the GitHub repo (`raammApps/marquee.film-pub`) to the project
+means every push to `main` deploys.
+
+> `ROOT_DOMAIN` is pre-set to `marquee-film-pub.vercel.app`. If the real URL differs, update it
+> and redeploy — in `path` mode a wrong value breaks share links and the OG card, not routing.
 
 `vercel.json` already pins the Mumbai region (`bom1`) and declares both cron jobs. CI runs lint,
 typecheck, 198 unit and component tests, the contrast gate, the build, the first-load JS budget,
