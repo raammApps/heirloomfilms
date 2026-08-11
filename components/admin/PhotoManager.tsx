@@ -26,55 +26,69 @@ type Pending = {
 const LQIP_WIDTH = 16
 
 /**
- * The longest edge we keep. A phone shoots 4032px; a guest views the gallery on a 390px screen,
- * and the largest this is ever displayed at is a full-screen lightbox on a desktop.
+ * The renditions every photograph is stored as, widest first.
+ *
+ * A portfolio is judged on the full-screen view and paid for by the thumbnails, so one file
+ * cannot serve both: a 2048px master dropped into a three-column grid is roughly twenty times
+ * the bytes that grid can show. `2048` covers a full-screen lightbox on a retina laptop, `1024`
+ * a row card or a desktop grid cell, `480` a phone thumbnail. `srcset` then lets the browser
+ * pick, which is the only thing that knows the real display size.
+ *
+ * DSLR originals of 25–40MB are not stored. They are the photographer's master, not a web
+ * asset — delivery is billed by the gigabyte (doc 05 §2) and no screen can show the difference.
  */
-const MAX_EDGE = 2560
+const RENDITIONS = [
+  { width: 2048, quality: 0.88, suffix: '' },
+  { width: 1024, quality: 0.84, suffix: '-1024' },
+  { width: 480, quality: 0.82, suffix: '-480' },
+] as const
 
 /**
- * Anything above this is resized before upload.
+ * Cut every rendition from one decode of the original.
  *
- * Vercel rejects a request body over ~4.5MB with FUNCTION_PAYLOAD_TOO_LARGE — the platform
- * refuses it before the route runs, so no server-side limit can catch it and the operator just
- * sees "Upload failed". Modern phone photographs are 4–8MB, so this was every real photograph.
- *
- * Resizing is the right answer rather than a workaround: doc 05 §2 pays for delivery, and
- * shipping a 4032px original to a phone on 4G costs money and start time to display something
- * no guest can see.
+ * Decoding a 40MB DSLR frame is the expensive part, so it happens once and each size is drawn
+ * from the same bitmap. All three together come to roughly a megabyte, which matters: Vercel
+ * rejects a request body over ~4.5MB with FUNCTION_PAYLOAD_TOO_LARGE *before the route runs*,
+ * so the whole set has to fit in a single request that the platform will actually deliver.
  */
-const RESIZE_ABOVE_BYTES = 3 * 1024 * 1024
-
-/**
- * Re-encode oversized photographs in the browser.
- *
- * Returns the original untouched when it is already small enough — re-encoding a modest JPEG
- * only loses quality for no gain.
- */
-async function shrink(file: File): Promise<File> {
-  if (file.size <= RESIZE_ABOVE_BYTES) return file
+async function renditions(
+  file: File,
+): Promise<{ files: { suffix: string; file: File }[]; width: number; height: number }> {
+  const bitmap = await createImageBitmap(file)
+  const { width, height } = bitmap
+  const longest = Math.max(width, height)
+  const base = file.name.replace(/\.[^.]+$/, '')
+  const files: { suffix: string; file: File }[] = []
 
   try {
-    const bitmap = await createImageBitmap(file)
-    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height))
+    for (const rendition of RENDITIONS) {
+      // Never upscale: a small photograph stays its own size at every step, and the browser
+      // simply picks the one it wants.
+      const scale = Math.min(1, rendition.width / longest)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(width * scale))
+      canvas.height = Math.max(1, Math.round(height * scale))
 
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(bitmap.width * scale)
-    canvas.height = Math.round(bitmap.height * scale)
-    const context = canvas.getContext('2d')
-    if (!context) return file
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+      const context = canvas.getContext('2d')
+      if (!context) continue
+      context.imageSmoothingQuality = 'high'
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', rendition.quality),
+      )
+      if (!blob) continue
+
+      files.push({
+        suffix: rendition.suffix,
+        file: new File([blob], `${base}${rendition.suffix}.jpg`, { type: 'image/jpeg' }),
+      })
+    }
+  } finally {
     bitmap.close()
-
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', 0.85),
-    )
-    if (!blob || blob.size >= file.size) return file
-
-    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
-  } catch {
-    // Better to attempt the original and get a real error than to silently drop the photograph.
-    return file
   }
+
+  return { files, width, height }
 }
 
 /**
@@ -133,15 +147,20 @@ export function PhotoManager({
         images.map(async (file, index) => {
           const entry = entries[index]!
           try {
-            // Dimensions come from the original; the upload is whatever survives the resize.
             const meta = await makeLqip(file)
-            const sending = await shrink(file)
+            const { files, width, height } = await renditions(file)
+            if (files.length === 0) throw new Error('That image could not be read')
 
             const form = new FormData()
-            form.set('file', sending)
+            // The widest is the master; the rest ride along under their suffix so one request
+            // stores the whole set and a photograph is never live at only some sizes.
+            for (const { suffix, file: rendition } of files) {
+              form.set(suffix ? `file${suffix}` : 'file', rendition)
+            }
             if (meta.lqip) form.set('lqip', meta.lqip)
-            if (meta.width) form.set('width', String(meta.width))
-            if (meta.height) form.set('height', String(meta.height))
+            // The original's dimensions, so the grid reserves the right aspect ratio.
+            form.set('width', String(width))
+            form.set('height', String(height))
 
             const response = await fetch(`/api/admin/catalogues/${catalogueId}/photos`, {
               method: 'POST',

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Lightbox } from '@/components/streaming/Lightbox'
 import { resolveLocalised } from '@/lib/i18n'
+import { photoSrcSet } from '@/lib/photos/srcset'
 import type { GuestProps } from '../contract'
 import type { PhotoGridConfig } from './schema'
 
@@ -40,6 +41,11 @@ export default function Guest({ config, ctx }: GuestProps<PhotoGridConfig>) {
               {/* eslint-disable-next-line @next/next/no-img-element -- see PosterCard */}
               <img
                 src={photo.url}
+                srcSet={photoSrcSet(photo.url) || undefined}
+                // A grid cell is the viewport divided by the column count, less the gutters.
+                // Without this the browser assumes full width and fetches the 2048 for a
+                // thumbnail, which is the whole cost this was meant to avoid.
+                sizes={`(max-width: 640px) ${Math.round(100 / Math.max(1, config.columns))}vw, ${Math.round(90 / Math.max(1, config.columns))}vw`}
                 alt={caption}
                 width={photo.width ?? undefined}
                 height={photo.height ?? undefined}

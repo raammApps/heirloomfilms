@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { photoSrcSet } from '@/lib/photos/srcset'
 import { resolveLocalised, type Translator } from '@/lib/i18n'
 import type { Locale, Photo } from '@/lib/schema'
 import { useFocusTrap } from './useFocusTrap'
@@ -83,6 +84,10 @@ export function Lightbox({ photos, index, locale, t, onIndexChange, onClose }: P
           {/* eslint-disable-next-line @next/next/no-img-element -- see PosterCard */}
           <img
             src={photo.url}
+            srcSet={photoSrcSet(photo.url) || undefined}
+            // Full-bleed, so the browser should take the widest it can use — but a phone still
+            // only needs ~1024. This is the one place the 2048 rendition earns its keep.
+            sizes="100vw"
             alt={caption}
             className="max-h-full max-w-full object-contain"
             decoding="async"

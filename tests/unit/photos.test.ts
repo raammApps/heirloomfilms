@@ -31,11 +31,26 @@ describe('defaultAlbumId', () => {
 
 describe('photoKey', () => {
   it('namespaces by catalogue, so deleting one sweeps a prefix', () => {
-    expect(photoKey(CATALOGUE, 'photo-1', 'jpg')).toBe(`c/${CATALOGUE}/photo-1.jpg`)
+    expect(photoKey(CATALOGUE, 'photo-1', 'jpg')).toBe(`c/${CATALOGUE}/w2048/photo-1.jpg`)
   })
 
   it('normalises the extension however it arrives', () => {
-    expect(photoKey(CATALOGUE, 'p', '.JPG')).toBe(`c/${CATALOGUE}/p.jpg`)
+    expect(photoKey(CATALOGUE, 'p', '.JPG')).toBe(`c/${CATALOGUE}/w2048/p.jpg`)
+  })
+
+  /**
+   * The width is in the path so a URL says what it is — which is what lets `photoSrcSet`
+   * derive the set, and tell a photograph stored before renditions from one stored after.
+   */
+  it('puts each rendition under its own width', () => {
+    expect(photoKey(CATALOGUE, 'p', 'jpg', 480)).toBe(`c/${CATALOGUE}/w480/p.jpg`)
+    expect(photoKey(CATALOGUE, 'p', 'jpg', 1024)).toBe(`c/${CATALOGUE}/w1024/p.jpg`)
+  })
+
+  it('keeps renditions of one photograph under one catalogue prefix', () => {
+    const keys = [2048, 1024, 480].map((w) => photoKey(CATALOGUE, 'p', 'jpg', w))
+    expect(keys.every((k) => k.startsWith(`c/${CATALOGUE}/`))).toBe(true)
+    expect(new Set(keys).size).toBe(3)
   })
 })
 

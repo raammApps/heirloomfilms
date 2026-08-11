@@ -4,7 +4,7 @@ import { requireOwnedCatalogue } from '@/lib/admin/session'
 import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, route } from '@/lib/http/handler'
-import { defaultAlbumId, getPhotoProvider, photoKey } from '@/lib/photos'
+import { defaultAlbumId, getPhotoProvider, photoKey, PHOTO_WIDTHS } from '@/lib/photos'
 import { albumSchema, photoSchema } from '@/lib/schema'
 
 export const runtime = 'nodejs'
@@ -28,6 +28,16 @@ export const dynamic = 'force-dynamic'
  * this only catches what slipped past that.
  */
 const MAX_BYTES = 4 * 1024 * 1024
+
+/**
+ * The narrower renditions that accompany the master, matching `RENDITIONS` in `<PhotoManager>`.
+ * Kept as a bare list because the server only needs to know what to look for and where to put
+ * it — the widths themselves are a client display concern.
+ */
+const RENDITION_SUFFIXES = ['-1024', '-480'] as const
+
+/** Suffix the browser sends → the width segment it is stored under. */
+const SUFFIX_WIDTH: Record<string, number> = { '-1024': 1024, '-480': 480 }
 
 const ACCEPTED: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -124,11 +134,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const photoId = randomUUID()
-    const stored = await getPhotoProvider().put(
-      photoKey(catalogue.id, photoId, extension),
+    const provider = getPhotoProvider()
+
+    // The browser sends one decode cut to several widths. Storing them together means a
+    // photograph is never live at only some sizes, which would 404 inside a `srcset` and show
+    // a guest a hole in the gallery.
+    const master = await provider.put(
+      photoKey(catalogue.id, photoId, extension, PHOTO_WIDTHS[0]),
       await file.arrayBuffer(),
       file.type,
     )
+
+    for (const suffix of RENDITION_SUFFIXES) {
+      const rendition = form.get(`file${suffix}`)
+      if (!(rendition instanceof File) || !ACCEPTED[rendition.type]) continue
+      if (rendition.size > MAX_BYTES) continue
+      await provider.put(
+        photoKey(catalogue.id, photoId, ACCEPTED[rendition.type]!, SUFFIX_WIDTH[suffix]),
+        await rendition.arrayBuffer(),
+        rendition.type,
+      )
+    }
+    const stored = master
 
     const existing = await repository.listPhotos(album.id)
     const photo = photoSchema.parse({

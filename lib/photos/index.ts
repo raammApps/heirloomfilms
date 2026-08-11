@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { env } from '@/lib/env'
+import { PHOTO_WIDTHS } from './srcset'
 import { BunnyPhotoProvider } from './bunny'
 import { FakePhotoProvider } from './fake'
 import type { PhotoProvider } from './provider'
@@ -23,9 +24,20 @@ export function setPhotoProvider(provider: PhotoProvider): void {
  *
  * The single place that decides storage layout, so deleting a catalogue can delete a prefix and
  * one catalogue's files can never collide with another's.
+ *
+ * The width sits in the path — `c/<catalogue>/w2048/<photo>.jpg` — which makes a URL say what
+ * it is. That is what lets `photoSrcSet` derive the whole set from the master without a column
+ * to record it, and, more importantly, lets it tell a photograph uploaded before renditions
+ * existed from one uploaded after. Guessing wrong there would put a 404 inside a `srcset` and
+ * show a guest a hole in the gallery.
  */
-export function photoKey(catalogueId: string, photoId: string, extension: string): string {
-  return `c/${catalogueId}/${photoId}.${extension.replace(/^\./, '').toLowerCase()}`
+export function photoKey(
+  catalogueId: string,
+  photoId: string,
+  extension: string,
+  width: number = PHOTO_WIDTHS[0],
+): string {
+  return `c/${catalogueId}/w${width}/${photoId}.${extension.replace(/^\./, '').toLowerCase()}`
 }
 
 /**
@@ -48,3 +60,5 @@ export function defaultAlbumId(catalogueId: string): string {
 }
 
 export * from './provider'
+export { PHOTO_WIDTHS, photoSrcSet } from './srcset'
+

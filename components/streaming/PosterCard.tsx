@@ -1,6 +1,7 @@
 'use client'
 
 import { memo } from 'react'
+import { photoSrcSet } from '@/lib/photos/srcset'
 import { posterDataUri } from '@/lib/poster'
 
 export type Aspect = '2:3' | '16:9' | '1:1' | '4:3'
@@ -68,6 +69,10 @@ function PosterCardImpl({ item, aspect, onOpen, eager = false, wide = false }: P
             generated data: URIs; the image optimiser adds a hop for no benefit here. */}
         <img
           src={src}
+          // Photo rows pass a stored photograph here; film posters come from `/api/poster/…`
+          // and have no rendition set, so this is empty for them and the markup is unchanged.
+          srcSet={photoSrcSet(src) || undefined}
+          sizes="(max-width: 768px) 45vw, 320px"
           alt={item.alt ?? ''}
           loading={eager ? 'eager' : 'lazy'}
           decoding={eager ? 'sync' : 'async'}
