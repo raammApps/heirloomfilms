@@ -34,25 +34,6 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
-### N-15 · Revoke the anonymous reads  ·  ~5 min, **do this first**
-
-`0002_row_level_security.sql` grants `select` to `anon` on catalogues, titles, albums and
-photos. **No code uses the anon key** — guest pages and admin both read through the service role,
-server-side — but the key is `NEXT_PUBLIC_` and sits in every page, so anyone can lift it and
-list every published catalogue on the platform with the couple's name and wedding date. Doc 01
-forbids that twice.
-
-Folded into `0002_row_level_security.sql`, which is now re-runnable: every policy it creates is
-dropped first, so pasting it into the SQL editor again is safe on a database with data. There is
-no separate `0003`. Nothing needed wiping — the fix is subtraction.
-
-The anon role now has **no policies at all**. A guest's browser never speaks to Postgres: every
-guest path goes through a Next route using the service-role key server-side, so every anon grant
-was a capability no code exercised.
-
-Verify after applying: an anon-key read of `catalogues` must return `[]` or 401, and
-`/c/aanya-and-vikram` must still serve, because it never used that key.
-
 ### N-16 · Partner model  ·  see doc 15
 
 Platform admin, partner registration, couple accounts, ownership transfer, entitlements,
@@ -112,16 +93,6 @@ needs one CNAME. Afterwards, update **two** things or transcodes silently stop:
 > The webhook must always point at the **stable alias**, never at a `marquee-film-<hash>` URL.
 > A per-deployment URL keeps answering after the next deploy — from the *old* build — so the
 > failure is a webhook that appears healthy while running superseded code.
-
-### N-4 · The browse route renders dynamically, not ISR  ·  ~2h
-
-`app/c/[slug]/page.tsx` reads the locale cookie, which opts the whole route out of static
-generation. Doc 05 §6 wants ISR here, and this is a real cost against the 2.5s LCP budget on the
-page every guest lands on.
-
-Options, in order of preference: resolve the locale client-side after a static first paint; or
-move it into the path (`/hi/…`), which doc 03 argues against because the WhatsApp link is the
-product's front door. Measure before and after — the point is the number, not the refactor.
 
 ### N-5 · Lighthouse in CI  ·  ~2h  ·  doc 09 P1-14
 

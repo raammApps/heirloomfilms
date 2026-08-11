@@ -444,3 +444,26 @@ what — now a fieldset with a legend.
 
 71 E2E, 259 unit and component.
 
+## Partner model planned, and the first two steps taken — 12 Aug 2026
+
+Doc 15 sets out partners, ownership transfer and what breaks at volume. Researching it against
+the code found the thing that mattered most: the RLS grants let the `NEXT_PUBLIC_` anon key —
+printed into every page — enumerate every published catalogue on the platform with the couple's
+name and wedding date. Doc 01 forbids exactly that, twice. Nothing in the app used the key:
+every guest path goes through a Next route holding the service role. So the anon role now has no
+policies at all, and `0002` is re-runnable rather than a new migration. No data was wiped.
+
+The architecture reuses `org_id` scoping for all three account types. A couple gets their own org
+on transfer rather than a new owner column, because a column means every query asks "my org, or
+am I the owner?" in RLS and session handling forever — and cross-tenant leaks live in that
+branch.
+
+Then the caching. `/c/[slug]` declared `revalidate` but read cookies, so it was never static and
+never could be: access depends on the guest's cookies. Cached the reads instead, tagged per
+catalogue, invalidated by every write an operator can see the result of. Proved both directions
+against a real server — a direct Postgres change stayed invisible, an app write appeared at once.
+
+The integration suite caught the RLS change and was itself wrong: it asserted anon could read a
+published catalogue, which encoded the leak as intended behaviour. Rewritten to assert the
+capability is gone.
+
