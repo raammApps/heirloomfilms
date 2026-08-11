@@ -9,6 +9,8 @@ export function CatalogueSettings({ catalogue }: { catalogue: Catalogue }) {
   const router = useRouter()
   const [privacy, setPrivacy] = useState<Privacy>(catalogue.privacy)
   const [passcode, setPasscode] = useState('')
+  const [customDomain, setCustomDomain] = useState(catalogue.customDomain ?? '')
+  const [includedUntil, setIncludedUntil] = useState(catalogue.includedUntil?.slice(0, 10) ?? '')
   const [status, setStatus] = useState<string | null>(null)
 
   const save = async () => {
@@ -20,9 +22,20 @@ export function CatalogueSettings({ catalogue }: { catalogue: Catalogue }) {
         // Only send a passcode when one was typed; an empty box must not wipe a working one.
         ...(privacy === 'passcode' && passcode ? { passcode } : {}),
         ...(privacy === 'unlisted' ? { passcode: null } : {}),
+        // Empty means "no custom domain", which is a real choice and must clear the field —
+        // unlike the passcode, where empty means "keep the one you have".
+        customDomain: customDomain.trim() ? customDomain.trim() : null,
+        ...(includedUntil ? { includedUntil } : {}),
       }),
     })
-    setStatus(response.ok ? 'Saved' : 'Could not save')
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as
+        | { error?: { message?: string } }
+        | null
+      setStatus(body?.error?.message ?? 'Could not save')
+      return
+    }
+    setStatus('Saved')
     setPasscode('')
     router.refresh()
   }
@@ -98,6 +111,41 @@ export function CatalogueSettings({ catalogue }: { catalogue: Catalogue }) {
             {status}
           </span>
         </div>
+      </section>
+
+      <section className="mb-6 rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-white p-4">
+        <h2 className="mb-1 text-[15px] font-semibold">Their own address</h2>
+        <p className="mb-3 text-[13px] text-[var(--color-l-text-mid)]">
+          A domain the couple owns, pointed here. Leave empty to use the address above.
+        </p>
+        <input
+          type="text"
+          inputMode="url"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={customDomain}
+          onChange={(event) => setCustomDomain(event.target.value)}
+          placeholder="aanyaandvikram.in"
+          className="h-11 w-full rounded-[var(--radius-input)] border border-[var(--color-l-line)] px-3 text-[14px]"
+        />
+        <p className="mt-2 text-[12px] text-[var(--color-l-text-mid)]">
+          They point a CNAME at us, and the domain is added to the hosting project. Until both
+          are done this is stored but not served.
+        </p>
+      </section>
+
+      <section className="mb-6 rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-white p-4">
+        <h2 className="mb-1 text-[15px] font-semibold">Serving until</h2>
+        <p className="mb-3 text-[13px] text-[var(--color-l-text-mid)]">
+          After this date guests see a renewal screen — never a broken link, and nothing is
+          deleted.
+        </p>
+        <input
+          type="date"
+          value={includedUntil}
+          onChange={(event) => setIncludedUntil(event.target.value)}
+          className="h-11 rounded-[var(--radius-input)] border border-[var(--color-l-line)] px-3 text-[14px]"
+        />
       </section>
 
       {catalogue.status === 'published' ? (

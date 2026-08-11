@@ -20,6 +20,11 @@ export type AccessVerdict =
   | { kind: 'locked'; catalogue: Catalogue }
   | { kind: 'lapsed'; catalogue: Catalogue }
 
+/** Today as `YYYY-MM-DD`, so an expiry compares like the date column it came from. */
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 export async function resolveAccess(slug: string): Promise<AccessVerdict> {
   const catalogue = await getRepository().getCatalogueBySlug(slug)
   if (!catalogue) return { kind: 'missing' }
@@ -27,6 +32,14 @@ export async function resolveAccess(slug: string): Promise<AccessVerdict> {
   // A lapsed subscription is checked before publication state: the couple must always land on
   // the renewal screen rather than on anything that reads as "your wedding is gone".
   if (!SERVING_SUB_STATUSES.includes(catalogue.subStatus)) {
+    return { kind: 'lapsed', catalogue }
+  }
+
+  // The date is authoritative too, not decorative. Status alone meant an operator could set an
+  // expiry, watch it pass, and find the catalogue still serving — a setting that lies is worse
+  // than no setting. Compared as dates, so a catalogue serves through the whole of its last day
+  // in every timezone a guest might be in.
+  if (catalogue.includedUntil && catalogue.includedUntil < today()) {
     return { kind: 'lapsed', catalogue }
   }
 

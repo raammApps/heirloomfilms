@@ -5,6 +5,7 @@ import { getOperatorSession } from '@/lib/admin/session'
 import { getRepository } from '@/lib/db'
 import { env } from '@/lib/env'
 import { formatWeddingDate } from '@/lib/format'
+import { PublicLink } from '@/components/admin/PublicLink'
 import { catalogueUrl } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
@@ -50,9 +51,13 @@ export default async function CatalogueListPage() {
                 {formatWeddingDate(catalogue.weddingDate, 'en')}
               </p>
 
-              <p className="mt-3 truncate text-[12px] text-[var(--color-l-text-mid)]">
-                {catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '/', env.TENANCY_MODE)}
-              </p>
+              <div className="mt-3">
+                <PublicLink
+                  url={catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '/', env.TENANCY_MODE)}
+                  status={catalogue.status}
+                  compact
+                />
+              </div>
 
               <div className="mt-4 flex gap-2">
                 <Link

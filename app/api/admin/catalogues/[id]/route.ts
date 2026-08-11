@@ -24,6 +24,23 @@ const patchSchema = z.object({
   branding: brandingSchema.optional(),
   featuredTitleId: z.string().uuid().nullable().optional(),
   privacy: privacySchema.optional(),
+  /**
+   * A domain the couple owns, pointed at us. Stored bare and lowercased — `resolveTenant`
+   * normalises the `Host` header the same way, and the two must agree or the lookup misses.
+   */
+  customDomain: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/, 'Enter a domain like ours.example.com')
+    .max(253)
+    .nullable()
+    .optional(),
+  /**
+   * When the catalogue stops serving. Past this, guests get the renewal screen rather than a
+   * 404 — doc 01 is explicit that a lapsed wedding is never a dead link.
+   */
+  includedUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   /** Empty string clears the passcode; anything else is hashed before it touches the row. */
   passcode: z.string().max(64).nullable().optional(),
 })

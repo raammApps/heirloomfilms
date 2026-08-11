@@ -5,6 +5,7 @@ import { getOperatorSession } from '@/lib/admin/session'
 import { getRepository } from '@/lib/db'
 import { env } from '@/lib/env'
 import { formatWeddingDate } from '@/lib/format'
+import { PublicLink } from '@/components/admin/PublicLink'
 import { catalogueUrl } from '@/lib/tenant'
 import { MAX_TITLES } from '@/lib/schema'
 
@@ -61,9 +62,7 @@ export default async function CatalogueOverviewPage({
         <p className="mb-3 text-[13px] text-[var(--color-l-text-mid)]">
           Unlisted and never indexed. Anyone with this link can watch.
         </p>
-        <code className="block break-all rounded bg-[var(--color-l-surface-2)] px-3 py-2 text-[13px]">
-          {url}
-        </code>
+        <PublicLink url={url} status={catalogue.status} />
         <p className="mt-2 text-[12px] text-[var(--color-l-text-mid)]">
           Wedding date {formatWeddingDate(catalogue.weddingDate, 'en')} · included until{' '}
           {formatWeddingDate(catalogue.includedUntil, 'en')}
