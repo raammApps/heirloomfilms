@@ -42,8 +42,13 @@ server-side — but the key is `NEXT_PUBLIC_` and sits in every page, so anyone 
 list every published catalogue on the platform with the couple's name and wedding date. Doc 01
 forbids that twice.
 
-Migration `0003_revoke_anon_reads.sql` is written. It needs applying by hand in the Supabase SQL
-editor, like every other migration here — PostgREST does not execute DDL (doc 15 §0).
+Folded into `0002_row_level_security.sql`, which is now re-runnable: every policy it creates is
+dropped first, so pasting it into the SQL editor again is safe on a database with data. There is
+no separate `0003`. Nothing needed wiping — the fix is subtraction.
+
+The anon role now has **no policies at all**. A guest's browser never speaks to Postgres: every
+guest path goes through a Next route using the service-role key server-side, so every anon grant
+was a capability no code exercised.
 
 Verify after applying: an anon-key read of `catalogues` must return `[]` or 401, and
 `/c/aanya-and-vikram` must still serve, because it never used that key.
