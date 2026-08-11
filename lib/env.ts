@@ -185,6 +185,19 @@ const schema = z
           message: 'The example SESSION_SECRET must not be used in production',
         })
       }
+      /**
+       * The dev default is printed in this repository, so it is a published password. Login
+       * reads the operator's hash from the database rather than this value, which is why it was
+       * survivable — but `ALLOW_EPHEMERAL_DATA=1` in production would seed an operator from it,
+       * and the console is publicly reachable.
+       */
+      if (env.DEV_OPERATOR_PASSWORD === 'mehfil-dev') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DEV_OPERATOR_PASSWORD'],
+          message: 'The committed dev password must not be used in production',
+        })
+      }
       if (env.DATA_DRIVER !== 'supabase' && env.ALLOW_EPHEMERAL_DATA !== '1') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

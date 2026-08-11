@@ -24,7 +24,7 @@ const files = readdirSync(migrationsDir)
 
 const orgId = randomUUID()
 const operatorEmail = process.env.SEED_OPERATOR_EMAIL ?? 'operator@mehfil.test'
-const operatorPassword = process.env.SEED_OPERATOR_PASSWORD ?? 'mehfil-dev'
+const operatorPassword = process.env.SEED_OPERATOR_PASSWORD ?? 'local-demo-password'
 const orgName = process.env.SEED_ORG_NAME ?? 'Kalyanam Weddings'
 
 const out: string[] = [

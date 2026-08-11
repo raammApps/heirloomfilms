@@ -54,7 +54,10 @@ export default defineConfig({
       ROOT_DOMAIN: 'mehfil.localhost:3000',
       SESSION_SECRET: 'e2e-session-secret-0123456789abcdefghijklmnop',
       DEV_OPERATOR_EMAIL: 'operator@mehfil.test',
-      DEV_OPERATOR_PASSWORD: 'mehfil-dev',
+      // Not the repo's published default: the production guard refuses that, and this suite
+      // deliberately boots with NODE_ENV=production. Fixed rather than random so specs can
+      // sign in without threading a secret through them.
+      DEV_OPERATOR_PASSWORD: 'e2e-operator-password',
     },
   },
 })

@@ -17,7 +17,7 @@ if (driver === 'supabase') {
 }
 
 const email = process.env.DEV_OPERATOR_EMAIL ?? 'operator@mehfil.test'
-const password = process.env.DEV_OPERATOR_PASSWORD ?? 'mehfil-dev'
+const password = process.env.DEV_OPERATOR_PASSWORD ?? 'local-demo-password'
 
 const path = resolve(process.cwd(), join(process.env.DATA_DIR ?? '.data', 'store.json'))
 const snapshot = demoSnapshot({ email, password })

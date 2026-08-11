@@ -142,16 +142,21 @@ line — `tests/unit/registry.test.ts` fails the build otherwise. Remember `meta
 
 ## Held by Sandeep, not by an agent (doc 13 §8)
 
-| # | What | Why it cannot be delegated |
-|---|---|---|
-| M-9 | Playback start under 1.5s on real 4G, p75 | Needs a phone, a venue, and a stopwatch |
-| M-11 | A non-technical operator publishes a catalogue in under 30 min, timed | The hesitation is the roadmap |
-| M-1 | WhatsApp preview on a real Android and iPhone | Cache behaviour is not reproducible locally |
-| — | Real cleared footage for the demo (N-6) | It is the sales artefact |
-| — | Rotate the Bunny account key | It was pasted into a chat transcript |
-| — | Trademark search on "Mehfil", classes 42 and 45 | Doc 12 §1, before any planner collateral |
+**Rotate the admin password.** `pnpm rotate:password` writes a new one to `.env.operator.local`
+(gitignored, never printed) and prints the SQL. Run that `update operators …` in the Supabase SQL
+editor, sign in, then delete the file. Production now refuses to boot on the repo's published
+default, so this cannot quietly stay unrotated.
 
----
+**Rotate the Supabase secret key.** It went through a chat transcript. It bypasses RLS entirely,
+so it is the most valuable credential here. Supabase dashboard → Settings → API → roll the
+`service_role` / secret key, then update `.env.local`, `.env.vercel.local` and
+`./scripts/deploy-vercel.sh`.
+
+**Rotate the Bunny account API key.** Also went through a transcript. Lower urgency than the
+above: nothing deployed uses it — only `pnpm preflight` — so the exposure is local. It can still
+create and delete zones on the account. Bunny dashboard → Account Settings → API.
+
+**Real footage** (N-14), which is the one thing no agent can do for this product.
 
 ## Facts a new session will want
 

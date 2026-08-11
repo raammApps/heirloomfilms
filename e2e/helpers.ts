@@ -15,7 +15,7 @@ export const DEMO_CATALOGUE = 'aanya-vikram'
 export async function signIn(page: Page): Promise<void> {
   await page.goto('/admin/login')
   await page.getByLabel('Email').fill('operator@mehfil.test')
-  await page.getByLabel('Password').fill('mehfil-dev')
+  await page.getByLabel('Password').fill('e2e-operator-password')
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('heading', { name: 'Catalogues' })).toBeVisible()
 }

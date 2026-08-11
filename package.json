@@ -31,7 +31,8 @@
     "verify:playback": "tsx scripts/verify-bunny-playback.ts",
     "check:bundle": "tsx scripts/check-bundle.ts",
     "verify:upload": "tsx scripts/verify-upload-resume.ts",
-    "dev:live": "scripts/dev-live.sh"
+    "dev:live": "scripts/dev-live.sh",
+    "rotate:password": "tsx scripts/rotate-operator-password.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
