@@ -53,6 +53,35 @@ tests all passed straight through. Both blind spots are structural, not oversigh
 
 Until both exist, "the tests pass" says nothing about the configuration that is deployed.
 
+### N-13 · Redesign the customizer  ·  ~1 session
+
+The save model is fixed — everything on the screen autosaves now — but the shape is still wrong.
+Editing happens in a side sheet **away from** the preview, so an operator changes a heading in
+one panel and hunts for it in another. The ask was "Canva-like, but simple to start with".
+
+What that means concretely, in the order it is worth doing:
+
+1. **Select in the preview.** Clicking a section in the preview selects it; the editor opens
+   against that section. Today the preview is read-only and the list is the only way in.
+2. **Edit in place for text.** Heading and the letter body are the two things operators change
+   most, and both are already rendered in the preview. Contenteditable on those two, not a
+   general-purpose editor.
+3. **One inspector, not a sheet.** A fixed right-hand panel showing the selected section's
+   fields, so the preview never gets covered by the thing editing it.
+4. **Keep the section list** as the reorder and visibility surface. Drag-to-reorder in the
+   preview is a much larger job and the list already does it accessibly.
+
+Watch out for: `<PreviewPane>` mounts the real guest tree (CLAUDE.md, deviation 1), so a click
+handler for selection must not swallow the guest components' own interactions — the preview has
+to stay a truthful rendering of what a guest sees, or it stops being a preview.
+
+### N-14 · Real footage  ·  operator task
+
+The guest surface has been judged against generated gradients and flat test images throughout.
+Card treatment, row edge gradients and billboard scrim are all still unassessed against real
+photographs, and that is the largest remaining gap between this and something that reads as a
+streaming product. Nothing else on this list changes that impression as much.
+
 ### N-11 · Domain  ·  ~30m + DNS propagation
 
 **Deployed, public and fully verified** at `https://marquee-film-pub.vercel.app` — Supabase,

@@ -397,3 +397,27 @@ Proved twice: once against the deployment URL, then again through the stable ali
 A per-deployment URL would have kept answering after the next deploy while running the previous
 build — a webhook that looks healthy and is quietly stale.
 
+## Robustness pass — 12 Aug 2026
+
+Five operator-reported issues. Two were the same defect seen from opposite sides: the customizer
+ran two save models at once, so branding needed a button while sections autosaved. An operator
+typed "Presented by", pressed Publish — which copies draft sections and never touches branding —
+and lost it silently, while the message card's *missing* button looked like the bug rather than
+the convention. Branding now autosaves like everything beside it.
+
+Deleting a catalogue did not exist at any layer. Added assets-first, because the rows are the
+only manifest of what was stored and removing them first strands every film at the provider,
+paid for and unreclaimable. Confirmation is typing the slug: this destroys a wedding, and a
+dialog is muscle memory by the third time.
+
+Films now preview on hover. Bunny writes `preview.webp` into the directory the playback token
+already signs, so it needed no new infrastructure at all. Most of the work was refusal — half a
+second of deliberate hover, never on touch, not under reduced motion, not under Save-Data —
+because ~300KB of unrequested animation on a metered plan is the default case here, not the edge.
+
+Also: the public link is now a real link with a copy button rather than grey truncated text; the
+custom domain and an expiry date are settable, and the expiry actually lapses a catalogue rather
+than being decorative; and operators can see what guests watched.
+
+Left for next time: the customizer's shape (N-13) and real footage (N-14).
+
