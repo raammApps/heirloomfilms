@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { photoSrcSet } from '@/lib/photos/srcset'
 import { posterDataUri } from '@/lib/poster'
 
@@ -17,6 +17,11 @@ export type RowItem = {
   /** 0–1. Renders the accent progress bar across the bottom of the card. */
   progress?: number
   alt?: string
+  /**
+   * Animated preview, shown on deliberate hover or focus. Films only — a photo row has nothing
+   * to move.
+   */
+  previewUrl?: string | null
 }
 
 const ASPECT_CLASS: Record<Aspect, string> = {
@@ -36,7 +41,54 @@ type Props = {
   wide?: boolean
 }
 
+/**
+ * Long enough that sweeping the cursor across a row loads nothing.
+ *
+ * Netflix waits about this long for the same reason: without it, crossing eight cards to reach
+ * the ninth would fetch eight previews nobody asked to see.
+ */
+const PREVIEW_DELAY_MS = 500
+
 function PosterCardImpl({ item, aspect, onOpen, eager = false, wide = false }: Props) {
+  const [preview, setPreview] = useState<'idle' | 'wanted' | 'ready'>('idle')
+  const timer = useRef<number | null>(null)
+
+  /**
+   * Whether a moving preview is welcome here at all.
+   *
+   * Three refusals, and each is a real user rather than a checkbox: `prefers-reduced-motion` is
+   * someone who gets motion sick; Save-Data is someone on a metered Indian mobile plan, which
+   * doc 05 §1 treats as the default case, and a preview is ~300KB nobody requested; and a
+   * coarse pointer means a phone, where "hover" fires on the tap that was already opening the
+   * film — so the preview would flash once and be replaced by the player.
+   */
+  const previewAllowed = (): boolean => {
+    if (!item.previewUrl) return false
+    if (typeof window === 'undefined' || !window.matchMedia) return false
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return false
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+    return connection?.saveData !== true
+  }
+
+  const wantPreview = () => {
+    if (!previewAllowed() || preview !== 'idle') return
+    timer.current = window.setTimeout(() => setPreview('wanted'), PREVIEW_DELAY_MS)
+  }
+
+  const dropPreview = () => {
+    if (timer.current !== null) window.clearTimeout(timer.current)
+    timer.current = null
+    setPreview('idle')
+  }
+
+  useEffect(
+    () => () => {
+      if (timer.current !== null) window.clearTimeout(timer.current)
+    },
+    [],
+  )
+
   /**
    * Generated artwork carries no type on a card.
    *
@@ -52,6 +104,12 @@ function PosterCardImpl({ item, aspect, onOpen, eager = false, wide = false }: P
     <button
       type="button"
       onClick={() => onOpen(item)}
+      // Focus counts as intent as much as hover does: a keyboard user tabbing to a card has
+      // chosen it just as deliberately as a cursor resting on it.
+      onPointerEnter={wantPreview}
+      onPointerLeave={dropPreview}
+      onFocus={wantPreview}
+      onBlur={dropPreview}
       data-testid="poster-card"
       data-key={item.key}
       className={[
@@ -80,6 +138,26 @@ function PosterCardImpl({ item, aspect, onOpen, eager = false, wide = false }: P
           className="h-full w-full object-cover"
           draggable={false}
         />
+
+        {/*
+          Layered over the poster rather than swapping its `src`: swapping shows the card's
+          background for as long as the preview takes to arrive, which reads as a flicker on
+          every hover. This stays invisible until it has actually decoded, so the poster holds
+          the frame and the motion simply appears.
+        */}
+        {preview !== 'idle' && item.previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- animated webp from the CDN
+          <img
+            src={item.previewUrl}
+            alt=""
+            aria-hidden
+            onLoad={() => setPreview('ready')}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+              preview === 'ready' ? 'opacity-100' : 'opacity-0'
+            }`}
+            draggable={false}
+          />
+        ) : null}
 
         <span
           aria-hidden

@@ -23,6 +23,9 @@ export default function Guest({ config, ctx }: GuestProps<CuratedRowConfig>) {
         label: resolveLocalised(title.name, ctx.locale),
         eyebrow: eyebrowFor(resolveLocalised(title.name, ctx.locale), title.category) ?? undefined,
         posterUrl: title.posterUrl,
+        // Bunny writes an animated preview beside the poster, so the existing signed route
+        // serves it — no second credential, no token juggling per card.
+        previewUrl: `/api/poster/${title.id}?file=preview.webp`,
         durationBadge: formatDurationBadge(title.durationS),
         ...(progress ? { progress: progress.positionS / Math.max(1, progress.durationS) } : {}),
         alt: resolveLocalised(title.name, ctx.locale),
