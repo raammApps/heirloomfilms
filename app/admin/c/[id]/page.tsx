@@ -5,6 +5,7 @@ import { getOperatorSession } from '@/lib/admin/session'
 import { getRepository } from '@/lib/db'
 import { env } from '@/lib/env'
 import { formatWeddingDate } from '@/lib/format'
+import { CatalogueAnalytics } from '@/components/admin/CatalogueAnalytics'
 import { PublicLink } from '@/components/admin/PublicLink'
 import { catalogueUrl } from '@/lib/tenant'
 import { MAX_TITLES } from '@/lib/schema'
@@ -45,6 +46,8 @@ export default async function CatalogueOverviewPage({
         <Stat label="Ready" value={`${ready}`} />
         <Stat label="Published" value={`${published}`} />
       </div>
+
+      <CatalogueAnalytics titles={titles} />
 
       {failed.length > 0 ? (
         <div className="mt-4 rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--color-error)_40%,white)] bg-[color-mix(in_srgb,var(--color-error)_8%,white)] p-4">
