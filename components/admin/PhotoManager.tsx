@@ -26,6 +26,58 @@ type Pending = {
 const LQIP_WIDTH = 16
 
 /**
+ * The longest edge we keep. A phone shoots 4032px; a guest views the gallery on a 390px screen,
+ * and the largest this is ever displayed at is a full-screen lightbox on a desktop.
+ */
+const MAX_EDGE = 2560
+
+/**
+ * Anything above this is resized before upload.
+ *
+ * Vercel rejects a request body over ~4.5MB with FUNCTION_PAYLOAD_TOO_LARGE — the platform
+ * refuses it before the route runs, so no server-side limit can catch it and the operator just
+ * sees "Upload failed". Modern phone photographs are 4–8MB, so this was every real photograph.
+ *
+ * Resizing is the right answer rather than a workaround: doc 05 §2 pays for delivery, and
+ * shipping a 4032px original to a phone on 4G costs money and start time to display something
+ * no guest can see.
+ */
+const RESIZE_ABOVE_BYTES = 3 * 1024 * 1024
+
+/**
+ * Re-encode oversized photographs in the browser.
+ *
+ * Returns the original untouched when it is already small enough — re-encoding a modest JPEG
+ * only loses quality for no gain.
+ */
+async function shrink(file: File): Promise<File> {
+  if (file.size <= RESIZE_ABOVE_BYTES) return file
+
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    const context = canvas.getContext('2d')
+    if (!context) return file
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close()
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.85),
+    )
+    if (!blob || blob.size >= file.size) return file
+
+    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
+  } catch {
+    // Better to attempt the original and get a real error than to silently drop the photograph.
+    return file
+  }
+}
+
+/**
  * Build the blurred placeholder in the browser, where the image is already decoded.
  *
  * Doing this server-side would mean a native image dependency and CPU on every upload, to
@@ -81,9 +133,12 @@ export function PhotoManager({
         images.map(async (file, index) => {
           const entry = entries[index]!
           try {
+            // Dimensions come from the original; the upload is whatever survives the resize.
             const meta = await makeLqip(file)
+            const sending = await shrink(file)
+
             const form = new FormData()
-            form.set('file', file)
+            form.set('file', sending)
             if (meta.lqip) form.set('lqip', meta.lqip)
             if (meta.width) form.set('width', String(meta.width))
             if (meta.height) form.set('height', String(meta.height))
@@ -93,8 +148,19 @@ export function PhotoManager({
               body: form,
             })
             if (!response.ok) {
-              const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null
-              throw new Error(body?.error?.message ?? 'Upload failed')
+              // A payload rejected by the platform never reaches the route, so the body is
+              // plain text rather than our JSON envelope. Reading it as JSON only turned a
+              // specific, actionable failure into "Upload failed".
+              const raw = await response.text().catch(() => '')
+              let message = raw.slice(0, 120)
+              try {
+                message = (JSON.parse(raw) as { error?: { message?: string } }).error?.message ?? message
+              } catch {
+                if (response.status === 413 || /PAYLOAD_TOO_LARGE/i.test(raw)) {
+                  message = 'That photograph is too large to send. Try one under 4MB.'
+                }
+              }
+              throw new Error(message || `Upload failed (${response.status})`)
             }
 
             const body = (await response.json()) as { photo: Photo }
@@ -146,7 +212,7 @@ export function PhotoManager({
       >
         <p className="text-[15px] font-medium text-[var(--color-l-text-hi)]">Drop photographs here</p>
         <p className="text-[13px] text-[var(--color-l-text-mid)]">
-          JPEG, PNG, WebP or AVIF · up to 25MB each
+          JPEG, PNG, WebP or AVIF · large photographs are resized automatically
         </p>
         <button
           type="button"

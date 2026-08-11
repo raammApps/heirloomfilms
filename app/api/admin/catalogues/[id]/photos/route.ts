@@ -19,8 +19,15 @@ export const dynamic = 'force-dynamic'
  * short-lived TUS ticket; photographs are megabytes, so proxying is the cheaper trade.
  */
 
-/** Generous for a camera JPEG, mean enough that a video dropped in the wrong box fails fast. */
-const MAX_BYTES = 25 * 1024 * 1024
+/**
+ * Below the platform's own body limit, which is the real ceiling.
+ *
+ * Vercel rejects a request over ~4.5MB with FUNCTION_PAYLOAD_TOO_LARGE before this route runs,
+ * so a larger limit here is a promise the code cannot keep: the operator sees a bare 413 and no
+ * message this file could have written. The browser resizes anything big before sending, so
+ * this only catches what slipped past that.
+ */
+const MAX_BYTES = 4 * 1024 * 1024
 
 const ACCEPTED: Record<string, string> = {
   'image/jpeg': 'jpg',
