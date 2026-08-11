@@ -102,8 +102,13 @@ export function LocalisedField({
   hint?: string
 }) {
   return (
-    <div className="mb-4 rounded-[var(--radius-input)] border border-[var(--color-l-line)] p-3">
-      <p className="mb-2 text-[13px] font-semibold text-[var(--color-l-text-hi)]">{label}</p>
+    // A fieldset, not a div with a paragraph: the two inputs are labelled only "English" and
+    // "हिंदी", so without a legend tying them to this group a screen reader announces "English"
+    // with no indication of English *what* — and the page has several such pairs.
+    <fieldset className="mb-4 rounded-[var(--radius-input)] border border-[var(--color-l-line)] p-3">
+      <legend className="px-1 text-[13px] font-semibold text-[var(--color-l-text-hi)]">
+        {label}
+      </legend>
       <TextField
         label="English"
         value={value.en}
@@ -117,7 +122,7 @@ export function LocalisedField({
         hint={hint ?? 'Optional. Guests see the English text when this is empty.'}
         onChange={(hi) => onChange({ ...value, hi: hi || undefined })}
       />
-    </div>
+    </fieldset>
   )
 }
 

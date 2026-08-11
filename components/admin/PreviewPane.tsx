@@ -13,6 +13,10 @@ type Props = {
   albums: Album[]
   photos: Photo[]
   modules: ModuleInstance[]
+  /** Instance id of the section being edited, outlined here so the two panels agree. */
+  selectedId?: string | null
+  /** Clicking a section selects it. Omit to keep the preview read-only. */
+  onSelect?: (instanceId: string) => void
 }
 
 /**
@@ -24,7 +28,15 @@ type Props = {
  *
  * Mobile is the default, because that is where guests are.
  */
-export function PreviewPane({ catalogue, titles, albums, photos, modules }: Props) {
+export function PreviewPane({
+  catalogue,
+  titles,
+  albums,
+  photos,
+  modules,
+  selectedId = null,
+  onSelect,
+}: Props) {
   const [device, setDevice] = useState<'mobile' | 'desktop'>('mobile')
   const [debounced, setDebounced] = useState(modules)
 
@@ -34,6 +46,28 @@ export function PreviewPane({ catalogue, titles, albums, photos, modules }: Prop
   }, [modules])
 
   const published = titles.filter((title) => title.published && title.status === 'ready')
+
+  /**
+   * One delegated listener rather than an overlay per section.
+   *
+   * An overlay would sit on top of the guest tree and change how it lays out; delegation leaves
+   * the rendered markup untouched, which is the whole point of previewing the real components
+   * (doc 14 §5.4). `ModuleRenderer` already tags each instance with `data-module-id`, so the
+   * nearest one up from the click target is the section that was pointed at.
+   *
+   * Capture phase, because guest components have their own handlers — a poster card would open
+   * its modal, and the operator would get a dialog instead of an editor. In the customizer,
+   * pointing at a section means "edit this"; the guest surface is where it means "watch this".
+   */
+  const selectFromClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!onSelect) return
+    const section = (event.target as HTMLElement).closest?.('[data-module-id]')
+    const id = section?.getAttribute('data-module-id')
+    if (!id) return
+    event.preventDefault()
+    event.stopPropagation()
+    onSelect(id)
+  }
 
   return (
     <div>
@@ -63,7 +97,12 @@ export function PreviewPane({ catalogue, titles, albums, photos, modules }: Prop
           height: device === 'mobile' ? 780 : 700,
         }}
       >
-        <div className="h-full overflow-y-auto" data-testid="preview-viewport">
+        <div
+          className={`h-full overflow-y-auto ${onSelect ? '[&_[data-module-id]]:cursor-pointer' : ''}`}
+          data-testid="preview-viewport"
+          onClickCapture={selectFromClick}
+        >
+          {onSelect ? <SelectionStyles selectedId={selectedId} /> : null}
           {published.length === 0 ? (
             <p className="gutter-x py-16 text-center text-[14px] text-text-lo">
               Nothing is published yet. Publish a film on the Films tab to see it here.
@@ -110,5 +149,31 @@ function DeviceButton({
     >
       {children}
     </button>
+  )
+}
+
+/**
+ * The selection outline, as scoped CSS rather than props threaded through the guest tree.
+ *
+ * Every alternative involved teaching guest components about editing: a wrapper element changes
+ * layout, a className prop puts an admin concern in a module's signature. Attribute selectors
+ * against the tags `ModuleRenderer` already emits leave the previewed markup byte-identical to
+ * what a guest gets, which is the property that makes this a preview at all.
+ *
+ * `inset` rather than a border so nothing shifts by a pixel when a section becomes selected.
+ */
+function SelectionStyles({ selectedId }: { selectedId: string | null }) {
+  const selected = selectedId
+    ? `[data-module-id="${CSS.escape(selectedId)}"] { outline: 2px solid var(--color-accent); outline-offset: -2px; }`
+    : ''
+
+  return (
+    <style>{`
+      [data-module-id] { outline: 0 solid transparent; transition: outline-color 120ms ease; }
+      @media (hover: hover) and (pointer: fine) {
+        [data-module-id]:hover { outline: 2px dashed color-mix(in srgb, var(--color-accent) 60%, transparent); outline-offset: -2px; }
+      }
+      ${selected}
+    `}</style>
   )
 }

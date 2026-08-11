@@ -84,6 +84,54 @@ test.describe('the operator console', () => {
     await expect(page.locator('[data-module-id]').first()).toBeVisible()
   })
 
+  /**
+   * The redesign's whole point: the preview is the way in.
+   *
+   * This had no coverage at all — the suite reordered and hid sections but never opened an
+   * editor, which is how an entire editing surface could be replaced with every test still
+   * green.
+   */
+  test('selecting a section in the preview edits it beside the preview', async ({ page }) => {
+    await openCustomizer(page)
+
+    const preview = page.getByTestId('preview-viewport')
+    const inspector = page.getByRole('complementary', { name: 'Section editor' })
+
+    await expect(inspector).toContainText('Nothing selected')
+
+    // Click the section itself, the way an operator points at what they want to change.
+    await preview.locator('[data-module-id]').first().click()
+    await expect(inspector).not.toContainText('Nothing selected')
+
+    // The list agrees about what is selected, so the two panels never disagree.
+    await expect(
+      page.getByRole('region', { name: 'Sections' }).getByRole('listitem').first(),
+    ).toHaveAttribute('aria-current', 'true')
+
+    // The editor is a panel, not a dialog: it must not cover the thing it edits.
+    await expect(preview).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+
+  test('a heading typed in the inspector reaches the preview', async ({ page }) => {
+    await openCustomizer(page)
+
+    const sections = page.getByRole('region', { name: 'Sections' }).getByRole('listitem')
+    // A film row, so the heading is rendered above visible cards.
+    const row = sections.filter({ hasText: 'Film row' }).first()
+    await row.getByRole('button', { name: /Edit/ }).click()
+
+    const inspector = page.getByRole('complementary', { name: 'Section editor' })
+    const heading = inspector
+      .getByRole('group', { name: 'Section heading' })
+      .getByLabel('English')
+    await heading.fill('Our favourite films')
+
+    await expect(page.getByTestId('preview-viewport')).toContainText('Our favourite films', {
+      timeout: 10_000,
+    })
+  })
+
   test('hiding a section removes it from guests without discarding its config', async ({ page }) => {
     await openCustomizer(page)
 

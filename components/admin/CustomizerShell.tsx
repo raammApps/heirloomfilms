@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Album, Catalogue, ModuleInstance, Photo, Title } from '@/lib/schema'
 import { getModule, listModules, instantiate } from '@/modules/registry'
 import type { GuestContext } from '@/modules/contract'
-import { ModuleEditorSheet } from './ModuleEditorSheet'
+import { SectionInspector } from './SectionInspector'
 import { PreviewPane } from './PreviewPane'
 import { ThemePicker } from './ThemePicker'
 
@@ -138,7 +138,7 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
   )
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(320px,400px)_1fr]">
+    <div className="grid gap-5 lg:grid-cols-[minmax(280px,340px)_1fr] xl:grid-cols-[minmax(280px,320px)_1fr_minmax(300px,380px)]">
       <section aria-label="Sections">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="text-[13px] font-bold uppercase tracking-[0.09em] text-[var(--color-l-text-mid)]">
@@ -184,6 +184,7 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
                       ),
                     )
                   }
+                  selected={instance.id === editingId}
                   onEdit={() => setEditingId(instance.id)}
                   onRemove={() => commit(modules.filter((m) => m.id !== instance.id))}
                   onMove={(delta) => moveBy(instance.id, delta)}
@@ -221,6 +222,8 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
         </div>
 
         <PreviewPane
+          selectedId={editingId}
+          onSelect={setEditingId}
           catalogue={catalogue}
           titles={titles}
           albums={albums}
@@ -229,17 +232,19 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
         />
       </section>
 
-      {editing ? (
-        <ModuleEditorSheet
-          instance={editing}
+      <div className="min-w-0">
+        <h2 className="mb-3 text-[13px] font-bold uppercase tracking-[0.09em] text-[var(--color-l-text-mid)]">
+          Editing
+        </h2>
+        <SectionInspector
+          instance={editing ?? null}
           catalogue={catalogue}
           titles={titles}
           albums={albums}
           photos={photos}
           onChange={(next) => commit(modules.map((m) => (m.id === next.id ? next : m)))}
-          onClose={() => setEditingId(null)}
         />
-      ) : null}
+      </div>
     </div>
   )
 }
@@ -248,6 +253,7 @@ function SectionRow({
   instance,
   index,
   total,
+  selected,
   onToggle,
   onEdit,
   onRemove,
@@ -256,6 +262,8 @@ function SectionRow({
   instance: ModuleInstance
   index: number
   total: number
+  /** Being edited in the inspector, so the list and the preview agree on what is selected. */
+  selected: boolean
   onToggle: () => void
   onEdit: () => void
   onRemove: () => void
@@ -271,9 +279,12 @@ function SectionRow({
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-1 rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-white px-2 py-2 ${
-        isDragging ? 'opacity-70 shadow-lg' : ''
-      } ${instance.enabled ? '' : 'opacity-55'}`}
+      aria-current={selected ? 'true' : undefined}
+      className={`flex items-center gap-1 rounded-[var(--radius-card)] border bg-white px-2 py-2 ${
+        selected
+          ? 'border-accent ring-1 ring-accent'
+          : 'border-[var(--color-l-line)]'
+      } ${isDragging ? 'opacity-70 shadow-lg' : ''} ${instance.enabled ? '' : 'opacity-55'}`}
     >
       <button
         type="button"
