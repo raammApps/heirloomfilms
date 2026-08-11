@@ -38,6 +38,7 @@ export function AdminChrome({
             <ul className="mt-3 flex flex-wrap gap-1 text-[14px]">
               <SubNavLink href={`/admin/c/${catalogue.id}`}>Overview</SubNavLink>
               <SubNavLink href={`/admin/c/${catalogue.id}/titles`}>Films</SubNavLink>
+              <SubNavLink href={`/admin/c/${catalogue.id}/photos`}>Photographs</SubNavLink>
               <SubNavLink href={`/admin/c/${catalogue.id}/customizer`}>Customizer</SubNavLink>
               <SubNavLink href={`/admin/c/${catalogue.id}/settings`}>Settings</SubNavLink>
             </ul>

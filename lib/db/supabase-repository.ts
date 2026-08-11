@@ -397,6 +397,11 @@ export class SupabaseRepository implements Repository {
     return (data ?? []).map(SupabaseRepository.toPhoto)
   }
 
+  async getAlbum(id: string): Promise<Album | null> {
+    const { data } = await this.db.from('albums').select('*').eq('id', id).maybeSingle()
+    return data ? { id: data.id, catalogueId: data.catalogue_id, name: data.name, createdAt: data.created_at } : null
+  }
+
   async createAlbum(album: Album): Promise<Album> {
     const result = await this.db
       .from('albums')
@@ -426,6 +431,15 @@ export class SupabaseRepository implements Repository {
   }
 
   // ── Guests ──────────────────────────────────────────────────────────────────
+
+  async getPhoto(id: string): Promise<Photo | null> {
+    const { data } = await this.db.from('photos').select('*').eq('id', id).maybeSingle()
+    return data ? SupabaseRepository.toPhoto(data) : null
+  }
+
+  async deletePhoto(id: string): Promise<void> {
+    await this.db.from('photos').delete().eq('id', id)
+  }
   async createProfile(profile: Profile): Promise<Profile> {
     const result = await this.db
       .from('profiles')

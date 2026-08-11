@@ -224,6 +224,10 @@ export class MemoryRepository implements Repository {
     )
   }
 
+  async getAlbum(id: string): Promise<Album | null> {
+    return this.clone(this.data.albums.find((a) => a.id === id) ?? null)
+  }
+
   async createAlbum(album: Album): Promise<Album> {
     this.data.albums.push(this.clone(album))
     this.touched()
@@ -237,6 +241,14 @@ export class MemoryRepository implements Repository {
   }
 
   // ── Guests ──────────────────────────────────────────────────────────────────
+  async getPhoto(id: string): Promise<Photo | null> {
+    return this.clone(this.data.photos.find((p) => p.id === id) ?? null)
+  }
+
+  async deletePhoto(id: string): Promise<void> {
+    this.data.photos = this.data.photos.filter((p) => p.id !== id)
+  }
+
   async createProfile(profile: Profile): Promise<Profile> {
     this.data.profiles.push(this.clone(profile))
     this.touched()

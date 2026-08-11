@@ -75,6 +75,24 @@ const schema = z
      * jobs 401 and silently never run. Falls back to SESSION_SECRET so a self-hosted deploy
      * needs no extra configuration.
      */
+    /**
+     * Photo storage. Separate from `VIDEO_DRIVER` on purpose: the two are different products
+     * with different failure modes, and a deploy may reasonably run real video against fake
+     * photographs (or the reverse) while one of them is being wired up.
+     */
+    PHOTO_DRIVER: z.enum(['bunny', 'fake']).default('fake'),
+    BUNNY_STORAGE_ZONE: z.string().optional(),
+    /**
+     * Full read/write/**delete** credential for every catalogue's photographs. Server-only —
+     * this is why photo bytes proxy through the app instead of going browser-to-origin the way
+     * film uploads do.
+     */
+    BUNNY_STORAGE_PASSWORD: z.string().optional(),
+    /** Bunny's regional origin code. `SG` is nearest India; `de` is Bunny's unprefixed default. */
+    BUNNY_STORAGE_REGION: z.string().default('de'),
+    /** The pull zone in front of the storage zone — public reads, no credential. */
+    BUNNY_PHOTO_CDN_HOSTNAME: z.string().optional(),
+
     CRON_SECRET: z.string().min(16).optional(),
 
     /**
@@ -136,6 +154,22 @@ const schema = z
             code: z.ZodIssueCode.custom,
             path: [key],
             message: `${key} is required when VIDEO_DRIVER=bunny`,
+          })
+        }
+      }
+    }
+
+    if (env.PHOTO_DRIVER === 'bunny') {
+      for (const key of [
+        'BUNNY_STORAGE_ZONE',
+        'BUNNY_STORAGE_PASSWORD',
+        'BUNNY_PHOTO_CDN_HOSTNAME',
+      ] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} is required when PHOTO_DRIVER=bunny`,
           })
         }
       }

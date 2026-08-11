@@ -23,7 +23,8 @@ export default defineModule<PhotoGridConfig>({
 
   advise: (config, ctx) => {
     const count = ctx.photos.filter((p) => (config.albumId ? p.albumId === config.albumId : true)).length
-    if (count === 0) return ['There are no photographs in this album yet, so the gallery is hidden.']
+    if (count === 0)
+      return ['No photographs uploaded yet, so this gallery stays hidden. Add some under Photographs.']
     if (count > 60) return [`${count} photographs is past the keepsake cap. Guests scroll past long galleries.`]
     return []
   },

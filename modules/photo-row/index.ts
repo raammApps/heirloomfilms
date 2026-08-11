@@ -27,7 +27,8 @@ export default defineModule<PhotoRowConfig>({
 
   advise: (config, ctx) => {
     const count = ctx.photos.filter((p) => (config.albumId ? p.albumId === config.albumId : true)).length
-    if (count === 0) return ['There are no photographs in this album yet, so the row is hidden.']
+    if (count === 0)
+      return ['No photographs uploaded yet, so this row stays hidden. Add some under Photographs.']
     return []
   },
 })

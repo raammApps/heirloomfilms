@@ -67,8 +67,11 @@ export interface Repository {
   listAlbums(catalogueId: string): Promise<Album[]>
   listPhotos(albumId: string): Promise<Photo[]>
   listPhotosForCatalogue(catalogueId: string): Promise<Photo[]>
+  getAlbum(id: string): Promise<Album | null>
   createAlbum(album: Album): Promise<Album>
   createPhoto(photo: Photo): Promise<Photo>
+  getPhoto(id: string): Promise<Photo | null>
+  deletePhoto(id: string): Promise<void>
 
   // ── Guests ──────────────────────────────────────────────────────────────────
   createProfile(profile: Profile): Promise<Profile>
