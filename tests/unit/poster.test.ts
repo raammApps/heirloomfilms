@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { emptySnapshot, type MemoryRepository } from '@/lib/db/memory-repository'
+import { categoryEyebrow, eyebrowFor } from '@/lib/poster'
 import { setVideoProvider } from '@/lib/video'
 import { FakeVideoProvider } from '@/lib/video/fake'
 import { installRepository, makeCatalogue, makeTitle } from '../helpers/repository'
@@ -189,5 +190,30 @@ describe('the webhook stores a durable poster URL', () => {
     for (const candidate of updated!.posterCandidates) {
       expect(candidate).toMatch(/^\/api\/poster\//)
     }
+  })
+})
+
+describe('eyebrowFor', () => {
+  /**
+   * Operators name a film after the event it shows, so the category lands on top of the name it
+   * was meant to qualify. "The Ceremony / The Ceremony" reads as a rendering fault, not design.
+   */
+  it('drops an eyebrow that only repeats the title', () => {
+    expect(eyebrowFor('The Ceremony', 'ceremony')).toBeNull()
+    expect(eyebrowFor('Reception', 'reception')).toBeNull()
+  })
+
+  it('drops it when the title already contains it', () => {
+    expect(eyebrowFor('Haldi Morning', 'haldi')).toBeNull()
+    expect(eyebrowFor('The Reception', 'reception')).toBeNull()
+  })
+
+  it('keeps an eyebrow that tells the guest something new', () => {
+    expect(eyebrowFor('How We Met', 'pre_wedding')).toBe(categoryEyebrow('pre_wedding'))
+    expect(eyebrowFor('Sangeet Night', 'highlights')).toBe(categoryEyebrow('highlights'))
+  })
+
+  it('ignores case and leading articles rather than being literal', () => {
+    expect(eyebrowFor('the CEREMONY', 'ceremony')).toBeNull()
   })
 })

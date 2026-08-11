@@ -168,3 +168,31 @@ const CATEGORY_EYEBROWS: Record<Category, string> = {
 export function categoryEyebrow(category: Category): string {
   return CATEGORY_EYEBROWS[category]
 }
+
+/**
+ * The eyebrow for a card, or nothing when it would only repeat the title.
+ *
+ * Operators name a film after the event it shows, so the category label lands on top of the
+ * name it was meant to qualify: "The Ceremony / The Ceremony", "The Reception / Reception",
+ * "Haldi Morning / Haldi". Two lines saying one thing reads as a rendering fault rather than
+ * as design, and a streaming catalogue never repeats itself that way.
+ *
+ * Redundant means the title already contains the category, ignoring case and leading articles —
+ * so "Haldi Morning" suppresses "Haldi", while "How We Met" keeps "Pre-Wedding", which is
+ * genuinely telling the guest something the title does not.
+ */
+export function eyebrowFor(label: string, category: Category): string | null {
+  const eyebrow = categoryEyebrow(category)
+  const strip = (value: string): string =>
+    value
+      .toLowerCase()
+      .replace(/^(the|a|an)\s+/, '')
+      .replace(/[^a-z0-9\s]/g, '')
+      .trim()
+
+  const title = strip(label)
+  const tag = strip(eyebrow)
+  if (!tag) return null
+
+  return title === tag || title.includes(tag) ? null : eyebrow
+}

@@ -52,8 +52,13 @@ export function TopNav({ appName, logoUrl, locale, t }: Props) {
             <img src={logoUrl} alt={appName} className="h-7 w-auto max-w-[140px] object-contain" />
           ) : (
             <span
-              className="type-label truncate text-accent-hi md:text-[13px]"
-              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.16em' }}
+              // Tracking is responsive because it is what overflowed. At 0.16em a default app
+              // name ("<Couple> Originals", ~24 characters) spends ~42px on letter-spacing alone
+              // and needed 209px in a 199px slot, so a 375px phone truncated the couple's own
+              // name on the couple's own site. Wide tracking is the wordmark's whole character,
+              // so it is tightened for small screens rather than abandoned.
+              className="type-label truncate tracking-[0.09em] text-accent-hi md:text-[13px] md:tracking-[0.16em]"
+              style={{ fontFamily: 'var(--font-display)' }}
             >
               {appName.toUpperCase()}
             </span>

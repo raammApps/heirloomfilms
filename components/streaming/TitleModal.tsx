@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatClock, formatWeddingDate } from '@/lib/format'
 import { resolveLocalised, type Translator } from '@/lib/i18n'
-import { categoryEyebrow, posterDataUri } from '@/lib/poster'
+import { eyebrowFor, posterDataUri } from '@/lib/poster'
 import type { Catalogue, Locale, Title } from '@/lib/schema'
 import { useCatalogue } from './CatalogueProvider'
 import { ShareButton } from './ShareButton'
@@ -138,7 +138,7 @@ export function TitleModal({ catalogue, titles, locale, t, shareBaseUrl }: Props
           <p className="type-meta mt-2">
             {[
               title.durationS ? formatClock(title.durationS) : null,
-              categoryEyebrow(title.category),
+              eyebrowFor(name, title.category),
               formatWeddingDate(catalogue.weddingDate, locale),
             ]
               .filter(Boolean)

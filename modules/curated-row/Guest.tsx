@@ -5,7 +5,7 @@ import type { RowItem } from '@/components/streaming/PosterCard'
 import { useCatalogue } from '@/components/streaming/CatalogueProvider'
 import { formatDurationBadge } from '@/lib/format'
 import { resolveLocalised } from '@/lib/i18n'
-import { categoryEyebrow } from '@/lib/poster'
+import { eyebrowFor } from '@/lib/poster'
 import type { GuestProps } from '../contract'
 import type { CuratedRowConfig } from './schema'
 import { selectRowTitles } from './select'
@@ -21,7 +21,7 @@ export default function Guest({ config, ctx }: GuestProps<CuratedRowConfig>) {
         id: title.id,
         key: title.slug,
         label: resolveLocalised(title.name, ctx.locale),
-        eyebrow: categoryEyebrow(title.category),
+        eyebrow: eyebrowFor(resolveLocalised(title.name, ctx.locale), title.category) ?? undefined,
         posterUrl: title.posterUrl,
         durationBadge: formatDurationBadge(title.durationS),
         ...(progress ? { progress: progress.positionS / Math.max(1, progress.durationS) } : {}),
