@@ -142,6 +142,27 @@ export class MemoryRepository implements Repository {
     return this.clone(next)
   }
 
+  async deleteCatalogue(id: string, orgId: string): Promise<void> {
+    const owned = this.data.catalogues.find((c) => c.id === id && c.orgId === orgId)
+    if (!owned) throw new ApiError('NOT_FOUND', 'Catalogue not found')
+
+    const titleIds = new Set(this.data.titles.filter((t) => t.catalogueId === id).map((t) => t.id))
+    const albumIds = new Set(this.data.albums.filter((a) => a.catalogueId === id).map((a) => a.id))
+    const profileIds = new Set(this.data.profiles.filter((p) => p.catalogueId === id).map((p) => p.id))
+
+    // Mirrors the `on delete cascade` chain in Postgres, so both drivers leave the same shape.
+    this.data.catalogues = this.data.catalogues.filter((c) => c.id !== id)
+    this.data.titles = this.data.titles.filter((t) => !titleIds.has(t.id))
+    this.data.photos = this.data.photos.filter((p) => !albumIds.has(p.albumId))
+    this.data.albums = this.data.albums.filter((a) => !albumIds.has(a.id))
+    this.data.profiles = this.data.profiles.filter((p) => !profileIds.has(p.id))
+    this.data.progress = this.data.progress.filter((p) => !profileIds.has(p.profileId))
+    this.data.moduleStates = this.data.moduleStates.filter((m) => !profileIds.has(m.profileId))
+    this.data.playEvents = this.data.playEvents.filter((e) => e.catalogueId !== id)
+    this.data.usage = this.data.usage.filter((u) => u.catalogueId !== id)
+    this.touched()
+  }
+
   // ── Titles ──────────────────────────────────────────────────────────────────
   async listTitles(catalogueId: string, options?: { publishedOnly?: boolean }): Promise<Title[]> {
     return this.clone(

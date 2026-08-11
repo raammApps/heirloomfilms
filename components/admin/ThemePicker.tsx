@@ -23,24 +23,49 @@ export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
   const [accent, setAccent] = useState(catalogue.branding.accent ?? '#d11a2a')
   const [presentedBy, setPresentedBy] = useState(catalogue.branding.presentedBy ?? '')
   const [logoUrl, setLogoUrl] = useState(catalogue.branding.logoUrl ?? '')
-  const [saved, setSaved] = useState(false)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [touched, setTouched] = useState(false)
 
   const verdict = judgeAccent(accent)
 
+  /**
+   * Autosave, debounced — the same model the sections beside this panel already use.
+   *
+   * It used to need its own button while everything else on the screen saved itself, so an
+   * operator would type "Presented by", press the large Publish button, and lose it: Publish
+   * copies draft sections and never touches branding. Two save models in one screen means
+   * neither is learnable, and the one that silently discarded work was the one that looked
+   * final.
+   *
+   * `touched` keeps the first render from writing the values it just read back.
+   */
   useEffect(() => {
-    setSaved(false)
-  }, [accent, presentedBy, logoUrl])
+    if (!touched) return
+    setSaveState('saving')
 
-  const save = async () => {
-    await fetch(`/api/admin/catalogues/${catalogue.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        branding: { accent, presentedBy: presentedBy || undefined, logoUrl: logoUrl || undefined },
-      }),
-    })
-    setSaved(true)
-  }
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/admin/catalogues/${catalogue.id}`, {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            // Sent whole every time, because the column is replaced rather than merged —
+            // omitting a field here is how it gets cleared.
+            branding: {
+              accent,
+              presentedBy: presentedBy || undefined,
+              logoUrl: logoUrl || undefined,
+            },
+          }),
+        })
+        setSaveState(response.ok ? 'saved' : 'error')
+      } catch {
+        setSaveState('error')
+      }
+    }, 700)
+
+    return () => window.clearTimeout(timer)
+  }, [accent, presentedBy, logoUrl, touched, catalogue.id])
 
   return (
     <section
@@ -58,7 +83,10 @@ export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
             <button
               key={preset.value}
               type="button"
-              onClick={() => setAccent(preset.value)}
+              onClick={() => {
+                setAccent(preset.value)
+                setTouched(true)
+              }}
               aria-label={preset.label}
               aria-pressed={accent.toLowerCase() === preset.value}
               className={`h-9 w-9 rounded-full border-2 ${
@@ -75,7 +103,10 @@ export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
             <input
               type="color"
               value={accent}
-              onChange={(event) => setAccent(event.target.value)}
+              onChange={(event) => {
+                setAccent(event.target.value)
+                setTouched(true)
+              }}
               className="h-9 w-12 cursor-pointer rounded border border-[var(--color-l-line)]"
             />
           </label>
@@ -109,7 +140,10 @@ export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
         type="text"
         value={presentedBy}
         placeholder="Your company name"
-        onChange={(event) => setPresentedBy(event.target.value)}
+        onChange={(event) => {
+          setPresentedBy(event.target.value)
+          setTouched(true)
+        }}
         className="mb-3 w-full rounded-[var(--radius-input)] border border-[var(--color-l-line)] px-3 py-2 text-[15px]"
       />
 
@@ -121,22 +155,26 @@ export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
         type="url"
         value={logoUrl}
         placeholder="https://…"
-        onChange={(event) => setLogoUrl(event.target.value)}
+        onChange={(event) => {
+          setLogoUrl(event.target.value)
+          setTouched(true)
+        }}
         className="mb-4 w-full rounded-[var(--radius-input)] border border-[var(--color-l-line)] px-3 py-2 text-[15px]"
       />
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => void save()}
-          className="h-10 rounded-[var(--radius-pill)] border border-[var(--color-l-line)] px-4 text-[14px] font-semibold"
-        >
-          Save branding
-        </button>
-        <span aria-live="polite" className="text-[13px] text-[var(--color-l-text-mid)]">
-          {saved ? 'Saved' : ''}
-        </span>
-      </div>
+      {/*
+        No button: branding saves itself, like the sections beside it. A button here implied the
+        rest of the screen needed one too, and its absence elsewhere then read as "not saved".
+      */}
+      <p aria-live="polite" className="text-[13px] text-[var(--color-l-text-mid)]">
+        {saveState === 'saving'
+          ? 'Saving…'
+          : saveState === 'saved'
+            ? 'Saved'
+            : saveState === 'error'
+              ? 'Could not save — check your connection'
+              : 'Changes save as you make them.'}
+      </p>
 
       <p className="mt-3 text-[12px] text-[var(--color-l-text-mid)]">
         The near-black background is fixed across every catalogue. It is the thing being bought.

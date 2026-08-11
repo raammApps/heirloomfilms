@@ -12,6 +12,8 @@ export function CatalogueSettings({ catalogue }: { catalogue: Catalogue }) {
   const [customDomain, setCustomDomain] = useState(catalogue.customDomain ?? '')
   const [includedUntil, setIncludedUntil] = useState(catalogue.includedUntil?.slice(0, 10) ?? '')
   const [status, setStatus] = useState<string | null>(null)
+  const [confirmName, setConfirmName] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   const save = async () => {
     const response = await fetch(`/api/admin/catalogues/${catalogue.id}`, {
@@ -38,6 +40,18 @@ export function CatalogueSettings({ catalogue }: { catalogue: Catalogue }) {
     setStatus('Saved')
     setPasscode('')
     router.refresh()
+  }
+
+  const destroy = async () => {
+    setDeleting(true)
+    const response = await fetch(`/api/admin/catalogues/${catalogue.id}`, { method: 'DELETE' })
+    if (!response.ok) {
+      setStatus('Could not delete')
+      setDeleting(false)
+      return
+    }
+    // Nothing here to return to.
+    router.push('/admin')
   }
 
   const unpublish = async () => {
@@ -164,6 +178,38 @@ export function CatalogueSettings({ catalogue }: { catalogue: Catalogue }) {
           </button>
         </section>
       ) : null}
+
+      <section className="mt-6 rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--color-error)_40%,white)] bg-[color-mix(in_srgb,var(--color-error)_5%,white)] p-4">
+        <h2 className="mb-1 text-[15px] font-semibold">Delete this catalogue</h2>
+        <p className="mb-3 text-[13px] text-[var(--color-l-text-mid)]">
+          Removes the films from the video provider, the photographs from storage, and every
+          record of guests watching. This cannot be undone, and there is no copy. If you only
+          want it hidden, take it offline instead.
+        </p>
+
+        <label className="mb-2 block text-[13px]">
+          Type <span className="font-mono font-semibold">{catalogue.slug}</span> to confirm
+        </label>
+        <input
+          type="text"
+          value={confirmName}
+          onChange={(event) => setConfirmName(event.target.value)}
+          autoCapitalize="none"
+          spellCheck={false}
+          className="mb-3 h-11 w-full rounded-[var(--radius-input)] border border-[var(--color-l-line)] px-3 font-mono text-[14px]"
+        />
+
+        <button
+          type="button"
+          onClick={() => void destroy()}
+          // Typing the slug rather than clicking through a dialog: this destroys a wedding, and
+          // a confirm box is muscle memory by the third time an operator sees one.
+          disabled={confirmName.trim() !== catalogue.slug || deleting}
+          className="h-11 rounded-[var(--radius-pill)] bg-[var(--color-error)] px-5 text-[14px] font-semibold text-white disabled:opacity-40"
+        >
+          {deleting ? 'Deleting…' : 'Delete permanently'}
+        </button>
+      </section>
     </div>
   )
 }

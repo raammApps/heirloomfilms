@@ -2,6 +2,9 @@ import { z } from 'zod'
 import { requireOwnedCatalogue } from '@/lib/admin/session'
 import { hashSecret } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
+import { log } from '@/lib/log'
+import { getPhotoProvider, PHOTO_WIDTHS } from '@/lib/photos'
+import { getVideoProvider } from '@/lib/video'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, readJson, route } from '@/lib/http/handler'
 import {
@@ -83,4 +86,64 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return noStore({ catalogue: await repository.updateCatalogue(id, session.orgId, patch) })
   })
+}
+
+/**
+ * Delete a catalogue and everything it owns.
+ *
+ * Order matters: provider assets first, the row last. The rows are the only manifest of what
+ * was stored, so deleting them first would strand every film in Bunny with nothing left to say
+ * they existed — paid for, invisible, unreclaimable. Doing it this way means a failure halfway
+ * leaves the catalogue intact and the operation safe to retry.
+ *
+ * Asset failures do not abort the delete. A film the provider has already lost must not make a
+ * catalogue permanently undeletable.
+ */
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  return route('admin/catalogue:delete', async () => {
+    const { id } = await params
+    const { session, catalogue } = await requireOwnedCatalogue(id)
+
+    const repository = getRepository()
+    const [titles, photos] = await Promise.all([
+      repository.listTitles(id),
+      repository.listPhotosForCatalogue(id),
+    ])
+
+    const video = getVideoProvider()
+    for (const title of titles) {
+      if (!title.providerId) continue
+      await video.deleteAsset(title.providerId).catch((error: unknown) => {
+        log.warn('catalogue delete: asset remained', { titleId: title.id, error: String(error) })
+      })
+    }
+
+    const photoStore = getPhotoProvider()
+    for (const photo of photos) {
+      // Every rendition, not just the master — otherwise the narrower files linger for good.
+      for (const width of PHOTO_WIDTHS) {
+        const key = photoKeyFromUrl(photo.url).replace(`/w${PHOTO_WIDTHS[0]}/`, `/w${width}/`)
+        await photoStore.remove(key).catch(() => {})
+      }
+    }
+
+    await repository.deleteCatalogue(id, session.orgId)
+    log.info('catalogue deleted', {
+      catalogueId: id,
+      slug: catalogue.slug,
+      films: titles.length,
+      photos: photos.length,
+    })
+
+    return noStore({ deleted: id })
+  })
+}
+
+/** `photos.url` stores the public URL; the storage key is its path. */
+function photoKeyFromUrl(url: string): string {
+  try {
+    return new URL(url).pathname.replace(/^\//, '')
+  } catch {
+    return url.replace(/^\//, '')
+  }
 }

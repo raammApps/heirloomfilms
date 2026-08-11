@@ -397,6 +397,13 @@ export class SupabaseRepository implements Repository {
     return (data ?? []).map(SupabaseRepository.toPhoto)
   }
 
+  async deleteCatalogue(id: string, orgId: string): Promise<void> {
+    // Scoped by org in the statement itself: a delete that trusts a caller to have checked is
+    // one refactor away from removing another operator's wedding.
+    const { error } = await this.db.from('catalogues').delete().eq('id', id).eq('org_id', orgId)
+    if (error) throw new ApiError('INTERNAL', error.message)
+  }
+
   async getAlbum(id: string): Promise<Album | null> {
     const { data } = await this.db.from('albums').select('*').eq('id', id).maybeSingle()
     return data ? { id: data.id, catalogueId: data.catalogue_id, name: data.name, createdAt: data.created_at } : null

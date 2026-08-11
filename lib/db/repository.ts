@@ -68,6 +68,8 @@ export interface Repository {
   listPhotos(albumId: string): Promise<Photo[]>
   listPhotosForCatalogue(catalogueId: string): Promise<Photo[]>
   getAlbum(id: string): Promise<Album | null>
+  /** Removes the catalogue and everything the database cascades from it. */
+  deleteCatalogue(id: string, orgId: string): Promise<void>
   createAlbum(album: Album): Promise<Album>
   createPhoto(photo: Photo): Promise<Photo>
   getPhoto(id: string): Promise<Photo | null>
