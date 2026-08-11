@@ -6,6 +6,8 @@ import { noStore, readJson, route } from '@/lib/http/handler'
 import { moduleInstanceSchema } from '@/lib/schema'
 import { getModule } from '@/modules/registry'
 
+// No cache invalidation here on purpose: this saves *draft* modules, which no guest sees, and
+// it fires on every keystroke of the customizer's autosave. Publish is what changes the page.
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

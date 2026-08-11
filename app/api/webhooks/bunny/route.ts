@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
 import { getRepository } from '@/lib/db'
+import { revalidateCatalogue } from '@/lib/catalogue-cache'
 import { route } from '@/lib/http/handler'
 import { log } from '@/lib/log'
 import { getVideoProvider, posterRoute } from '@/lib/video'
@@ -62,7 +62,10 @@ export async function POST(request: Request) {
       })
 
       const catalogue = await repository.getCatalogueById(title.catalogueId)
-      if (catalogue) revalidatePath(`/c/${catalogue.slug}`, 'page')
+      // `revalidatePath` did nothing here: the guest route reads cookies, so it renders
+      // per request and has no route cache to drop. The cached *data* is what needs
+      // evicting, and that is keyed by tag.
+      if (catalogue) revalidateCatalogue(catalogue.slug)
       log.info('bunny webhook: title ready', { titleId: title.id })
     } else if (status.state === 'failed') {
       await repository.updateTitle(title.id, {

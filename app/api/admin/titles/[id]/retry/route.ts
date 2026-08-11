@@ -1,4 +1,5 @@
 import { requireOwnedCatalogue } from '@/lib/admin/session'
+import { revalidateCatalogue } from '@/lib/catalogue-cache'
 import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, route } from '@/lib/http/handler'
@@ -20,7 +21,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     const { id } = await params
     const title = await getRepository().getTitle(id)
     if (!title) throw new ApiError('NOT_FOUND', 'Title not found')
-    await requireOwnedCatalogue(title.catalogueId)
+    const { catalogue } = await requireOwnedCatalogue(title.catalogueId)
 
     if (!title.providerId) {
       throw new ApiError('VALIDATION_FAILED', 'This film was never uploaded. Upload it again.')
@@ -41,6 +42,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       errorMessage: status.errorMessage,
     })
 
+    revalidateCatalogue(catalogue.slug)
     return noStore({ title: updated })
   })
 }

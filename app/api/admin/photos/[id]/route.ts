@@ -1,4 +1,5 @@
 import { requireOwnedCatalogue } from '@/lib/admin/session'
+import { revalidateCatalogue } from '@/lib/catalogue-cache'
 import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, route } from '@/lib/http/handler'
@@ -18,7 +19,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     // Ownership runs through the album's catalogue — never from anything the request supplied.
     const album = await repository.getAlbum(photo.albumId)
     if (!album) throw new ApiError('NOT_FOUND', 'Photograph not found')
-    await requireOwnedCatalogue(album.catalogueId)
+    const { catalogue } = await requireOwnedCatalogue(album.catalogueId)
 
     // Row first, file second. The reverse can leave a row pointing at nothing, which renders a
     // broken image on a wedding page; a file with no row is invisible and costs a fraction of a
@@ -26,6 +27,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     await repository.deletePhoto(id)
     await getPhotoProvider().remove(photoKeyFromUrl(photo.url))
 
+    revalidateCatalogue(catalogue.slug)
     return noStore({ deleted: id })
   })
 }

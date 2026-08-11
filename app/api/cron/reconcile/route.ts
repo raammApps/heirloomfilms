@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
 import { getRepository } from '@/lib/db'
+import { revalidateCatalogue } from '@/lib/catalogue-cache'
 import { env } from '@/lib/env'
 import { route } from '@/lib/http/handler'
 import { log } from '@/lib/log'
@@ -71,7 +71,10 @@ export async function GET(request: Request) {
         if (status.state === 'ready') {
           settled += 1
           const catalogue = await repository.getCatalogueById(title.catalogueId)
-          if (catalogue) revalidatePath(`/c/${catalogue.slug}`, 'page')
+      // `revalidatePath` did nothing here: the guest route reads cookies, so it renders
+      // per request and has no route cache to drop. The cached *data* is what needs
+      // evicting, and that is keyed by tag.
+          if (catalogue) revalidateCatalogue(catalogue.slug)
         } else {
           failed += 1
         }

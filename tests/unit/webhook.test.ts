@@ -15,7 +15,13 @@ import { installRepository, makeCatalogue, makeTitle } from '../helpers/reposito
  * through the payload.
  */
 
-vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+vi.mock('next/cache', () => ({
+  // Pass-through, so these tests exercise what the cached function returns rather than
+  // Next's caching. See tests/setup.ts for why.
+  unstable_cache: <A extends unknown[], R>(fn: (...args: A) => R) => fn,
+  revalidateTag: vi.fn(),
+  revalidatePath: vi.fn(),
+}))
 
 const SECRET = process.env.SESSION_SECRET!
 

@@ -14,7 +14,13 @@ import { installRepository, makeCatalogue, makeTitle } from '../helpers/reposito
  * pages and in the OG card, discovered when someone reopens their wedding.
  */
 
-vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+vi.mock('next/cache', () => ({
+  // Pass-through, so these tests exercise what the cached function returns rather than
+  // Next's caching. See tests/setup.ts for why.
+  unstable_cache: <A extends unknown[], R>(fn: (...args: A) => R) => fn,
+  revalidateTag: vi.fn(),
+  revalidatePath: vi.fn(),
+}))
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }))
 
 let repository: MemoryRepository

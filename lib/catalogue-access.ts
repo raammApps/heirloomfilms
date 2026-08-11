@@ -1,7 +1,7 @@
 import 'server-only'
 import { cookies } from 'next/headers'
 import { passcodeCookieName, verifyPasscodeGrant } from './auth'
-import { getRepository } from './db'
+import { getCachedBundle, getCachedCatalogueBySlug } from './catalogue-cache'
 import { ApiError } from './http/errors'
 import { SERVING_SUB_STATUSES, type Catalogue, type CatalogueBundle } from './schema'
 
@@ -26,7 +26,9 @@ function today(): string {
 }
 
 export async function resolveAccess(slug: string): Promise<AccessVerdict> {
-  const catalogue = await getRepository().getCatalogueBySlug(slug)
+  // Cached read, uncached decision. Which rows exist is content; whether this guest may see
+  // them is decided below, per request, from their cookies.
+  const catalogue = await getCachedCatalogueBySlug(slug)
   if (!catalogue) return { kind: 'missing' }
 
   // A lapsed subscription is checked before publication state: the couple must always land on
@@ -55,13 +57,7 @@ export async function resolveAccess(slug: string): Promise<AccessVerdict> {
 
 /** Everything the guest page renders, fetched once per request. */
 export async function loadBundle(catalogue: Catalogue): Promise<CatalogueBundle> {
-  const repository = getRepository()
-  const [titles, albums, photos] = await Promise.all([
-    repository.listTitles(catalogue.id, { publishedOnly: true }),
-    repository.listAlbums(catalogue.id),
-    repository.listPhotosForCatalogue(catalogue.id),
-  ])
-  return { catalogue, titles, albums, photos }
+  return getCachedBundle(catalogue)
 }
 
 /** API variant: the same rules, expressed as the error codes in doc 07. */

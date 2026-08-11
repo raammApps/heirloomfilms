@@ -53,3 +53,22 @@ Element.prototype.scrollTo ??= function scrollTo() {}
 Element.prototype.scrollIntoView ??= function scrollIntoView() {}
 
 afterEach(() => cleanup())
+
+/**
+ * `next/cache` needs a running Next server.
+ *
+ * `unstable_cache` reads an incremental cache that only exists inside the framework's request
+ * handling, and throws `Invariant: incrementalCache missing` anywhere else. `revalidateTag`
+ * likewise. Neither is what any test here is about — the suite exercises what the cached
+ * function *returns*, and caching is an optimisation layered over that.
+ *
+ * So the cache becomes a pass-through and invalidation a no-op. Tests then run the real code
+ * path with the caching removed, rather than a mock of the code path. The behaviour that
+ * matters — that a write evicts the entry — is proved against a real server instead, because a
+ * mocked `revalidateTag` could only ever assert that we called our own function.
+ */
+vi.mock('next/cache', () => ({
+  unstable_cache: <A extends unknown[], R>(fn: (...args: A) => R) => fn,
+  revalidateTag: () => {},
+  revalidatePath: () => {},
+}))

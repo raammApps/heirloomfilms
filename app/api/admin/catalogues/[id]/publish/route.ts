@@ -1,5 +1,5 @@
-import { revalidatePath } from 'next/cache'
 import { requireOwnedCatalogue } from '@/lib/admin/session'
+import { revalidateCatalogue } from '@/lib/catalogue-cache'
 import { getRepository } from '@/lib/db'
 import { noStore, route } from '@/lib/http/handler'
 import { log } from '@/lib/log'
@@ -30,10 +30,12 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       publishedAt: catalogue.publishedAt ?? now,
     })
 
-    revalidatePath(`/c/${published.slug}`, 'page')
-    revalidatePath(`/c/${published.slug}`, 'layout')
+    // The tag, not the path: this route renders per request for cookies, so there is no route
+    // cache — the cached reads are what a guest would otherwise see stale.
+    revalidateCatalogue(published.slug)
     log.info('catalogue published', { catalogueId: id, sections: modules.length })
 
+    revalidateCatalogue(published.slug)
     return noStore({ catalogue: published })
   })
 }
@@ -42,9 +44,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   return route('admin/catalogue:unpublish', async () => {
     const { id } = await params
-    const { session, catalogue } = await requireOwnedCatalogue(id)
+    const { session } = await requireOwnedCatalogue(id)
     const updated = await getRepository().updateCatalogue(id, session.orgId, { status: 'draft' })
-    revalidatePath(`/c/${catalogue.slug}`, 'page')
+    revalidateCatalogue(updated.slug)
     return noStore({ catalogue: updated })
   })
 }

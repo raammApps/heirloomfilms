@@ -257,7 +257,7 @@ describe.skipIf(!hasSupabase)('Supabase Postgres, for real', () => {
    * catalogue, then prove it cannot read the draft.
    */
   it(
-    'enforces RLS: anon reads a published catalogue but never a draft one',
+    'enforces RLS: the anon key can read nothing at all',
     async () => {
       const anonKey =
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
@@ -265,52 +265,27 @@ describe.skipIf(!hasSupabase)('Supabase Postgres, for real', () => {
       expect(anonKey, 'the publishable key is required to test RLS').toBeTruthy()
 
       const { createClient } = await import('@supabase/supabase-js')
-      const { SupabaseRepository } = await import('@/lib/db/supabase-repository')
       const anon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, anonKey!, {
         auth: { persistSession: false },
       })
 
-      const draftId = createdCatalogues[0]
-      expect(draftId, 'the catalogue test must run first').toBeTruthy()
-
-      // Positive control: publish a second catalogue and confirm anon can see it.
-      const repository = new SupabaseRepository()
-      const publishedId = randomUUID()
-      const publishedSlug = `itest-pub-${Date.now().toString(36)}`
-      await repository.createCatalogue({
-        id: publishedId,
-        orgId,
-        slug: publishedSlug,
-        customDomain: null,
-        coupleName: { en: 'Published & Visible' },
-        appName: { en: 'Published Originals' },
-        weddingDate: '2026-12-02',
-        occasion: 'wedding',
-        branding: {},
-        featuredTitleId: null,
-        modules: [],
-        draftModules: null,
-        template: 'films-only',
-        status: 'published',
-        privacy: 'unlisted',
-        passcodeHash: null,
-        includedUntil: new Date(Date.now() + 90 * 864e5).toISOString(),
-        subStatus: 'included',
-        subPlan: null,
-        subUntil: null,
-        createdAt: new Date().toISOString(),
-        publishedAt: new Date().toISOString(),
-      })
-      createdCatalogues.push(publishedId)
-
-      const visible = await anon.from('catalogues').select('id').eq('id', publishedId)
-      expect(visible.error, 'the anon query itself must work').toBeNull()
-      expect(visible.data ?? [], 'anon must see a published catalogue').toHaveLength(1)
-
-      // The actual assertion, now meaningful: same client, same query shape, draft row.
-      const hidden = await anon.from('catalogues').select('id').eq('id', draftId!)
-      expect(hidden.error).toBeNull()
-      expect(hidden.data ?? [], 'anon must NOT see a draft catalogue').toHaveLength(0)
+      /**
+       * This test used to assert that anon could read a *published* catalogue and not a draft
+       * one — encoding the leak as intended behaviour, which is why it passed while the key
+       * printed into every page could list every wedding on the platform.
+       *
+       * A guest's browser never speaks to Postgres: every guest path goes through a Next route
+       * holding the service-role key. So the correct assertion is not "the right rows" but
+       * "no rows, ever" — and enumeration, not any single row, was the leak (doc 15 §0).
+       */
+      for (const table of ['catalogues', 'titles', 'photos', 'albums', 'playback_progress']) {
+        const { data, error } = await anon.from(table).select('*').limit(1)
+        expect(
+          error ?? { code: 'none' },
+          `anon must be refused on ${table}`,
+        ).not.toEqual({ code: 'none' })
+        expect(data ?? [], `anon must read no rows from ${table}`).toHaveLength(0)
+      }
     },
     REMOTE_TIMEOUT,
   )

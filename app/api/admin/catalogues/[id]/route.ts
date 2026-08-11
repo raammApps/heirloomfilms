@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { requireOwnedCatalogue } from '@/lib/admin/session'
+import { revalidateCatalogue } from '@/lib/catalogue-cache'
 import { hashSecret } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
 import { log } from '@/lib/log'
@@ -84,7 +85,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Switching privacy back to unlisted must not leave a live passcode hash behind.
     if (body.privacy === 'unlisted') patch.passcodeHash = null
 
-    return noStore({ catalogue: await repository.updateCatalogue(id, session.orgId, patch) })
+    const updated = await repository.updateCatalogue(id, session.orgId, patch)
+    // Both slugs: the address a guest may already be holding, and the one they will use next.
+    revalidateCatalogue(catalogue.slug)
+    if (updated.slug !== catalogue.slug) revalidateCatalogue(updated.slug)
+    return noStore({ catalogue: updated })
   })
 }
 
@@ -128,6 +133,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     }
 
     await repository.deleteCatalogue(id, session.orgId)
+    revalidateCatalogue(catalogue.slug)
     log.info('catalogue deleted', {
       catalogueId: id,
       slug: catalogue.slug,

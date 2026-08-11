@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { requireOwnedCatalogue } from '@/lib/admin/session'
+import { revalidateCatalogue } from '@/lib/catalogue-cache'
 import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, route } from '@/lib/http/handler'
@@ -169,6 +170,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     })
     await repository.createPhoto(photo)
 
+    revalidateCatalogue(catalogue.slug)
     return noStore({ photo, album })
   })
 }

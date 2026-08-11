@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { requireOwnedCatalogue } from '@/lib/admin/session'
+import { revalidateCatalogue } from '@/lib/catalogue-cache'
 import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, readJson, route } from '@/lib/http/handler'
@@ -37,7 +38,7 @@ async function loadOwned(titleId: string) {
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   return route('admin/title:patch', async () => {
     const { id } = await params
-    const { title } = await loadOwned(id)
+    const { title, catalogue } = await loadOwned(id)
     const body = await readJson(request, patchSchema)
 
     if (body.published && title.status !== 'ready') {
@@ -55,14 +56,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         : {}),
     }
 
-    return noStore({ title: await getRepository().updateTitle(id, patch) })
+    const updated = await getRepository().updateTitle(id, patch)
+    revalidateCatalogue(catalogue.slug)
+    return noStore({ title: updated })
   })
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   return route('admin/title:delete', async () => {
     const { id } = await params
-    const { title } = await loadOwned(id)
+    const { title, catalogue } = await loadOwned(id)
 
     if (title.providerId) {
       // A provider that is already gone must not block the row from being removed.
@@ -70,6 +73,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     }
 
     await getRepository().deleteTitle(id)
+    revalidateCatalogue(catalogue.slug)
     return noStore({ ok: true })
   })
 }
