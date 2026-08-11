@@ -34,6 +34,26 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
+### N-15 · Revoke the anonymous reads  ·  ~5 min, **do this first**
+
+`0002_row_level_security.sql` grants `select` to `anon` on catalogues, titles, albums and
+photos. **No code uses the anon key** — guest pages and admin both read through the service role,
+server-side — but the key is `NEXT_PUBLIC_` and sits in every page, so anyone can lift it and
+list every published catalogue on the platform with the couple's name and wedding date. Doc 01
+forbids that twice.
+
+Migration `0003_revoke_anon_reads.sql` is written. It needs applying by hand in the Supabase SQL
+editor, like every other migration here — PostgREST does not execute DDL (doc 15 §0).
+
+Verify after applying: an anon-key read of `catalogues` must return `[]` or 401, and
+`/c/aanya-and-vikram` must still serve, because it never used that key.
+
+### N-16 · Partner model  ·  see doc 15
+
+Platform admin, partner registration, couple accounts, ownership transfer, entitlements,
+Razorpay. Sequenced in doc 15 §6 — the order matters, and steps 1–3 (this item, ISR, Supabase
+Auth) are worth doing whether or not the partner model happens.
+
 ### N-12 · Two blind spots the suite has, now that we know they exist  ·  ~2h
 
 Validation against real infrastructure found three fatal bugs that 220 unit tests and 69 E2E
