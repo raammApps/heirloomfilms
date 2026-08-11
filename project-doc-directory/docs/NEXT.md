@@ -53,27 +53,18 @@ tests all passed straight through. Both blind spots are structural, not oversigh
 
 Until both exist, "the tests pass" says nothing about the configuration that is deployed.
 
-### N-13 · Redesign the customizer  ·  ~1 session
+### N-13 · Customizer, second pass  ·  ~half a session
 
-The save model is fixed — everything on the screen autosaves now — but the shape is still wrong.
-Editing happens in a side sheet **away from** the preview, so an operator changes a heading in
-one panel and hunts for it in another. The ask was "Canva-like, but simple to start with".
+The shape is fixed — three columns, selection in the preview, an inspector that shares the
+screen instead of covering it. What was scoped out and is still worth doing:
 
-What that means concretely, in the order it is worth doing:
-
-1. **Select in the preview.** Clicking a section in the preview selects it; the editor opens
-   against that section. Today the preview is read-only and the list is the only way in.
-2. **Edit in place for text.** Heading and the letter body are the two things operators change
-   most, and both are already rendered in the preview. Contenteditable on those two, not a
-   general-purpose editor.
-3. **One inspector, not a sheet.** A fixed right-hand panel showing the selected section's
-   fields, so the preview never gets covered by the thing editing it.
-4. **Keep the section list** as the reorder and visibility surface. Drag-to-reorder in the
-   preview is a much larger job and the list already does it accessibly.
-
-Watch out for: `<PreviewPane>` mounts the real guest tree (CLAUDE.md, deviation 1), so a click
-handler for selection must not swallow the guest components' own interactions — the preview has
-to stay a truthful rendering of what a guest sees, or it stops being a preview.
+1. **Edit text in place.** Headings and the letter body are what operators change most, and both
+   are already rendered in the preview. Contenteditable on those two only — not a general
+   editor, which is where this stops being simple.
+2. **Reorder by dragging in the preview.** The list does this accessibly today and remains the
+   keyboard path regardless; dragging in the preview is additive, not a replacement.
+3. **Scroll the preview to the selected section** when selection comes from the list. Clicking a
+   section in the list currently updates the inspector while the preview stays where it was.
 
 ### N-14 · Real footage  ·  operator task
 

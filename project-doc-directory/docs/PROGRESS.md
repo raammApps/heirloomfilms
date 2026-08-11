@@ -421,3 +421,26 @@ than being decorative; and operators can see what guests watched.
 
 Left for next time: the customizer's shape (N-13) and real footage (N-14).
 
+## Customizer redesign — 12 Aug 2026
+
+Editing happened in a sheet over the preview, so the thing being edited was hidden behind the
+editor. Three columns now — sections, preview, inspector — and the preview is the way in:
+clicking a section selects it.
+
+Selection is one delegated listener against the `data-module-id` tags the renderer already
+emits, in the capture phase, with the outline applied as scoped CSS. Every alternative taught
+guest components about editing: a wrapper element changes layout, a className prop puts an admin
+concern in a module's signature. The previewed markup stays byte-identical to what a guest
+gets, which is the property that makes it a preview.
+
+The inspector is deliberately not a dialog. No focus trap, no `aria-modal` — tabbing past the
+last field reaches the preview rather than cycling inside a trap.
+
+Two things surfaced. The editing surface had **no E2E coverage whatsoever**: the suite reordered
+and hid sections but never once opened an editor, which is how the entire sheet could be deleted
+with all 69 tests green. And `LocalisedField` labelled its inputs only "English" and "हिंदी"
+beneath a plain paragraph, so a screen reader announced "English" with no indication of English
+what — now a fieldset with a legend.
+
+71 E2E, 259 unit and component.
+
