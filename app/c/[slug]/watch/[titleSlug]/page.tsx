@@ -5,6 +5,8 @@ import { ThemeStyle } from '@/components/chrome/ThemeStyle'
 import { WatchScreen } from '@/components/streaming/WatchScreen'
 import { resolveAccess } from '@/lib/catalogue-access'
 import { getRepository } from '@/lib/db'
+import { env } from '@/lib/env'
+import { cataloguePath } from '@/lib/tenant'
 import { parseLocale, resolveLocalised } from '@/lib/i18n'
 import { posterDataUri } from '@/lib/poster'
 
@@ -32,8 +34,10 @@ export default async function WatchPage({
   const { t: timestamp } = await searchParams
 
   const verdict = await resolveAccess(slug)
-  if (verdict.kind === 'locked') redirect('/locked')
-  if (verdict.kind === 'lapsed') redirect('/renew')
+  // Catalogue-scoped, so they need the base path — see the note in the browse page.
+  const basePath = cataloguePath(slug, env.TENANCY_MODE)
+  if (verdict.kind === 'locked') redirect(`${basePath}/locked`)
+  if (verdict.kind === 'lapsed') redirect(`${basePath}/renew`)
   if (verdict.kind !== 'ok') notFound()
 
   const title = await getRepository().getTitleBySlug(verdict.catalogue.id, titleSlug)

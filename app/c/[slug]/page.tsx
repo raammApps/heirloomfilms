@@ -73,9 +73,13 @@ export default async function CataloguePage({
     case 'draft':
       return <NotAvailable slug={slug} draft />
     case 'locked':
-      redirect(`/locked`)
+      // Both of these are catalogue-scoped pages. Absolute paths are only correct in subdomain
+      // mode, where the catalogue is the site root; in path mode they land on the marketing
+      // page and 404 — so switching a catalogue to "invitation code" made it unreachable, with
+      // nowhere for a guest to type the code they were given.
+      redirect(`${cataloguePath(slug, env.TENANCY_MODE)}/locked`)
     case 'lapsed':
-      redirect(`/renew`)
+      redirect(`${cataloguePath(slug, env.TENANCY_MODE)}/renew`)
     case 'ok':
       break
   }

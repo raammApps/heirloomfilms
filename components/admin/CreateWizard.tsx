@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { suggestSlug } from '@/lib/format'
 import { TEMPLATES } from '@/lib/admin/templates'
-import { FLIX_SUFFIX } from '@/lib/schema'
+import { FLIX_SUFFIX, type Title } from '@/lib/schema'
+import { TitleList } from './TitleList'
 import { UploadManager } from './UploadManager'
 
 type Step = 1 | 2 | 3 | 4
@@ -241,18 +242,70 @@ export function CreateWizard() {
       {step === 4 && catalogueId ? (
         <section>
           <p className="mb-4 text-[14px] text-[var(--color-l-text-mid)]">
-            Names have been guessed from the filenames. Correct them, set a category, and publish
-            the ones that are ready.
+            Names have been guessed from the filenames. Correct them, set a category, and make
+            ready the ones you want guests to see. Every change saves as you make it.
           </p>
+
+          {/*
+            The step now contains the editor it describes. It used to print this instruction and
+            then offer only a button to leave and do the work somewhere else, which made the
+            last step of the wizard an empty promise — and left an operator unsure whether
+            anything they had done so far had been kept.
+          */}
+          <StepTitles catalogueId={catalogueId} />
+
           <Nav
             onBack={() => setStep(3)}
-            onNext={() => router.push(`/admin/c/${catalogueId}/titles`)}
-            nextLabel="Open the film list"
+            onNext={() => router.push(`/admin/c/${catalogueId}/customizer`)}
+            nextLabel="Finish and customise"
           />
         </section>
       ) : null}
     </div>
   )
+}
+
+/**
+ * The film list, loaded for the wizard's last step.
+ *
+ * Fetched rather than passed in because the wizard creates the catalogue at step 2 and the
+ * films arrive during step 3 — nothing on the server knew about them when this page rendered.
+ */
+function StepTitles({ catalogueId }: { catalogueId: string }) {
+  const [titles, setTitles] = useState<Title[]>([])
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      const response = await fetch(`/api/admin/catalogues/${catalogueId}`)
+      if (!response.ok) return
+      const body = (await response.json()) as { titles?: Title[] }
+      if (!cancelled) {
+        setTitles(body.titles ?? [])
+        setLoaded(true)
+      }
+    }
+    void load()
+    // Uploads finish while this step is open, so poll gently rather than stranding the
+    // operator on a list that was accurate ten seconds ago.
+    const timer = setInterval(load, 4000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [catalogueId])
+
+  if (!loaded) return <p className="text-[14px] text-[var(--color-l-text-mid)]">Loading films…</p>
+  if (titles.length === 0) {
+    return (
+      <p className="rounded-[var(--radius-card)] border border-[var(--color-l-line)] px-4 py-6 text-center text-[14px] text-[var(--color-l-text-mid)]">
+        No films yet. Go back a step and drop some in — they keep uploading while you work.
+      </p>
+    )
+  }
+
+  return <TitleList catalogueId={catalogueId} titles={titles} />
 }
 
 function Text({
