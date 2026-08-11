@@ -120,7 +120,15 @@ export const hexColourSchema = z
   .trim()
   .regex(/^#[0-9a-fA-F]{6}$/, 'Use a 6-digit hex colour, e.g. #d11a2a')
 
-export const DISPLAY_FONTS = ['archivo', 'fraunces'] as const
+/**
+ * Typefaces an operator may choose for display text.
+ *
+ * Only faces actually shipped in `public/fonts` belong here. The list previously offered
+ * `fraunces`, which was never added and never applied anywhere — a setting that could be saved
+ * and would change nothing. Adding a face is a licensed woff2 in `public/fonts`, an entry in
+ * `lib/fonts.ts`, and one line here.
+ */
+export const DISPLAY_FONTS = ['archivo', 'mukta', 'inter'] as const
 export const brandingSchema = z
   .object({
     accent: hexColourSchema.optional(),

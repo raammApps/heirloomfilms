@@ -5,6 +5,13 @@ import { formatRatio, judgeAccent } from '@/lib/contrast'
 import type { Catalogue } from '@/lib/schema'
 
 /** Five curated presets plus a custom picker. Most operators will use a preset (doc 14 §5). */
+/** Only faces `lib/fonts.ts` actually loads; see `DISPLAY_FONTS`. */
+const FACES = [
+  { value: 'archivo' as const, label: 'Archivo', stack: "var(--font-archivo), Impact, sans-serif" },
+  { value: 'mukta' as const, label: 'Mukta', stack: "var(--font-mukta), sans-serif" },
+  { value: 'inter' as const, label: 'Inter', stack: "var(--font-inter), system-ui, sans-serif" },
+]
+
 const PRESETS = [
   { value: '#d11a2a', label: 'Marquee red' },
   { value: '#c2410c', label: 'Ember' },
@@ -19,10 +26,18 @@ const PRESETS = [
  * A planner will hand over a brand pink that is unreadable on black. They have to be told
  * while they can still change it — not by a build log they never see.
  */
-export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
+export function ThemePicker({
+  catalogue,
+  onPreview,
+}: {
+  catalogue: Catalogue
+  /** Called on every edit so the preview follows the picker rather than the last save. */
+  onPreview?: (branding: Catalogue['branding']) => void
+}) {
   const [accent, setAccent] = useState(catalogue.branding.accent ?? '#d11a2a')
   const [presentedBy, setPresentedBy] = useState(catalogue.branding.presentedBy ?? '')
   const [logoUrl, setLogoUrl] = useState(catalogue.branding.logoUrl ?? '')
+  const [displayFont, setDisplayFont] = useState(catalogue.branding.displayFont ?? 'archivo')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [touched, setTouched] = useState(false)
 
@@ -39,6 +54,19 @@ export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
    *
    * `touched` keeps the first render from writing the values it just read back.
    */
+  // Report upward on every change, not just on save: an accent the operator is still choosing
+  // should already be visible in the preview beside them.
+  useEffect(() => {
+    if (!touched) return
+    onPreview?.({
+      ...catalogue.branding,
+      accent,
+      presentedBy: presentedBy || undefined,
+      logoUrl: logoUrl || undefined,
+      displayFont,
+    })
+  }, [accent, presentedBy, logoUrl, displayFont, touched, onPreview, catalogue.branding])
+
   useEffect(() => {
     if (!touched) return
     setSaveState('saving')
@@ -55,6 +83,7 @@ export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
               accent,
               presentedBy: presentedBy || undefined,
               logoUrl: logoUrl || undefined,
+              displayFont,
             },
           }),
         })
@@ -65,7 +94,7 @@ export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
     }, 700)
 
     return () => window.clearTimeout(timer)
-  }, [accent, presentedBy, logoUrl, touched, catalogue.id])
+  }, [accent, presentedBy, logoUrl, displayFont, touched, catalogue.id])
 
   return (
     <section
@@ -75,6 +104,37 @@ export function ThemePicker({ catalogue }: { catalogue: Catalogue }) {
       <h2 className="mb-3 text-[13px] font-bold uppercase tracking-[0.09em] text-[var(--color-l-text-mid)]">
         Branding
       </h2>
+
+      <fieldset className="mb-4">
+        <legend className="mb-2 text-[13px] font-semibold">Headline typeface</legend>
+        <div className="flex flex-wrap gap-2">
+          {FACES.map((face) => (
+            <button
+              key={face.value}
+              type="button"
+              onClick={() => {
+                setDisplayFont(face.value)
+                setTouched(true)
+              }}
+              aria-pressed={displayFont === face.value}
+              // Each button is set in the face it selects, because the only question an
+              // operator is really asking is "what does it look like".
+              style={{ fontFamily: face.stack }}
+              className={`h-11 rounded-[var(--radius-input)] border px-4 text-[16px] ${
+                displayFont === face.value
+                  ? 'border-accent ring-1 ring-accent'
+                  : 'border-[var(--color-l-line)]'
+              }`}
+            >
+              {face.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-[12px] text-[var(--color-l-text-mid)]">
+          Used for the couple’s name, section headings and the wordmark. Body text stays as it is
+          — it has to be readable on a phone at arm’s length.
+        </p>
+      </fieldset>
 
       <fieldset className="mb-3">
         <legend className="mb-2 text-[13px] font-semibold">Accent colour</legend>

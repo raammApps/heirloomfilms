@@ -2,10 +2,18 @@
 
 import { Monitor, Smartphone } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { ThemeStyle } from '@/components/chrome/ThemeStyle'
 import { CatalogueShell } from '@/components/streaming/CatalogueShell'
 import type { Album, Catalogue, ModuleInstance, Photo, Title } from '@/lib/schema'
 
 const DEBOUNCE_MS = 300
+
+/**
+ * Selection id for the parts of the preview that are not a section: the top nav, the footer,
+ * "Presented by". They are branding, and branding is editable, so they must be reachable by
+ * pointing at them like everything else.
+ */
+export const BRANDING_SELECTION = '__branding__'
 
 type Props = {
   catalogue: Catalogue
@@ -14,6 +22,8 @@ type Props = {
   photos: Photo[]
   modules: ModuleInstance[]
   /** Instance id of the section being edited, outlined here so the two panels agree. */
+  /** Live branding from the picker, so the preview shows the accent and typeface being chosen. */
+  branding?: Catalogue['branding']
   selectedId?: string | null
   /** Clicking a section selects it. Omit to keep the preview read-only. */
   onSelect?: (instanceId: string) => void
@@ -34,6 +44,7 @@ export function PreviewPane({
   albums,
   photos,
   modules,
+  branding,
   selectedId = null,
   onSelect,
 }: Props) {
@@ -61,12 +72,21 @@ export function PreviewPane({
    */
   const selectFromClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!onSelect) return
-    const section = (event.target as HTMLElement).closest?.('[data-module-id]')
-    const id = section?.getAttribute('data-module-id')
-    if (!id) return
+
+    // Swallow *every* click, not only those landing on a section. The guest tree contains real
+    // links — the wordmark, the footer — and they are outside `ModuleRenderer`, so a handler
+    // that only looked for `[data-module-id]` let them through: clicking the couple's name in
+    // the preview navigated the whole admin page to `/` and dropped the operator on the login
+    // screen, losing their place in the customizer.
     event.preventDefault()
     event.stopPropagation()
-    onSelect(id)
+
+    const section = (event.target as HTMLElement).closest?.('[data-module-id]')
+    const id = section?.getAttribute('data-module-id')
+
+    // Chrome — nav, footer, "Presented by" — is branding rather than a section, so pointing at
+    // it opens the branding fields. Everything visible in the preview leads somewhere.
+    onSelect(id ?? BRANDING_SELECTION)
   }
 
   return (
@@ -97,7 +117,15 @@ export function PreviewPane({
           height: device === 'mobile' ? 780 : 700,
         }}
       >
+        {/*
+          Branding never reached the preview before: `<ThemeStyle>` is rendered by guest pages,
+          and this pane mounts the shell beneath that level. An operator picked an accent and
+          the preview kept showing the default — the one place it most needed not to.
+        */}
+        <ThemeStyle branding={branding ?? catalogue.branding} scope="[data-preview-theme]" />
+
         <div
+          data-preview-theme
           className={`h-full overflow-y-auto ${onSelect ? '[&_[data-module-id]]:cursor-pointer' : ''}`}
           data-testid="preview-viewport"
           onClickCapture={selectFromClick}
@@ -170,6 +198,8 @@ function SelectionStyles({ selectedId }: { selectedId: string | null }) {
   return (
     <style>{`
       [data-module-id] { outline: 0 solid transparent; transition: outline-color 120ms ease; }
+      /* The chrome is clickable too, so it says so. */
+      header, footer { cursor: pointer; }
       @media (hover: hover) and (pointer: fine) {
         [data-module-id]:hover { outline: 2px dashed color-mix(in srgb, var(--color-accent) 60%, transparent); outline-offset: -2px; }
       }

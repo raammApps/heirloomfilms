@@ -12,12 +12,41 @@ import type { Branding } from '@/lib/schema'
  * the operator at pick time, and this is the backstop for anything that got saved before that
  * check existed.
  */
-export function ThemeStyle({ branding }: { branding: Branding }) {
+/** Only faces the app actually loads. Anything else is ignored rather than trusted into CSS. */
+const FONT_STACKS: Record<string, string> = {
+  archivo: "var(--font-archivo), 'Archivo', Impact, sans-serif",
+  mukta: "var(--font-mukta), 'Mukta', 'Noto Sans Devanagari', sans-serif",
+  inter: "var(--font-inter), 'Inter', system-ui, sans-serif",
+}
+
+export function ThemeStyle({
+  branding,
+  scope = ':root',
+}: {
+  branding: Branding
+  /**
+   * Where the variables land. `:root` on a guest page; the preview passes its own container so
+   * a tenant's accent cannot repaint the admin chrome around it.
+   */
+  scope?: string
+}) {
   const accent = branding.accent && judgeAccent(branding.accent).ok ? branding.accent : null
-  if (!accent) return null
 
-  // A style element with a static, validated hex — never interpolated user text.
-  const css = `:root{--color-accent:${accent};--color-accent-hi:color-mix(in srgb, ${accent} 78%, white);--color-accent-dim:color-mix(in srgb, ${accent} 66%, black);}`
+  // Looked up rather than interpolated: `displayFont` comes from the database, and a font-family
+  // is a place CSS would happily accept whatever it was handed.
+  const display = branding.displayFont ? FONT_STACKS[branding.displayFont] : undefined
 
-  return <style data-tenant-theme>{css}</style>
+  if (!accent && !display) return null
+
+  // A style element built only from validated hex and a stack chosen from the map above —
+  // never interpolated user text.
+  const rules = [
+    accent &&
+      `--color-accent:${accent};--color-accent-hi:color-mix(in srgb, ${accent} 78%, white);--color-accent-dim:color-mix(in srgb, ${accent} 66%, black);`,
+    display && `--font-display:${display};`,
+  ]
+    .filter(Boolean)
+    .join('')
+
+  return <style data-tenant-theme>{`${scope}{${rules}}`}</style>
 }

@@ -24,7 +24,7 @@ import type { Album, Catalogue, ModuleInstance, Photo, Title } from '@/lib/schem
 import { getModule, listModules, instantiate } from '@/modules/registry'
 import type { GuestContext } from '@/modules/contract'
 import { SectionInspector } from './SectionInspector'
-import { PreviewPane } from './PreviewPane'
+import { BRANDING_SELECTION, PreviewPane } from './PreviewPane'
 import { ThemePicker } from './ThemePicker'
 
 const AUTOSAVE_DEBOUNCE_MS = 800
@@ -50,6 +50,7 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [publishing, setPublishing] = useState(false)
+  const [branding, setBranding] = useState(catalogue.branding)
   const [dirty, setDirty] = useState(false)
   const undoStack = useRef<ModuleInstance[][]>([])
 
@@ -196,7 +197,21 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
 
         {advisories.length > 0 ? <Advisories notes={advisories} /> : null}
 
-        <ThemePicker catalogue={catalogue} />
+        <button
+          type="button"
+          onClick={() => setEditingId(BRANDING_SELECTION)}
+          aria-current={editingId === BRANDING_SELECTION ? 'true' : undefined}
+          className={`mt-2 w-full rounded-[var(--radius-card)] border bg-white px-3 py-2 text-start text-[14px] ${
+            editingId === BRANDING_SELECTION
+              ? 'border-accent ring-1 ring-accent'
+              : 'border-[var(--color-l-line)]'
+          }`}
+        >
+          <span className="block font-medium">Branding</span>
+          <span className="block text-[12px] text-[var(--color-l-text-mid)]">
+            Colour, logo, typeface and “Presented by”
+          </span>
+        </button>
       </section>
 
       <section aria-label="Preview" className="min-w-0">
@@ -222,6 +237,7 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
         </div>
 
         <PreviewPane
+          branding={branding}
           selectedId={editingId}
           onSelect={setEditingId}
           catalogue={catalogue}
@@ -236,6 +252,9 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
         <h2 className="mb-3 text-[13px] font-bold uppercase tracking-[0.09em] text-[var(--color-l-text-mid)]">
           Editing
         </h2>
+        {editingId === BRANDING_SELECTION ? (
+          <ThemePicker catalogue={catalogue} onPreview={setBranding} />
+        ) : (
         <SectionInspector
           instance={editing ?? null}
           catalogue={catalogue}
@@ -244,6 +263,7 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
           photos={photos}
           onChange={(next) => commit(modules.map((m) => (m.id === next.id ? next : m)))}
         />
+        )}
       </div>
     </div>
   )

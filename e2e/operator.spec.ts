@@ -154,10 +154,37 @@ test.describe('the operator console', () => {
   test('warns at pick time about an accent that will not read on black', async ({ page }) => {
     await openCustomizer(page)
 
+    // Branding is a selection now, like a section — it opens in the inspector rather than
+    // sitting permanently in the sidebar.
+    await page.getByRole('button', { name: /Branding/ }).click()
     await page.getByLabel('Custom').fill('#ff8fc7')
     // Scoped to the branding panel: Next's route announcer is also role="alert".
     const branding = page.getByRole('region', { name: 'Branding' })
     await expect(branding.getByRole('alert')).toContainText(/white button text/i)
+  })
+
+  /**
+   * Branding never reached the preview: `<ThemeStyle>` is rendered by guest pages, and the pane
+   * mounts the shell below that level. An operator picked an accent and the preview kept showing
+   * the default — for the entire life of the customizer, with every test passing.
+   */
+  test('an accent chosen in the inspector repaints the preview, not the admin', async ({ page }) => {
+    await openCustomizer(page)
+    await page.getByRole('button', { name: /Branding/ }).click()
+    await page.getByLabel('Custom').fill('#2f6f4e')
+
+    const themed = page.locator('[data-preview-theme]')
+    await expect
+      .poll(async () =>
+        themed.evaluate((el) => getComputedStyle(el).getPropertyValue('--color-accent').trim()),
+      )
+      .toBe('#2f6f4e')
+
+    // Scoped: a tenant's colour must not repaint the console around it.
+    const admin = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim(),
+    )
+    expect(admin).not.toBe('#2f6f4e')
   })
 
   test('the preview renders the real guest components, mobile by default', async ({ page }) => {
