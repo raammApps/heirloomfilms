@@ -34,7 +34,8 @@
     "dev:live": "scripts/dev-live.sh",
     "rotate:password": "tsx scripts/rotate-operator-password.ts",
     "check:dead": "knip --no-progress",
-    "test:ci": "vitest run --coverage --reporter=default --reporter=json --outputFile=reports/vitest.json"
+    "test:ci": "vitest run --coverage --reporter=default --reporter=json --outputFile=reports/vitest.json",
+    "check:vitals": "tsx scripts/check-vitals.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

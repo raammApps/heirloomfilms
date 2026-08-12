@@ -90,16 +90,6 @@ needs one CNAME. Afterwards, update **two** things or transcodes silently stop:
 > A per-deployment URL keeps answering after the next deploy — from the *old* build — so the
 > failure is a webhook that appears healthy while running superseded code.
 
-### N-5 · Lighthouse in CI  ·  ~2h  ·  doc 09 P1-14
-
-First-load JS is gated (`pnpm check:bundle`) and playback start and rebuffer ratio are now
-measured in production (`qoe.playback_start`, `qoe.rebuffer`). What remains is **LCP and CLS**,
-which Lighthouse CI against the built app covers.
-
-Playback start deliberately stays out of CI: it cannot be honestly measured on CI hardware, and
-doc 10 §3 M-9 keeps the authoritative number on a real phone on real 4G. Production telemetry is
-the continuous version of it.
-
 ### N-6 · The demo catalogue needs real footage  ·  doc 13 §8 — **not to be delegated**
 
 The fixture uses generated gradients. That proves the mechanics and would misrepresent the
@@ -168,7 +158,8 @@ create and delete zones on the account. Bunny dashboard → Account Settings →
   resumes on the `online` event; tus's default retry policy gives up on a bare network error,
   so `onShouldRetry` is set explicitly. `pnpm verify:upload` guards this against real Bunny.
 - Commands: `pnpm preflight` · `pnpm verify` · `pnpm test:e2e` · `pnpm test:integration` ·
-  `pnpm verify:playback` · `pnpm verify:upload` · `pnpm check:bundle` · `pnpm bootstrap:sql`.
+  `pnpm verify:playback` · `pnpm verify:upload` · `pnpm check:bundle` · `pnpm check:vitals` ·
+  `pnpm bootstrap:sql`.
 
 ## Picking up an item
 

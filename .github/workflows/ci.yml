@@ -85,6 +85,15 @@ jobs:
       - name: First-load JS budget
         run: pnpm check:bundle
 
+      - name: Install Chromium for the vitals gate
+        run: pnpm exec playwright install --with-deps chromium
+
+      # LCP and CLS on the page every guest lands on (doc 05 §1). Not Lighthouse: its simulated
+      # throttling moves by hundreds of milliseconds between identical commits on shared runners,
+      # which buys either a threshold that catches nothing or a red build that gets muted.
+      - name: Core Web Vitals budget
+        run: pnpm check:vitals
+
   e2e:
     name: End-to-end journeys
     runs-on: ubuntu-latest

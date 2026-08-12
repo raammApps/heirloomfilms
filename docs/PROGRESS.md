@@ -735,3 +735,35 @@ creating a throwaway catalogue; that does not work here, because a catalogue wit
 films renders no sections to select or drag.
 
 318 unit and component, 89 E2E.
+
+## N-5 · LCP and CLS are gated, and it is not Lighthouse
+
+First-load JS was already gated and playback start is measured in production. What nothing
+watched was **layout** — a hero that arrives late, a row that pushes the page down after paint.
+Both are invisible to a bundle budget and obvious to a guest.
+
+NEXT.md called for Lighthouse CI. `pnpm check:vitals` deliberately is not that. Lighthouse's
+headline numbers come from a *simulated* throttling model applied to one cold load on whatever
+CPU a shared runner happened to give us, and they move by hundreds of milliseconds between
+identical commits. Gating on that buys either a threshold so loose it catches nothing, or a red
+build that gets muted within a fortnight.
+
+Instead the script reads the same two metrics from the browser's own `PerformanceObserver` — the
+identical entry types Lighthouse reads — under explicit 4× CPU and 4G-ish network throttling,
+and takes the **worst of three runs**. Playwright was already a dependency, so it installs
+nothing new.
+
+Current numbers: **LCP 432–464ms against a 2500ms budget, CLS 0.000 against 0.05.** The spread
+across runs is about 30ms, which is the property that makes it gateable at all.
+
+Proven by breaking it, like N-12: a 260px block rendered 900ms after mount, with no reserved
+space, produced **CLS 0.285 — identically on all three runs** — and the gate failed with the
+message naming reserved space as the cause. Restored afterwards.
+
+One caveat worth recording: the fixture is generated gradients, not photographs. Real footage
+(N-14) will move LCP, and this budget is where that shows up first — which is the right place
+for it to show up.
+
+Playback start deliberately stays out of CI. Doc 10 §3 M-9 keeps the authoritative number on a
+real phone on real 4G, and CI hardware cannot honestly produce it; production telemetry
+(`qoe.playback_start`) is the continuous version.

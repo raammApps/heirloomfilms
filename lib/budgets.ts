@@ -22,7 +22,7 @@ export const PLAYBACK_START_MS = 1500
 /** Rebuffer ratio across a full playthrough. */
 export const REBUFFER_RATIO = 0.01
 
-/** @knipignore doc 05 §1's budget; what N-5's Lighthouse gate will assert. */
+/** doc 05 §1. Asserted by `pnpm check:vitals`. */
 export const BROWSE_LCP_MS = 2500
-/** @knipignore doc 05 §1's budget; what N-5's Lighthouse gate will assert. */
+/** doc 05 §1. Asserted by `pnpm check:vitals`. */
 export const CLS = 0.05
