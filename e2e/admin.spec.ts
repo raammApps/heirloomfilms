@@ -15,6 +15,43 @@ test.describe('the admin console', () => {
     await signIn(page)
   })
 
+  /**
+   * All three noticed on the deployed console rather than in review: the create action appeared
+   * twice, there was no way to sign out at all, and identity sat as grey text at the foot of the
+   * rail instead of the corner every web application puts it in.
+   */
+  test('offers exactly one way to create a catalogue, on every page', async ({ page }) => {
+    await expect(page.getByRole('link', { name: 'New catalogue' })).toHaveCount(1)
+
+    // And it is still there once the operator is deep inside a wedding, which is where they
+    // actually finish one job and start the next.
+    const created = await createCatalogue(page, 'onecta')
+    await page.goto(`/admin/c/${created.id}/titles`)
+    await expect(page.getByRole('link', { name: 'New catalogue' })).toHaveCount(1)
+  })
+
+  test('signs the operator out from the account menu', async ({ page }) => {
+    await page.getByRole('button', { name: /^Account/ }).click()
+
+    const menu = page.getByRole('menu')
+    await expect(menu).toContainText('operator@mehfil.test')
+
+    await menu.getByRole('menuitem', { name: 'Sign out' }).click()
+    await expect(page).toHaveURL(/\/admin\/login/)
+
+    // And the session is genuinely gone, not just navigated away from.
+    await page.goto('/admin')
+    await expect(page).toHaveURL(/\/admin\/login/)
+  })
+
+  test('closes the account menu on Escape rather than trapping it open', async ({ page }) => {
+    await page.getByRole('button', { name: /^Account/ }).click()
+    await expect(page.getByRole('menu')).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('menu')).toHaveCount(0)
+  })
+
   test('the list can be searched and filtered down to one wedding', async ({ page }) => {
     const created = await createCatalogue(page, 'search')
     await page.goto('/admin')

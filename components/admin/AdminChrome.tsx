@@ -1,18 +1,26 @@
 import Link from 'next/link'
 import { RailLink, TabLink } from './AdminNav'
-import { SignOutButton } from './SignOutButton'
+import { UserMenu } from './UserMenu'
 import { IconGrid, IconPlus } from './icons'
 
 /**
  * Persistent left rail plus, inside a catalogue, a horizontal sub-nav (doc 02 §4).
  *
  * Server component, deliberately: the operator, the org and the catalogue are all data the
- * server already has. Only the two pieces that need to know which page you are on — the rail
- * links and the tabs — are client components, and only sign-out has state.
+ * server already has. Only the pieces that need to know which page you are on — the rail links
+ * and the tabs — and the account menu are client components.
  *
- * The rail used to be `hidden md:block` with nothing behind it, so on a phone the console had no
- * navigation at all: an operator who opened a catalogue could reach the rest of the admin only
- * with the browser's back button. The bar below restores it under `md`.
+ * Three things this layout fixes, all of them noticed on the deployed console rather than here:
+ *
+ *  - **One "New catalogue", not two.** The rail and the list page each had their own, so the
+ *    single most prominent action in the console appeared twice on the screen where it mattered
+ *    and not at all on the screens where an operator finishes a job. It now lives in the top bar,
+ *    which is on every page.
+ *  - **Identity and sign-out are top right**, in the corner every web application has trained
+ *    people to look at, rather than grey 12px text at the foot of the rail — which is also where
+ *    sign-out was missing entirely.
+ *  - **The rail is navigation only.** Under `md` it is hidden, and the top bar carries everything
+ *    it held; before this there was no admin navigation on a phone at all.
  */
 export function AdminChrome({
   children,
@@ -24,7 +32,7 @@ export function AdminChrome({
   children: React.ReactNode
   operatorName: string
   operatorEmail?: string
-  /** Whose console this is. A partner runs several weddings; the couple runs one. */
+  /** Whose console this is. A partner runs several weddings; a couple runs one. */
   orgName?: string
   catalogue?: { id: string; name: string; slug: string; status: string }
 }) {
@@ -45,9 +53,6 @@ export function AdminChrome({
           <RailLink href="/admin" icon={<IconGrid />} exact>
             Catalogues
           </RailLink>
-          <RailLink href="/admin/new" icon={<IconPlus />}>
-            New catalogue
-          </RailLink>
         </ul>
 
         {/*
@@ -56,41 +61,31 @@ export function AdminChrome({
           look, a second place to keep in step, and nothing gained.
         */}
         {catalogue ? (
-          <div className="mt-7 rounded-[var(--radius-card)] border border-[var(--color-l-line)] px-3 py-2.5">
+          <div className="mt-6 rounded-[var(--radius-card)] border border-[var(--color-l-line)] px-3 py-2.5">
             <p className="type-label text-[var(--color-l-text-mid)]">Editing</p>
             <p className="mt-1 truncate text-[13px] font-semibold">{catalogue.name}</p>
           </div>
         ) : null}
-
-        <div className="mt-auto border-t border-[var(--color-l-line)] pt-3">
-          <p className="truncate px-3 text-[13px] font-medium">{operatorName}</p>
-          {operatorEmail ? (
-            <p className="mb-1 truncate px-3 text-[12px] text-[var(--color-l-text-mid)]">
-              {operatorEmail}
-            </p>
-          ) : null}
-          <SignOutButton />
-        </div>
       </nav>
 
       <div className="min-w-0 flex-1">
-        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--color-l-line)] bg-[var(--color-l-surface-1)] px-4 py-2.5 md:hidden">
-          <Link href="/admin" className="text-[17px] font-bold">
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--color-l-line)] bg-[var(--color-l-surface-1)] px-4 py-2.5 md:px-5">
+          <Link href="/admin" className="text-[17px] font-bold md:hidden">
             Mehfil
           </Link>
-          <div className="ms-auto flex items-center gap-1 text-[13px]">
-            <Link
-              href="/admin"
-              className="rounded-[var(--radius-pill)] px-3 py-1.5 hover:bg-[var(--color-l-surface-2)]"
-            >
-              Catalogues
-            </Link>
+
+          <div className="ms-auto flex items-center gap-2">
             <Link
               href="/admin/new"
-              className="rounded-[var(--radius-pill)] bg-accent px-3 py-1.5 font-semibold text-accent-ink"
+              className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-pill)] bg-accent px-3.5 text-[13px] font-semibold text-accent-ink"
             >
-              New
+              <span aria-hidden>
+                <IconPlus />
+              </span>
+              New catalogue
             </Link>
+
+            <UserMenu name={operatorName} email={operatorEmail} orgName={orgName} />
           </div>
         </div>
 

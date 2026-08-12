@@ -1,8 +1,6 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AdminChrome } from '@/components/admin/AdminChrome'
 import { CatalogueBoard, type CatalogueRow } from '@/components/admin/CatalogueBoard'
-import { IconPlus } from '@/components/admin/icons'
 import { getOperatorSession, getSessionOrg } from '@/lib/admin/session'
 import { getRepository } from '@/lib/db'
 import { env } from '@/lib/env'
@@ -47,24 +45,18 @@ export default async function CatalogueListPage() {
       operatorEmail={session.operator.email}
       orgName={org?.name}
     >
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[24px] font-bold tracking-[-0.01em]">Catalogues</h1>
-          <p className="mt-0.5 text-[14px] text-[var(--color-l-text-mid)]">
-            {catalogues.length === 0
-              ? 'Nothing here yet.'
-              : `${catalogues.length} wedding${catalogues.length === 1 ? '' : 's'}${org?.name ? ` at ${org.name}` : ''}.`}
-          </p>
-        </div>
-        <Link
-          href="/admin/new"
-          className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-pill)] bg-accent px-5 font-semibold text-accent-ink"
-        >
-          <span aria-hidden>
-            <IconPlus />
-          </span>
-          New catalogue
-        </Link>
+      {/*
+        No "New catalogue" button here. The top bar carries exactly one, on every page — this
+        page having its own meant the console's most prominent action appeared twice on the one
+        screen and nowhere on the screens where an operator actually finishes a job.
+      */}
+      <div className="mb-6">
+        <h1 className="text-[24px] font-bold tracking-[-0.01em]">Catalogues</h1>
+        <p className="mt-0.5 text-[14px] text-[var(--color-l-text-mid)]">
+          {catalogues.length === 0
+            ? 'Nothing here yet.'
+            : `${catalogues.length} wedding${catalogues.length === 1 ? '' : 's'}${org?.name ? ` at ${org.name}` : ''}.`}
+        </p>
       </div>
 
       <CatalogueBoard rows={rows} />
