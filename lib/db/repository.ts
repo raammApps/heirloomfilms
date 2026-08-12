@@ -5,6 +5,7 @@ import type {
   ModuleState,
   Operator,
   Org,
+  Transfer,
   PlaybackProgress,
   Photo,
   Profile,
@@ -42,6 +43,14 @@ export interface Repository {
   createOperator(operator: Operator): Promise<Operator>
   /** Compensation for a half-finished registration. Not a user-facing delete. */
   deleteOrg(id: string): Promise<void>
+
+  // ── Transfers (doc 15 §2) ───────────────────────────────────────────────────
+  createTransfer(transfer: Transfer): Promise<Transfer>
+  /** Looked up by hash: the plaintext token exists only in the link. */
+  getTransferByTokenHash(hash: string): Promise<Transfer | null>
+  getLiveTransferForCatalogue(catalogueId: string): Promise<Transfer | null>
+  markTransferClaimed(id: string, claimedOrgId: string): Promise<void>
+  cancelTransfer(id: string): Promise<void>
   getOperatorByEmail(email: string): Promise<Operator | null>
   getOperator(id: string): Promise<Operator | null>
 
@@ -78,6 +87,12 @@ export interface Repository {
   getAlbum(id: string): Promise<Album | null>
   /** Removes the catalogue and everything the database cascades from it. */
   deleteCatalogue(id: string, orgId: string): Promise<void>
+  /**
+   * Move a catalogue to another org — the one operation `updateCatalogue` deliberately cannot
+   * express, because a patch that could change `org_id` would make every write a potential
+   * ownership change. Scoped by the current owner, so it can only ever move what it names.
+   */
+  transferCatalogue(id: string, fromOrgId: string, toOrgId: string): Promise<Catalogue>
   createAlbum(album: Album): Promise<Album>
   createPhoto(photo: Photo): Promise<Photo>
   getPhoto(id: string): Promise<Photo | null>

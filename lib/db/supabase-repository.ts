@@ -4,6 +4,7 @@ import { env } from '@/lib/env'
 import { ApiError } from '@/lib/http/errors'
 import type {
   Album,
+  Transfer,
   Catalogue,
   ModuleState,
   Operator,
@@ -269,6 +270,70 @@ export class SupabaseRepository implements Repository {
     return SupabaseRepository.toOperator(data)
   }
 
+  // ── Transfers ───────────────────────────────────────────────────────────────
+  private static toTransfer(r: Row): Transfer {
+    return {
+      id: r.id,
+      catalogueId: r.catalogue_id,
+      fromOrgId: r.from_org_id,
+      toEmail: r.to_email,
+      tokenHash: r.token_hash,
+      expiresAt: r.expires_at,
+      claimedAt: r.claimed_at,
+      claimedOrgId: r.claimed_org_id,
+      createdAt: r.created_at,
+    }
+  }
+
+  async createTransfer(transfer: Transfer): Promise<Transfer> {
+    const { data, error } = await this.db
+      .from('transfers')
+      .insert({
+        id: transfer.id,
+        catalogue_id: transfer.catalogueId,
+        from_org_id: transfer.fromOrgId,
+        to_email: transfer.toEmail,
+        token_hash: transfer.tokenHash,
+        expires_at: transfer.expiresAt,
+      })
+      .select()
+      .single()
+    // The partial unique index is what enforces one live handover per catalogue.
+    if (error?.code === '23505') {
+      throw new ApiError('VALIDATION_FAILED', 'A handover is already in progress for this catalogue')
+    }
+    if (error) throw new ApiError('INTERNAL', error.message)
+    return SupabaseRepository.toTransfer(data)
+  }
+
+  async getTransferByTokenHash(hash: string): Promise<Transfer | null> {
+    const { data } = await this.db.from('transfers').select('*').eq('token_hash', hash).maybeSingle()
+    return data ? SupabaseRepository.toTransfer(data) : null
+  }
+
+  async getLiveTransferForCatalogue(catalogueId: string): Promise<Transfer | null> {
+    const { data } = await this.db
+      .from('transfers')
+      .select('*')
+      .eq('catalogue_id', catalogueId)
+      .is('claimed_at', null)
+      .maybeSingle()
+    return data ? SupabaseRepository.toTransfer(data) : null
+  }
+
+  async markTransferClaimed(id: string, claimedOrgId: string): Promise<void> {
+    const { error } = await this.db
+      .from('transfers')
+      .update({ claimed_at: new Date().toISOString(), claimed_org_id: claimedOrgId })
+      .eq('id', id)
+    if (error) throw new ApiError('INTERNAL', error.message)
+  }
+
+  async cancelTransfer(id: string): Promise<void> {
+    const { error } = await this.db.from('transfers').delete().eq('id', id)
+    if (error) throw new ApiError('INTERNAL', error.message)
+  }
+
   async deleteOrg(id: string): Promise<void> {
     const { error } = await this.db.from('orgs').delete().eq('id', id)
     if (error) throw new ApiError('INTERNAL', error.message)
@@ -461,6 +526,20 @@ export class SupabaseRepository implements Repository {
       .eq('albums.catalogue_id', catalogueId)
       .order('sort_order')
     return (data ?? []).map(SupabaseRepository.toPhoto)
+  }
+
+  async transferCatalogue(id: string, fromOrgId: string, toOrgId: string): Promise<Catalogue> {
+    // `eq('org_id', fromOrgId)` is the safety: this can only move the catalogue the caller
+    // already owned, however it was reached.
+    const { data, error } = await this.db
+      .from('catalogues')
+      .update({ org_id: toOrgId })
+      .eq('id', id)
+      .eq('org_id', fromOrgId)
+      .select()
+      .single()
+    if (error) throw new ApiError('NOT_FOUND', 'Catalogue not found')
+    return SupabaseRepository.toCatalogue(data)
   }
 
   async deleteCatalogue(id: string, orgId: string): Promise<void> {

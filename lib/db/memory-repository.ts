@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { ApiError } from '@/lib/http/errors'
 import type {
   Album,
+  Transfer,
   Catalogue,
   ModuleState,
   Operator,
@@ -15,6 +16,7 @@ import type {
 import type { CatalogueFilter, CreateTitleInput, Repository } from './repository'
 
 export type Snapshot = {
+  transfers: Transfer[]
   orgs: Org[]
   operators: Operator[]
   catalogues: Catalogue[]
@@ -30,6 +32,7 @@ export type Snapshot = {
 
 export function emptySnapshot(): Snapshot {
   return {
+    transfers: [],
     orgs: [],
     operators: [],
     catalogues: [],
@@ -112,6 +115,42 @@ export class MemoryRepository implements Repository {
     return this.clone(operator)
   }
 
+  // ── Transfers ───────────────────────────────────────────────────────────────
+  async createTransfer(transfer: Transfer): Promise<Transfer> {
+    // Mirrors the partial unique index: one live handover per catalogue, so a wedding can never
+    // have two outstanding links to two different households.
+    if (this.data.transfers.some((t) => t.catalogueId === transfer.catalogueId && !t.claimedAt)) {
+      throw new ApiError('VALIDATION_FAILED', 'A handover is already in progress for this catalogue')
+    }
+    this.data.transfers.push(this.clone(transfer))
+    this.touched()
+    return this.clone(transfer)
+  }
+
+  async getTransferByTokenHash(hash: string): Promise<Transfer | null> {
+    return this.clone(this.data.transfers.find((t) => t.tokenHash === hash) ?? null)
+  }
+
+  async getLiveTransferForCatalogue(catalogueId: string): Promise<Transfer | null> {
+    return this.clone(
+      this.data.transfers.find((t) => t.catalogueId === catalogueId && !t.claimedAt) ?? null,
+    )
+  }
+
+  async markTransferClaimed(id: string, claimedOrgId: string): Promise<void> {
+    const transfer = this.data.transfers.find((t) => t.id === id)
+    if (transfer) {
+      transfer.claimedAt = new Date().toISOString()
+      transfer.claimedOrgId = claimedOrgId
+    }
+    this.touched()
+  }
+
+  async cancelTransfer(id: string): Promise<void> {
+    this.data.transfers = this.data.transfers.filter((t) => t.id !== id)
+    this.touched()
+  }
+
   async deleteOrg(id: string): Promise<void> {
     this.data.orgs = this.data.orgs.filter((o) => o.id !== id)
     this.touched()
@@ -176,6 +215,15 @@ export class MemoryRepository implements Repository {
     const index = this.data.catalogues.findIndex((c) => c.id === id && c.orgId === orgId)
     if (index === -1) throw new ApiError('NOT_FOUND', 'Catalogue not found')
     const next = { ...this.data.catalogues[index]!, ...this.clone(patch) }
+    this.data.catalogues[index] = next
+    this.touched()
+    return this.clone(next)
+  }
+
+  async transferCatalogue(id: string, fromOrgId: string, toOrgId: string): Promise<Catalogue> {
+    const index = this.data.catalogues.findIndex((c) => c.id === id && c.orgId === fromOrgId)
+    if (index === -1) throw new ApiError('NOT_FOUND', 'Catalogue not found')
+    const next = { ...this.data.catalogues[index]!, orgId: toOrgId }
     this.data.catalogues[index] = next
     this.touched()
     return this.clone(next)

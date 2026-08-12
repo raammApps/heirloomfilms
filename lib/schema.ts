@@ -167,6 +167,32 @@ export const orgSchema = z.object({
   createdAt: z.string(),
 })
 
+/**
+ * A catalogue mid-handover.
+ *
+ * The token itself is never in here — only its hash reaches the database, and the plaintext is
+ * shown to the partner once, at creation, the way a password reset link works.
+ */
+export const transferSchema = z.object({
+  id: z.string().uuid(),
+  catalogueId: z.string().uuid(),
+  fromOrgId: z.string().uuid(),
+  toEmail: z.string().email(),
+  tokenHash: z.string().min(1),
+  expiresAt: z.string(),
+  claimedAt: z.string().nullable().default(null),
+  claimedOrgId: z.string().uuid().nullable().default(null),
+  createdAt: z.string(),
+})
+export type Transfer = z.infer<typeof transferSchema>
+
+/** What a couple fills in to take ownership. */
+export const claimSchema = z.object({
+  token: z.string().min(20).max(200),
+  coupleName: z.string().trim().min(2).max(80),
+  password: z.string().min(12, 'Use at least 12 characters').max(200),
+})
+
 /** What a partner signs up with. The password never lands in this object. */
 export const partnerRegistrationSchema = z.object({
   businessName: z.string().trim().min(2).max(80),

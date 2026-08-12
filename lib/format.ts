@@ -1,5 +1,5 @@
 import { resolveLocalised } from './i18n'
-import type { Locale, LocalisedString } from './schema'
+import { RESERVED_SUBDOMAINS, type Locale, type LocalisedString } from './schema'
 
 /** `1284` → `21:24`; `428` → `7:08`. Used in the player, on cards, and in share text. */
 export function formatClock(totalSeconds: number): string {
@@ -67,3 +67,26 @@ export function titleFromFilename(filename: string): string {
 export function pluralise(count: number, singular: string, plural = `${singular}s`): string {
   return count === 1 ? singular : plural
 }
+
+/**
+ * A free org address derived from a name.
+ *
+ * Shared by partner registration and by a couple claiming their wedding, because two copies of
+ * "find a slug nobody has" drift, and the one that drifts is the one that starts handing out
+ * duplicates.
+ */
+export async function suggestOrgSlug(
+  name: string,
+  taken: (slug: string) => Promise<{ id: string } | null>,
+): Promise<string> {
+  const base = slugify(name) || 'couple'
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const slug = attempt === 0 ? base : `${base}-${attempt + 1}`
+    if ((RESERVED_SUBDOMAINS as readonly string[]).includes(slug)) continue
+    if (!(await taken(slug))) return slug
+  }
+  return `${base}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+
