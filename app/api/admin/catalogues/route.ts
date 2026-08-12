@@ -54,6 +54,10 @@ export async function POST(request: Request) {
     const catalogue = await repository.createCatalogue({
       id: randomUUID(),
       orgId,
+      // Who built it, recorded now and never changed. After a handover `orgId` becomes the
+      // couple's and this still says the partner — which is the only thing that survives to
+      // credit them, since they lose every other trace of ownership.
+      originOrgId: orgId,
       slug: body.slug,
       customDomain: null,
       coupleName: body.coupleName,

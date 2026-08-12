@@ -29,6 +29,7 @@ export function makeCatalogue(overrides: Partial<Catalogue> = {}): Catalogue {
     id: randomUUID(),
     orgId: ORG_ID,
     slug: 'test-wedding',
+    originOrgId: null,
     customDomain: null,
     coupleName: { en: 'Test & Case' },
     appName: { en: 'Test Originals' },

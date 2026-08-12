@@ -277,6 +277,11 @@ export const catalogueSchema = z.object({
   orgId: z.string().uuid(),
   slug: slugSchema,
   customDomain: z.string().nullable().default(null),
+  /**
+   * The partner who built this, kept permanently — including after a handover moves `orgId` to
+   * the couple. Attribution and support outlive ownership; a live claim on the wedding does not.
+   */
+  originOrgId: z.string().uuid().nullable().default(null),
 
   coupleName: localisedRequiredSchema,
   appName: appNameSchema,

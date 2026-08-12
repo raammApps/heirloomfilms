@@ -24,6 +24,7 @@ function catalogue(orgId: string): Catalogue {
   return catalogueSchema.parse({
     id: CAT,
     orgId,
+    originOrgId: PARTNER,
     slug: 'a-client',
     coupleName: { en: 'A & B' },
     appName: { en: 'A & B Originals' },
@@ -52,6 +53,16 @@ describe('transferCatalogue', () => {
     // existing links and bookmarks from still working.
     expect(await repository.getCatalogue(CAT, PARTNER)).toBeNull()
     expect(await repository.getCatalogue(CAT, COUPLE)).not.toBeNull()
+  })
+
+  it('keeps the builder on record after the owner changes', async () => {
+    await repository.createOrg(org(COUPLE, 'a-and-b', 'couple'))
+    await repository.transferCatalogue(CAT, PARTNER, COUPLE)
+
+    const moved = await repository.getCatalogue(CAT, COUPLE)
+    // The one thing that survives to credit the partner: they lose every other trace.
+    expect(moved?.originOrgId).toBe(PARTNER)
+    expect(moved?.orgId).toBe(COUPLE)
   })
 
   it('refuses to move a catalogue the claimed owner never held', async () => {

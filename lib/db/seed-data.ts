@@ -262,6 +262,7 @@ function buildCatalogue(): Catalogue {
   return {
     id: CATALOGUE_ID,
     orgId: ORG_ID,
+    originOrgId: ORG_ID,
     slug: 'aanya-vikram',
     customDomain: null,
     coupleName: { en: 'Aanya & Vikram', hi: 'आन्या और विक्रम' },
