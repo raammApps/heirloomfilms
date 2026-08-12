@@ -56,6 +56,19 @@ test.describe('the operator console', () => {
     await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
   })
 
+  /**
+   * Everything that edits the demo catalogue, one spec at a time.
+   *
+   * Server state is shared across the whole Playwright run — one process, one in-memory store —
+   * so two specs reordering or renaming the same catalogue's sections in parallel is a race
+   * rather than a test. It surfaced as "Billboard is first" failing intermittently once a second
+   * spec started reordering.
+   *
+   * `helpers.ts` solves this for *content* by creating a throwaway catalogue. That is not
+   * available here: a catalogue with no published films renders no sections at all, so there is
+   * nothing to select, rename or drag.
+   */
+  test.describe.serial('editing the demo catalogue', () => {
   test('E2E-4: reordering sections changes the preview and then the published page', async ({
     page,
   }) => {
@@ -130,6 +143,105 @@ test.describe('the operator console', () => {
     await expect(page.getByTestId('preview-viewport')).toContainText('Our favourite films', {
       timeout: 10_000,
     })
+  })
+
+  /**
+   * N-13 §1 — the heading is edited where it is read.
+   *
+   * Headings are what operators change most and they are already on screen, so the whole
+   * "find the field, type, look back at the preview" loop was avoidable.
+   */
+  test('a heading can be typed directly into the preview', async ({ page }) => {
+    await openCustomizer(page)
+
+    const sections = page.getByRole('region', { name: 'Sections' }).getByRole('listitem')
+    const row = sections.filter({ hasText: 'Film row' }).first()
+    await row.getByRole('button', { name: /Edit/ }).click()
+
+    const heading = page.getByTestId('preview-viewport').locator('[data-editing-heading="true"]')
+    await expect(heading).toBeVisible()
+
+    await heading.click()
+    await page.keyboard.press('ControlOrMeta+a')
+    await page.keyboard.type('Typed in the preview')
+    // Enter commits: a heading is one line, so it means "done" rather than a paragraph break.
+    await page.keyboard.press('Enter')
+
+    // The inspector is the other half of the same state — if the two disagree, one of them lies.
+    const inspector = page.getByRole('complementary', { name: 'Section editor' })
+    await expect(
+      inspector.getByRole('group', { name: 'Section heading' }).getByLabel('English'),
+    ).toHaveValue('Typed in the preview', { timeout: 10_000 })
+  })
+
+  /**
+   * N-13 §3 — selecting in the list used to update the inspector while the preview stayed put,
+   * so an operator edited a heading they could not see.
+   */
+  test('selecting a section in the list brings it into view in the preview', async ({ page }) => {
+    await openCustomizer(page)
+
+    const viewport = page.getByTestId('preview-viewport')
+
+    // "Short and worth it" is the fourth of the Keepsake template's five sections, so it starts
+    // well below the fold — and it is a film row, so unlike the photo grid it renders something
+    // even when the catalogue has no photographs. Targeted by name rather than by position: the
+    // list nests advisory items, so `.last()` finds one of those instead of a section.
+    const row = page.getByRole('button', { name: 'Edit Short and worth it' })
+    await expect(row).toBeVisible()
+
+    const target = viewport.locator('[data-module-id]').nth(3)
+    await expect(target).not.toBeInViewport()
+
+    await row.click()
+    await expect(target).toBeInViewport({ timeout: 10_000 })
+  })
+
+  /**
+   * N-13 §2 — dragging in the preview reorders, and the list agrees afterwards.
+   *
+   * Additive only: the list keeps the keyboard path, which is what doc 14 §5.1 requires and what
+   * `E2E-4` above still exercises.
+   */
+  test('dragging a section in the preview reorders it', async ({ page }) => {
+    await openCustomizer(page)
+
+    const previewSections = page.getByTestId('preview-viewport').locator('[data-module-id]')
+
+    // No assumption about which section starts first: this shares the demo catalogue with
+    // E2E-4, which reorders it too. Capture what is there and assert the swap.
+    const wasFirst = (await previewSections.nth(0).getAttribute('data-module-id')) ?? ''
+    const label = (await previewSections.nth(1).getAttribute('data-module-id')) ?? ''
+    expect(label).toBeTruthy()
+    expect(wasFirst).toBeTruthy()
+
+    /*
+     * The drag events are dispatched rather than mimed with the mouse.
+     *
+     * Playwright cannot start Chromium's native HTML5 drag loop from synthetic mouse input —
+     * `dragTo` moves the pointer and no `dragstart` ever fires. These are the same event objects
+     * the browser dispatches, so this covers the handlers, the reorder and the autosave; what it
+     * does not cover is whether the browser decides to begin a drag at all. `draggable` is
+     * asserted separately below for exactly that reason.
+     */
+    await expect(previewSections.first()).toHaveJSProperty('draggable', true)
+
+    await page.evaluate(() => {
+      const root = document.querySelector('[data-testid="preview-viewport"]')!
+      const sections = Array.from(root.querySelectorAll('[data-module-id]'))
+      const dataTransfer = new DataTransfer()
+      const fire = (node: Element, type: string) =>
+        node.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer }))
+
+      fire(sections[1]!, 'dragstart')
+      fire(sections[0]!, 'dragover')
+      fire(sections[0]!, 'drop')
+    })
+
+    await expect(page.getByText('Saved as draft')).toBeVisible({ timeout: 10_000 })
+    await expect(previewSections.first()).toHaveAttribute('data-module-id', label)
+    await expect(previewSections.nth(1)).toHaveAttribute('data-module-id', wasFirst)
+  })
   })
 
   test('hiding a section removes it from guests without discarding its config', async ({ page }) => {

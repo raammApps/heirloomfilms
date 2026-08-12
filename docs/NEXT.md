@@ -68,19 +68,6 @@ Platform admin, partner registration, couple accounts, ownership transfer, entit
 Razorpay. Sequenced in doc 15 §6 — the order matters, and steps 1–3 (this item, ISR, Supabase
 Auth) are worth doing whether or not the partner model happens.
 
-### N-13 · Customizer, second pass  ·  ~half a session
-
-The shape is fixed — three columns, selection in the preview, an inspector that shares the
-screen instead of covering it. What was scoped out and is still worth doing:
-
-1. **Edit text in place.** Headings and the letter body are what operators change most, and both
-   are already rendered in the preview. Contenteditable on those two only — not a general
-   editor, which is where this stops being simple.
-2. **Reorder by dragging in the preview.** The list does this accessibly today and remains the
-   keyboard path regardless; dragging in the preview is additive, not a replacement.
-3. **Scroll the preview to the selected section** when selection comes from the list. Clicking a
-   section in the list currently updates the inspector while the preview stays where it was.
-
 ### N-14 · Real footage  ·  operator task
 
 The guest surface has been judged against generated gradients and flat test images throughout.

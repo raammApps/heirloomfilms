@@ -24,6 +24,7 @@ import type { Album, Catalogue, ModuleInstance, Photo, Title } from '@/lib/schem
 import { getModule, listModules, instantiate } from '@/modules/registry'
 import type { GuestContext } from '@/modules/contract'
 import { SectionInspector } from './SectionInspector'
+import { resolveLocalised } from '@/lib/i18n'
 import { BRANDING_SELECTION, PreviewPane } from './PreviewPane'
 import { ThemePicker } from './ThemePicker'
 
@@ -107,6 +108,50 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
     if (from === -1 || to === -1) return
     commit(arrayMove(modules, from, to))
   }
+
+  /**
+   * A heading typed straight into the preview (N-13 §1).
+   *
+   * Goes through `commit` like every other mutation, so it is undoable and autosaved on the same
+   * path as a change made in the inspector — there is no second way to edit a module.
+   *
+   * Only `en` is touched. The preview renders English, so that is the string the operator was
+   * looking at when they typed; the Hindi field stays where it is and stays the inspector's job.
+   */
+  const editHeading = useCallback(
+    (instanceId: string, text: string) => {
+      setModules((current) => {
+        const target = current.find((instance) => instance.id === instanceId)
+        if (!target || resolveLocalised(target.title, 'en') === text) return current
+
+        undoStack.current = [...undoStack.current, current].slice(-UNDO_DEPTH)
+        return current.map((instance) =>
+          instance.id === instanceId
+            ? { ...instance, title: { ...instance.title, en: text } }
+            : instance,
+        )
+      })
+      setDirty(true)
+    },
+    [],
+  )
+
+  /**
+   * A drop in the preview (N-13 §2), expressed the same way the list's drag already is.
+   *
+   * Both paths land on `arrayMove` through `commit`, so a reorder from the preview is undoable
+   * and autosaved identically — the preview is a second way to say the same thing, not a second
+   * implementation of it.
+   */
+  const reorderByIds = useCallback(
+    (fromId: string, toId: string) => {
+      const from = modules.findIndex((m) => m.id === fromId)
+      const to = modules.findIndex((m) => m.id === toId)
+      if (from === -1 || to === -1 || from === to) return
+      commit(arrayMove(modules, from, to))
+    },
+    [modules, commit],
+  )
 
   const moveBy = (id: string, delta: -1 | 1) => {
     const from = modules.findIndex((m) => m.id === id)
@@ -240,6 +285,8 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
           branding={branding}
           selectedId={editingId}
           onSelect={setEditingId}
+          onEditHeading={editHeading}
+          onReorder={reorderByIds}
           catalogue={catalogue}
           titles={titles}
           albums={albums}

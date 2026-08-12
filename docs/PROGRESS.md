@@ -686,3 +686,52 @@ defaults to the *lowest* value, so a caller that forgets under-promises rather t
 upload the server will refuse.
 
 10 new unit tests, all on the ordering. 318 unit and component, 86 E2E.
+
+## N-13 · The customizer's second pass
+
+Three things were scoped out of the redesign. All three are in.
+
+**Headings are edited where they are read.** Selecting a section makes its heading editable in
+the preview itself — the "find the field, type, look back" loop was avoidable, and headings are
+what operators change most. Applied imperatively rather than rendered as `contentEditable` from
+React, because the node belongs to a guest component and threading an editing prop through the
+module contract is exactly what this design refuses to do. The heading is found by shape — the
+first `h1`/`h2` inside the section — for the same reason the selection outline is scoped CSS: the
+previewed markup stays byte-identical to what a guest gets.
+
+The load-bearing detail is **commit on blur, never on keystroke**. Per-character commits would
+push a new `modules` array, re-render the guest tree, replace the node being typed into and drop
+the caret mid-word. Typing touches only the DOM; React learns about it once, at the end.
+
+**The preview follows the list.** Selecting a section in the list used to update the inspector
+while the preview stayed where it was, so an operator edited a heading they could not see. It now
+scrolls — but only when the selection came from the list. The pane records what it selected
+itself, because scrolling to something the operator just pointed at would yank the page out from
+under their cursor.
+
+**Sections can be dragged in the preview.** Additive, never a replacement: the list keeps the
+keyboard path that doc 14 §5.1 requires. Native HTML5 drag, delegated to the viewport, because it
+gives the drop cursor and autoscroll inside a 780px scroller for free. The awkward part is that
+guest sections are full of natively draggable images and links, so `dragstart` always resolves up
+to the enclosing section and images are made undraggable — in the preview's copy of the tree
+only.
+
+Both new paths land on the same `commit` as the list, so a reorder or a rename from the preview
+is undoable and autosaved identically. There is one way to change a module, reachable from two
+places.
+
+### Two things the tests taught
+
+**Playwright cannot start Chromium's native drag loop.** `dragTo` moves the pointer and no
+`dragstart` ever fires — verified by dispatching the events directly, which reordered correctly
+while the mouse-driven version did nothing. The spec therefore dispatches real `DragEvent`s and
+asserts `draggable` separately, and says so: it covers the handlers, the reorder and the
+autosave, not the browser's decision to begin a drag.
+
+**The customizer specs were racing each other.** They share one in-memory store, and adding a
+second spec that reorders the demo catalogue made "Billboard is first" fail intermittently in the
+full run while passing alone. They are serialised now. `helpers.ts` solves this for content by
+creating a throwaway catalogue; that does not work here, because a catalogue with no published
+films renders no sections to select or drag.
+
+318 unit and component, 89 E2E.
