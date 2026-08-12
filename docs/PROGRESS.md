@@ -767,3 +767,42 @@ for it to show up.
 Playback start deliberately stays out of CI. Doc 10 §3 M-9 keeps the authoritative number on a
 real phone on real 4G, and CI hardware cannot honestly produce it; production telemetry
 (`qoe.playback_start`) is the continuous version.
+
+## N-16 · The platform console, and the privilege boundary it does not cross
+
+`platform_admins` had been a table since migration 0004 that **no code read**. It reads now.
+
+Doc 15 §1's design is the whole of it: a platform admin is *not* a member of an org. If "admin"
+were a membership, every org-scoped query in the product would have to ask whether this member
+happens to be special, and cross-tenant leaks live in exactly that branch. The cost is that
+platform-wide views have to be written one at a time, deliberately — so two were, and no more:
+every org with its catalogue count, and one org's catalogues read-only for when a partner writes
+in describing a problem.
+
+`lib/admin/platform.ts` is a separate file from `lib/admin/session.ts` on purpose, not a flag on
+`OperatorSession`. A boolean on the session would mean every scoped query could in principle be
+asked to skip its scope, with nothing between a tenant's data and everybody else's except no
+route having forgotten to check. The practical consequence is the point: **there is no way to
+widen an operator into an admin.** One function reads `operators`, the other reads
+`platform_admins`, and nothing converts between them in either direction.
+
+Three details worth keeping:
+
+- **404, not 403.** An operator poking at `/admin/platform` should not learn the surface exists —
+  the same reasoning that already makes another org's catalogue a 404.
+- **Read-only, with no write path at all** — not a disabled button, none. Support means being
+  able to describe what the partner is describing. The moment this can edit somebody else's
+  wedding it becomes the most dangerous page in the product.
+- **A platform admin has no `operators` row**, so `/admin` would have bounced them to a login
+  they had already passed, forever. It now sends them to the surface that is theirs.
+
+The tests assert the isolation rather than the feature: an operator id does not resolve to an
+admin, an admin id does not resolve to an operator, and `PlatformAdmin` carries no `orgId` — that
+last one fails if anybody ever adds one, which it should, because it would mean the argument had
+quietly changed shape. The E2E asserts the only thing that really matters: a signed-in operator
+gets 404 from both routes.
+
+The table is empty, so nobody can reach the console today. That is the correct default; adding
+the first row is in NEXT.md under Sandeep's items.
+
+325 unit and component, 90 E2E.

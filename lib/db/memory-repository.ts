@@ -7,6 +7,7 @@ import type {
   ModuleState,
   Operator,
   Org,
+  PlatformAdmin,
   PlaybackProgress,
   PlayEvent,
   Photo,
@@ -22,6 +23,7 @@ import type {
 } from './repository'
 
 export type Snapshot = {
+  platformAdmins: PlatformAdmin[]
   entitlements: Entitlement[]
   transfers: Transfer[]
   orgs: Org[]
@@ -39,6 +41,7 @@ export type Snapshot = {
 
 export function emptySnapshot(): Snapshot {
   return {
+    platformAdmins: [],
     entitlements: [],
     transfers: [],
     orgs: [],
@@ -121,6 +124,20 @@ export class MemoryRepository implements Repository {
     this.data.operators.push(this.clone(operator))
     this.touched()
     return this.clone(operator)
+  }
+
+  // ── Platform admin ──────────────────────────────────────────────────────────
+  async getPlatformAdmin(id: string): Promise<PlatformAdmin | null> {
+    return this.clone(this.data.platformAdmins.find((a) => a.id === id) ?? null)
+  }
+
+  async catalogueCountsByOrg(): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {}
+    for (const org of this.data.orgs) counts[org.id] = 0
+    for (const catalogue of this.data.catalogues) {
+      counts[catalogue.orgId] = (counts[catalogue.orgId] ?? 0) + 1
+    }
+    return counts
   }
 
   // ── Entitlements ────────────────────────────────────────────────────────────

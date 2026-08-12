@@ -6,6 +6,7 @@ import type {
   ModuleState,
   Operator,
   Org,
+  PlatformAdmin,
   Transfer,
   PlaybackProgress,
   Photo,
@@ -64,6 +65,21 @@ export interface Repository {
   createOperator(operator: Operator): Promise<Operator>
   /** Compensation for a half-finished registration. Not a user-facing delete. */
   deleteOrg(id: string): Promise<void>
+
+  // ── Platform admin (doc 15 §1) ──────────────────────────────────────────────
+  /**
+   * Looked up by the authenticated user's id, never by anything in a request.
+   *
+   * Returns null for everyone else, which is what makes "am I a platform admin" a single
+   * question with a single answer rather than a predicate spread across routes.
+   */
+  getPlatformAdmin(id: string): Promise<PlatformAdmin | null>
+  /**
+   * How many catalogues each org holds, for the platform list. Unscoped by definition — it is
+   * the one view whose whole purpose is to cross org boundaries, which is why it sits here
+   * beside `listAllCatalogues` rather than anywhere a request path would reach for it.
+   */
+  catalogueCountsByOrg(): Promise<Record<string, number>>
 
   // ── Entitlements (doc 15 §3) ────────────────────────────────────────────────
   /**

@@ -10,6 +10,7 @@ import type {
   ModuleState,
   Operator,
   Org,
+  PlatformAdmin,
   PlaybackProgress,
   Photo,
   Profile,
@@ -428,6 +429,28 @@ export class SupabaseRepository implements Repository {
       }
     }
 
+    return counts
+  }
+
+  // ── Platform admin ──────────────────────────────────────────────────────────
+  async getPlatformAdmin(id: string): Promise<PlatformAdmin | null> {
+    const { data } = await this.db.from('platform_admins').select('*').eq('id', id).maybeSingle()
+    if (!data) return null
+    return { id: data.id, email: data.email, name: data.name, createdAt: data.created_at }
+  }
+
+  async catalogueCountsByOrg(): Promise<Record<string, number>> {
+    const [{ data: orgs }, { data: catalogues }] = await Promise.all([
+      this.db.from('orgs').select('id'),
+      this.db.from('catalogues').select('org_id'),
+    ])
+
+    const counts: Record<string, number> = {}
+    for (const row of (orgs ?? []) as Row[]) counts[row.id as string] = 0
+    for (const row of (catalogues ?? []) as Row[]) {
+      const id = row.org_id as string
+      counts[id] = (counts[id] ?? 0) + 1
+    }
     return counts
   }
 

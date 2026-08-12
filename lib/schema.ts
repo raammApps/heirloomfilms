@@ -214,6 +214,23 @@ export const operatorSchema = z.object({
 })
 export type Operator = z.infer<typeof operatorSchema>
 
+/**
+ * Whoever runs the platform (doc 15 §1).
+ *
+ * **No `orgId`, and that is the whole design.** If "admin" were a membership, every org-scoped
+ * query in the product would have to ask whether this member happens to be special — and
+ * cross-tenant leaks live in exactly that branch. Keeping a platform admin outside the org graph
+ * means no scoped query changes at all; the cost is that platform-wide views must be written one
+ * at a time, deliberately, which is the trade doc 15 §1 argues for.
+ */
+export const platformAdminSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  name: z.string().min(1),
+  createdAt: z.string(),
+})
+export type PlatformAdmin = z.infer<typeof platformAdminSchema>
+
 export const creditSchema = z.object({ role: z.string().min(1), name: z.string().min(1) })
 export type Credit = z.infer<typeof creditSchema>
 

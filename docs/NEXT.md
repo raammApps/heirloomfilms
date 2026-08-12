@@ -62,23 +62,6 @@ will help, because the limit belongs to the project rather than to their address
 Configure a real provider (`docs/DEPLOYMENT.md` §12) and check the Site URL, or the confirmation
 link lands somewhere that is not this deployment.
 
-### N-16 · Platform admin — the last unbuilt piece of the partner model  ·  doc 15 §1
-
-This was an umbrella over six things. Five have landed: partner registration, couple accounts,
-ownership transfer (N-18), entitlements (N-19) and Supabase Auth. Razorpay is tracked separately
-as N-20. What is left is the one surface nobody has built.
-
-`platform_admins` exists as a table (migration 0004) and **no code reads it.** A platform admin is
-deliberately *not* a member of an org — doc 15 §1's argument is that if "admin" were a membership,
-every org-scoped query would have to ask whether this member is special, and cross-tenant leaks
-live in that branch. The cost of that choice is that platform-wide views have to be written one at
-a time, on purpose.
-
-What is actually needed, in order: a list of every org and its catalogue count; the ability to
-look at one partner's catalogues read-only when they ask for support; and nothing else until
-somebody asks for it. `Repository.listOrgs` is already there and already documented as
-platform-admin-only.
-
 ### N-14 · Real footage  ·  operator task
 
 The guest surface has been judged against generated gradients and flat test images throughout.
@@ -126,6 +109,15 @@ line — `tests/unit/registry.test.ts` fails the build otherwise. Remember `meta
 ---
 
 ## Held by Sandeep, not by an agent (doc 13 §8)
+
+**Insert yourself into `platform_admins`** if you want the platform console. It is built and
+gated (N-16), and the table is empty, so today nobody can reach it — which is the correct default.
+`id` must be your Supabase `auth.users` id:
+
+```sql
+insert into platform_admins (id, email, name)
+values ('<your auth.users id>', 'you@example.com', 'Sandeep');
+```
 
 **Run `supabase/migrations/0006_entitlements.sql`.** Creates `plans` and `entitlements`. Until it
 is applied the Supabase driver logs a warning and resolves every catalogue to the default caps —

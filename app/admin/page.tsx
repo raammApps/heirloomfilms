@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { AdminChrome } from '@/components/admin/AdminChrome'
 import { CatalogueBoard, type CatalogueRow } from '@/components/admin/CatalogueBoard'
+import { getPlatformAdmin } from '@/lib/admin/platform'
 import { getOperatorSession, getSessionOrg } from '@/lib/admin/session'
 import { getRepository } from '@/lib/db'
 import { env } from '@/lib/env'
@@ -12,7 +13,15 @@ export const dynamic = 'force-dynamic'
 /** AE-2 — every wedding this operator manages, with status and subscription state. */
 export default async function CatalogueListPage() {
   const session = await getOperatorSession()
-  if (!session) redirect('/admin/login')
+  if (!session) {
+    /**
+     * A platform admin has no `operators` row — that is the isolation, not an oversight — so
+     * they fail the check above and would have been bounced to a login they had already passed,
+     * forever. Send them to the surface that is actually theirs.
+     */
+    if (await getPlatformAdmin()) redirect('/admin/platform')
+    redirect('/admin/login')
+  }
 
   const repository = getRepository()
 

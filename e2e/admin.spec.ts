@@ -52,6 +52,25 @@ test.describe('the admin console', () => {
     await expect(page.getByRole('menu')).toHaveCount(0)
   })
 
+  /**
+   * N-16 — the platform surface is invisible to an ordinary operator.
+   *
+   * 404 rather than a refusal, on the same reasoning that makes another org's catalogue a 404:
+   * an operator poking at the URL should not learn that the surface exists. This is the only
+   * assertion about it that matters, so it is the one in the suite.
+   */
+  test('an operator cannot reach the platform surface', async ({ page }) => {
+    const responses = [
+      await page.goto('/admin/platform'),
+      await page.goto('/admin/platform/orgs/11111111-1111-4111-8111-111111111111'),
+    ]
+
+    for (const response of responses) {
+      expect(response?.status()).toBe(404)
+    }
+    await expect(page.getByText(/every org/i)).toHaveCount(0)
+  })
+
   test('the list can be searched and filtered down to one wedding', async ({ page }) => {
     const created = await createCatalogue(page, 'search')
     await page.goto('/admin')
