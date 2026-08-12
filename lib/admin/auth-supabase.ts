@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { NextResponse } from 'next/server'
 import { env } from '@/lib/env'
+import { ApiError } from '@/lib/http/errors'
 import type { AuthenticatedUser, AuthProvider } from './auth-provider'
 
 /**
@@ -68,6 +69,21 @@ export class SupabaseAuthProvider implements AuthProvider {
    */
   async signUp(email: string, password: string): Promise<AuthenticatedUser | null> {
     const { data, error } = await this.client().auth.signUp({ email, password })
+
+    /**
+     * A refusal and an outage are different answers, and null cannot say which.
+     *
+     * Sign-up sends a confirmation email, and Supabase's built-in SMTP allows only a few per
+     * hour — it exists for development and says so. Reporting that as "try a different address"
+     * sends a real business away believing their own email is the problem, which is the worst
+     * possible reading. Throw, so the caller can say "not right now" instead.
+     */
+    if (error && (error.status === 429 || /rate limit/i.test(error.message))) {
+      throw new ApiError(
+        'RATE_LIMITED',
+        'Sign-ups are temporarily unavailable. Please try again shortly.',
+      )
+    }
     if (error || !data.user?.email) return null
     // An existing address returns a user with no identities rather than an error.
     if (Array.isArray(data.user.identities) && data.user.identities.length === 0) return null

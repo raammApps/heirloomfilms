@@ -34,6 +34,18 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
+### N-17 · SMTP, before registration is opened to anyone  ·  ~30m  ·  **blocks partner sign-up**
+
+Supabase Auth sends a confirmation on sign-up and a link on password reset, and by default both
+go through Supabase's built-in SMTP — a few messages per hour, meant for development. Hitting it
+returns `over_email_send_rate_limit`, which is what the first live registration attempt did.
+
+A partner who never receives their confirmation cannot sign in, and no message the app can write
+will help, because the limit belongs to the project rather than to their address.
+
+Configure a real provider (`docs/DEPLOYMENT.md` §12) and check the Site URL, or the confirmation
+link lands somewhere that is not this deployment.
+
 ### N-16 · Partner model  ·  see doc 15
 
 Platform admin, partner registration, couple accounts, ownership transfer, entitlements,

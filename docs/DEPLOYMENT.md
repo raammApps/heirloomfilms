@@ -343,3 +343,29 @@ Authenticating is not the same as being allowed in: a Supabase user with no `ope
 refused, and refused *identically* to a wrong password, so neither answer tells an attacker
 whether an address exists.
 
+## 12. SMTP, before any partner registers
+
+Supabase Auth sends a confirmation email on sign-up and a link on password reset. Out of the box
+it sends both through **Supabase's built-in SMTP, which allows only a few messages per hour** —
+it exists for development, and hitting the limit returns `over_email_send_rate_limit`.
+
+That is not a detail to discover with a real studio on the phone. A partner who cannot receive
+their confirmation cannot sign in at all, and the app cannot tell them why beyond "try again
+shortly" — the limit is a property of the project, not of their address.
+
+**Configure your own SMTP before opening registration.** Supabase → Project Settings →
+Authentication → SMTP Settings. Any transactional provider works; Resend, SendGrid and Amazon
+SES are the usual choices for an Indian entity, and all three have a free tier that comfortably
+covers a partner sign-up rate.
+
+Two related settings on the same screen worth deciding deliberately:
+
+- **Confirm email** (`mailer_autoconfirm`). On by default, and it should stay on: an
+  unconfirmed address means a partner account whose owner may never have asked for it. It does
+  mean a partner must click the link before their first sign-in, which the sign-up screen says.
+- **Site URL / redirect URLs**. The confirmation link points here. Left at its default, a partner
+  confirms and lands somewhere that is not this deployment.
+
+Until SMTP is configured, registration works but delivery does not, and the honest summary is
+that partner sign-up is not ready for anyone outside your own testing.
+
