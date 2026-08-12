@@ -107,6 +107,22 @@ const schema = z
      */
     RECONCILE_STALL_MINUTES: z.coerce.number().int().nonnegative().default(120),
 
+    /**
+     * Who verifies an operator's password.
+     *
+     * `local` is the signed cookie over a hash this app stores: what shipped, and what the
+     * offline paths need — the Playwright suite and CI run with no Supabase project at all.
+     * `supabase` hands the credential to Supabase Auth, which is the prerequisite for partner
+     * self-registration: verified email, password reset, and a password this app never sees
+     * (doc 15 §6).
+     *
+     * Defaults to `local` so switching is deliberate. It requires a Supabase Auth password to
+     * exist for each operator, and `docs/DEPLOYMENT.md` told operators to set that to something
+     * random precisely because nothing used it — so flipping this without setting one first
+     * locks the console.
+     */
+    AUTH_DRIVER: z.enum(['local', 'supabase']).default('local'),
+
     DEV_OPERATOR_EMAIL: z.string().email().default('operator@mehfil.test'),
     DEV_OPERATOR_PASSWORD: nonEmpty.default('mehfil-dev'),
 

@@ -317,3 +317,29 @@ Honest, so they are not discovered at a wedding. Tracked in
 - **No Lighthouse in CI** (N-5). First-load JS is gated at 150KB; LCP and CLS are not.
 - **The production database has no demo catalogue.** The nine-title fixture exists only in the
   `memory` and `file` drivers, and a real one needs real cleared footage (N-6, doc 13 §8).
+
+## 11. Switching to Supabase Auth
+
+`AUTH_DRIVER` decides who verifies an operator's password. It defaults to `local` — the signed
+cookie over a hash this app stores — which is what the Playwright suite and CI need, since they
+run with no Supabase project at all.
+
+`supabase` hands the credential to Supabase Auth: a verified email address, a password reset
+flow, and a password this application never sees. Doc 15 §6 makes it the prerequisite for
+partner self-registration.
+
+**Set a Supabase Auth password before flipping it.** §4 of this document told you to set that
+password to something random, precisely because nothing used it. Flip `AUTH_DRIVER` without
+changing it and the console locks.
+
+1. Supabase → Authentication → Users → the operator → set a password you know.
+2. Confirm `operators.id` equals that user's `auth.users.id`. It will, if the operator was
+   created the way §4 describes.
+3. Set `AUTH_DRIVER=supabase` on the Vercel project and redeploy.
+4. Sign in. If it fails, set `AUTH_DRIVER=local` and you are immediately back — the old hash is
+   still in the row, untouched.
+
+Authenticating is not the same as being allowed in: a Supabase user with no `operators` row is
+refused, and refused *identically* to a wrong password, so neither answer tells an attacker
+whether an address exists.
+

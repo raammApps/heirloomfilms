@@ -1,8 +1,7 @@
 import 'server-only'
-import { cookies } from 'next/headers'
-import { readSession, SESSION_COOKIE } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
+import { getAuthProvider } from './auth'
 import type { Catalogue, Operator } from '@/lib/schema'
 
 /**
@@ -16,13 +15,17 @@ import type { Catalogue, Operator } from '@/lib/schema'
 export type OperatorSession = { operator: Operator; orgId: string }
 
 export async function getOperatorSession(): Promise<OperatorSession | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value
-  const payload = readSession(token)
-  if (!payload) return null
+  // *Who* comes from the auth driver; *what they may see* comes from the operators row, always.
+  // Authentication is swappable; this authorisation step is not, which is what keeps swapping
+  // the authenticator from widening anyone's reach.
+  const user = await getAuthProvider().currentUser()
+  if (!user) return null
 
-  const operator = await getRepository().getOperator(payload.sub)
-  // A session whose org no longer matches the operator record is stale, not merely wrong.
-  if (!operator || operator.orgId !== payload.orgId) return null
+  const operator = await getRepository().getOperator(user.id)
+  // An authenticated user with no operator row is a real state under Supabase Auth — somebody
+  // signed up, or was invited, and has not been granted access to an org. It is not an error,
+  // and it must not be treated as a session.
+  if (!operator) return null
 
   return { operator, orgId: operator.orgId }
 }

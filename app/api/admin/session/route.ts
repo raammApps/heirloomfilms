@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { cookieOptions, createSession, SESSION_COOKIE, SESSION_TTL_S, verifySecret } from '@/lib/auth'
+import { getAuthProvider } from '@/lib/admin/auth'
 import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
 import { readJson, route } from '@/lib/http/handler'
@@ -23,32 +23,35 @@ export async function POST(request: Request) {
       throw new ApiError('RATE_LIMITED', 'Too many attempts', { retryAfterS: limit.retryAfterS })
     }
 
-    const operator = await getRepository().getOperatorByEmail(body.email)
-    // One generic failure for both branches, and `verifySecret` is constant-time, so this does
-    // not become an account-enumeration oracle.
-    if (!operator || !verifySecret(body.password, operator.passwordHash)) {
+    // A carrier, because a driver keeps its session by setting cookies on a response, and the
+    // real body is not known until the operator row has been read. Supabase sets an access and
+    // a refresh cookie, so every cookie is copied across rather than one `set-cookie` header.
+    const carrier = new NextResponse(null)
+    const user = await getAuthProvider().signIn(body.email, body.password, carrier)
+
+    // Authenticating is not the same as being allowed in. Under Supabase Auth anyone can hold a
+    // valid account; only an `operators` row grants access to an org, and the two failures are
+    // reported identically so neither becomes an account-enumeration oracle.
+    const operator = user ? await getRepository().getOperator(user.id) : null
+    if (!user || !operator) {
       log.warn('admin login: rejected', { email: body.email })
       throw new ApiError('UNAUTHORIZED', 'Those details did not work')
     }
 
     reset(bucket)
-    log.info('admin login: ok', { operatorId: operator.id })
+    log.info('admin login: ok', { operatorId: operator.id, driver: getAuthProvider().name })
 
     const response = NextResponse.json(
       { operator: { id: operator.id, name: operator.name, email: operator.email } },
       { headers: { 'cache-control': 'no-store' } },
     )
-    response.cookies.set(
-      SESSION_COOKIE,
-      createSession(operator.id, operator.orgId),
-      cookieOptions(SESSION_TTL_S),
-    )
+    for (const cookie of carrier.cookies.getAll()) response.cookies.set(cookie)
     return response
   })
 }
 
 export async function DELETE() {
   const response = new NextResponse(null, { status: 204 })
-  response.cookies.set(SESSION_COOKIE, '', cookieOptions(0))
+  await getAuthProvider().signOut(response)
   return response
 }
