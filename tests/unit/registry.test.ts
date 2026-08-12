@@ -105,7 +105,7 @@ describe('the registry is the only wiring point', () => {
     const types = moduleTypes()
     const offenders: string[] = []
 
-    const skip = new Set(['node_modules', '.next', '.git', 'modules', 'coverage', 'project-doc-directory', 'tests', 'e2e', '.data', 'public'])
+    const skip = new Set(['node_modules', '.next', '.git', 'modules', 'coverage', 'docs', 'tests', 'e2e', '.data', 'public'])
 
     const walk = (dir: string) => {
       for (const entry of readdirSync(dir)) {

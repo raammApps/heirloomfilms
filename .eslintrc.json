@@ -28,5 +28,5 @@
       "rules": { "no-restricted-properties": "off" }
     }
   ],
-  "ignorePatterns": ["node_modules", ".next", "coverage", "project-doc-directory", "playwright-report"]
+  "ignorePatterns": ["node_modules", ".next", "coverage", "docs", "playwright-report"]
 }

@@ -1,7 +1,7 @@
 # Architecture
 
 How this system is put together, and why. The **specification** — what the product is meant to
-be — lives in `project-doc-directory/`. This document describes what was actually built.
+be — lives in [`docs/spec/`](./spec/). This document describes what was actually built.
 
 Diagrams are Mermaid, so they render on GitHub without a build step.
 
@@ -245,9 +245,9 @@ Unchanged from `CLAUDE.md`, and worth repeating because it is where to look firs
 
 | You want | Read |
 |---|---|
-| What the product is | `project-doc-directory/docs/01-product-spec.md` |
-| What is built and why | `project-doc-directory/docs/PROGRESS.md` |
-| What is next | `project-doc-directory/docs/NEXT.md` |
+| What the product is | `docs/spec/01-product-spec.md` |
+| What is built and why | `docs/PROGRESS.md` |
+| What is next | `docs/NEXT.md` |
 | How to deploy it | `docs/DEPLOYMENT.md` |
-| Partners, scale, money | `project-doc-directory/docs/15-partners-and-scale.md` |
+| Partners, scale, money | `docs/spec/15-partners-and-scale.md` |
 | The rules that keep it coherent | `CLAUDE.md` |

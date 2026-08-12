@@ -496,3 +496,36 @@ Three things went wrong and each taught something:
 Still blocking real partners: SMTP (N-17). Sign-up and password reset both send email, and
 Supabase's built-in sender allows a few messages an hour.
 
+
+## One documentation tree
+
+`project-doc-directory/` was a placeholder name that stuck, and the split it created was
+arbitrary: nothing said which of two top-level trees a new document belonged in, so the answer
+was "the one you happened to be in". `docs/README.md` had rationalised the split rather than
+questioning it.
+
+Everything now lives under `docs/`, moved with `git mv` so authorship survives:
+
+| | |
+|---|---|
+| `docs/*.md` | The living documents — architecture, progress, next, deployment |
+| `docs/spec/` | The specification, docs 01–15. What the product was *meant* to be |
+| `docs/reference/` | Decision log, business case, the reference reel |
+| `docs/wireframes/` | The SVGs. `spec/03-wireframes.md` carries the same content as text |
+| `docs/archive/` | Superseded invite-site work. Never a source of truth |
+
+The split that was worth keeping is **spec versus reality**, and that is now a subdirectory
+rather than a second tree.
+
+Three ignore lists named the old directory and were found only by grepping for it after the
+tests passed: `.eslintrc.json`, `.prettierignore`, and the skip set in
+`tests/unit/registry.test.ts`. The registry test passed throughout not because its skip worked
+but because it only reads `.ts`/`.tsx` and the docs are markdown — it would have started
+scanning the specification the moment anyone put a `.ts` example in there, and the specification
+names module types on nearly every page. `.prettierignore` was mapped to the four moved
+subdirectories rather than to `docs`, because the living documents *were* formatted before and
+the hand-aligned spec tables were not.
+
+Also added along the way: `docs/ARCHITECTURE.md`, which is what was actually missing — six
+Mermaid diagrams covering what talks to what, who can see what, a guest opening a link, a film
+arriving, the module registry, and a handover.

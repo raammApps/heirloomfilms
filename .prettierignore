@@ -4,5 +4,10 @@ pnpm-lock.yaml
 coverage
 playwright-report
 test-results
-project-doc-directory
+# The spec and its supporting material is prose written by hand, with tables aligned for
+# reading. Prettier reflows those. The living docs at docs/*.md stay formatted.
+docs/spec
+docs/reference
+docs/wireframes
+docs/archive
 public/fonts

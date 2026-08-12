@@ -121,7 +121,7 @@ module registry plus a non-technical customizer turns that into 30 minutes of an
 time, forty times a season. The streaming UI is copyable in a weekend; a module system with a
 safe theming layer, validated content and a working multi-gigabyte upload pipeline is months.
 
-Spec: `docs/14-modules-and-customizer.md`. It is why the customizer is P0 and not Phase 2 —
+Spec: `docs/spec/14-modules-and-customizer.md`. It is why the customizer is P0 and not Phase 2 —
 a demo where Sandeep edits JSON demonstrates a bespoke service, which is exactly what the
 planner can already buy elsewhere.
 

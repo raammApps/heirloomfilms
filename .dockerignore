@@ -6,7 +6,7 @@ coverage
 playwright-report
 test-results
 .data
-project-doc-directory
+docs
 e2e
 tests
 *.md

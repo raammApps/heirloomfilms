@@ -127,7 +127,7 @@ streaming product. Nothing else on this list changes that impression as much.
 **Deployed, public and fully verified** at `https://marquee-film-pub.vercel.app` — Supabase,
 Bunny, and webhook delivery all confirmed against real traffic. Nothing is unverified any more.
 
-What is left is the name. Per [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md) §5, `path` mode
+What is left is the name. Per [`docs/DEPLOYMENT.md`](./DEPLOYMENT.md) §5, `path` mode
 needs one CNAME. Afterwards, update **two** things or transcodes silently stop:
 
 1. `ROOT_DOMAIN` on the Vercel project.

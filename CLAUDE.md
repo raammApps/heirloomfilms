@@ -1,19 +1,19 @@
 # CLAUDE.md — Mehfil (implementation)
 
-The **specification** lives in `project-doc-directory/`. Read
-`project-doc-directory/CLAUDE.md` first, then `project-doc-directory/docs/13-agent-runbook.md §2`
+The **specification** lives in `docs/spec/`. Read
+`docs/spec/README.md` first, then `docs/spec/13-agent-runbook.md §2`
 for the per-ticket reading map. Never load the whole doc set.
 
 This file covers the **codebase**: what exists, and the rules that keep it coherent.
 
 ## Context discipline
 
-- `project-doc-directory/docs/PROGRESS.md` is what was built and why.
-  `project-doc-directory/docs/NEXT.md` is **what is left, in the order to take it up**. Read
+- `docs/PROGRESS.md` is what was built and why.
+  `docs/NEXT.md` is **what is left, in the order to take it up**. Read
   CLAUDE.md → PROGRESS → NEXT; a cold start is then ~5k tokens regardless of repo size.
   Append to PROGRESS and remove the item from NEXT as each lands.
 - Run `pnpm preflight` before trusting anything either file says about Supabase or Bunny.
-- Never read the `.svg` wireframes into context. `docs/03-wireframes.md` carries the text.
+- Never read the `.svg` wireframes into context. `docs/spec/03-wireframes.md` carries the text.
 - Never read `archive/` — superseded invite-site work.
 
 ## Working rules, enforced rather than remembered

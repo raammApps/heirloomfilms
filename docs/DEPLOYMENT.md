@@ -307,7 +307,7 @@ across instances — run a single instance, or add shared cache handling, before
 ## 11. Known gaps at deploy time
 
 Honest, so they are not discovered at a wedding. Tracked in
-[`../project-doc-directory/docs/NEXT.md`](../project-doc-directory/docs/NEXT.md).
+[`../docs/NEXT.md`](../docs/NEXT.md).
 
 - **The webhook signature has never been verified against a real delivery.** It needs a public
   URL, so it cannot be tested locally. It fails closed, and the nightly reconciliation is the

@@ -8,7 +8,7 @@ couple's guests browse like a streaming app.
 **It is a keepsake, not an archive.** 6–15 items, 3–5 sections, two screens of scroll. The full
 40GB and the 2,000 photos stay wherever they live today.
 
-The specification lives in [`project-doc-directory/`](project-doc-directory/). This README covers
+The specification lives in [`docs/spec/`](docs/spec/). This README covers
 running and shipping the code.
 
 ---
@@ -20,7 +20,7 @@ running and shipping the code.
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How it fits together, with diagrams — **start here** |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Running it: accounts, variables, DNS |
 | [`docs/README.md`](docs/README.md) | Why there are two documentation trees |
-| [`project-doc-directory/docs/`](project-doc-directory/docs/) | The specification, and `PROGRESS` / `NEXT` |
+| [`docs/spec/`](docs/spec/) | The original specification, docs 01–15 |
 
 ## Quick start
 
@@ -270,7 +270,7 @@ label. Doc 06 §5 keeps the viewer side free of personal data and telemetry gets
 ## Known gaps
 
 Recorded honestly rather than left to be discovered. Details and reasoning in
-`project-doc-directory/docs/PROGRESS.md`.
+`docs/PROGRESS.md`.
 
 - **The browse route renders dynamically, not ISR.** Reading the locale cookie opts the route
   out of static generation. Doc 05 §6 wants ISR here. The fix is to move locale into the path or

@@ -1,20 +1,29 @@
-# Engineering documentation
+# Documentation
 
-Two trees, and the split is deliberate:
+Everything written about this project, in one tree.
 
-| | What it is | Who changes it |
-|---|---|---|
-| **`project-doc-directory/`** | The **specification**: what the product should be. Numbered docs 01–15, plus `PROGRESS.md` (what was built) and `NEXT.md` (what is left, in order). | Changes when the product decision changes |
-| **`docs/`** *(here)* | How the thing that exists actually works and how to run it | Changes when the code changes |
-
-If they ever disagree, `project-doc-directory/` says what was intended and `docs/` says what is
-true. Both are worth knowing; only one of them is running in production.
-
-## In this directory
+## Start here
 
 | | |
 |---|---|
-| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | How the system fits together, with diagrams. **Start here.** |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | How the system fits together, with diagrams. The best single entry point. |
+| [`PROGRESS.md`](./PROGRESS.md) | What has been built, and why it was built that way |
+| [`NEXT.md`](./NEXT.md) | What is left, in the order to take it up |
 | [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Accounts, environment variables, DNS, and the settings that fail silently when wrong |
-| [`../knip.md`](../knip.md) | What the dead-code gate keeps on purpose, and why |
-| [`../CLAUDE.md`](../CLAUDE.md) | The rules that keep the codebase coherent, and which are enforced by a test rather than by memory |
+
+## The rest
+
+| | |
+|---|---|
+| [`spec/`](./spec/) | The original specification, docs 01–15. **What the product is meant to be**, written before the code existed. |
+| [`reference/`](./reference/) | The decision log, the business case, and the reference reel the design is measured against |
+| [`wireframes/`](./wireframes/) | SVG wireframes. `spec/03-wireframes.md` carries the same content as text — read that instead; the SVGs are for humans. |
+| [`archive/`](./archive/) | Superseded invite-site work. Kept for provenance, never a source of truth. |
+
+## Spec versus reality
+
+`spec/` says what was **intended**. Everything above it says what is **true**. They diverge in
+places, and where they do, the divergence is argued rather than silent — `CLAUDE.md` lists the
+deliberate deviations, and `PROGRESS.md` records what changed and why.
+
+Only one of them is running in production.

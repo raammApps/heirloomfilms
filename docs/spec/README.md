@@ -7,8 +7,13 @@ streaming service — profiles, billboard, genre rows, Continue Watching, Trendi
 
 The incumbent it replaces is a 40GB Google Drive folder that buffers.
 
-This repository is **documentation only**. No application code yet. It is written so that
-Claude Code can be pointed at it and start building without further design decisions.
+**This is the specification, written before any code existed.** It was the brief: complete
+enough that an agent could be pointed at it and build without further design decisions.
+
+It has largely been built. Where the implementation diverged, the divergence is argued rather
+than silent — `../../CLAUDE.md` lists the deliberate deviations and `../PROGRESS.md` records
+what changed and why. Read this tree for **what was intended**; read `../ARCHITECTURE.md` for
+what actually exists.
 
 ## Start here
 
