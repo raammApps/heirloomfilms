@@ -362,5 +362,3 @@ export type CatalogueBundle = {
 // ── Content caps (doc 01 §4 — a soft cap is a real cap) ───────────────────────
 export const MAX_TITLES = 15
 export const MAX_PHOTOS = 60
-/** Above this, the customizer nudges — it does not block. doc 14 §5.9 */
-export const CURATION_TITLE_WARNING = 12

@@ -21,7 +21,7 @@
     "check:contrast": "tsx scripts/check-contrast.ts",
     "db:migrate": "tsx scripts/migrate.ts",
     "seed": "tsx scripts/seed-demo.ts",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm check:contrast",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm check:dead && pnpm check:contrast",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "bootstrap:sql": "tsx scripts/bootstrap-supabase.ts",
@@ -32,7 +32,9 @@
     "check:bundle": "tsx scripts/check-bundle.ts",
     "verify:upload": "tsx scripts/verify-upload-resume.ts",
     "dev:live": "scripts/dev-live.sh",
-    "rotate:password": "tsx scripts/rotate-operator-password.ts"
+    "rotate:password": "tsx scripts/rotate-operator-password.ts",
+    "check:dead": "knip --no-progress",
+    "test:ci": "vitest run --coverage --reporter=default --reporter=json --outputFile=reports/vitest.json"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -41,7 +43,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
-    "framer-motion": "^11.15.0",
     "hls.js": "^1.5.18",
     "lucide-react": "^0.469.0",
     "next": "15.5.23",
@@ -69,6 +70,7 @@
     "eslint-config-next": "15.5.23",
     "eslint-config-prettier": "^9.1.0",
     "jsdom": "^25.0.1",
+    "knip": "^6.32.2",
     "postcss": "^8.5.23",
     "prettier": "^3.4.2",
     "tailwindcss": "^4.0.0",

@@ -6,7 +6,7 @@ import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, route } from '@/lib/http/handler'
 import { defaultAlbumId, getPhotoProvider, photoKey, PHOTO_WIDTHS } from '@/lib/photos'
-import { albumSchema, photoSchema } from '@/lib/schema'
+import { albumSchema, MAX_PHOTOS, photoSchema } from '@/lib/schema'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -132,6 +132,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (!existing) throw new ApiError('INTERNAL', 'Could not create the album')
         return existing
       })
+    }
+
+    /**
+     * The cap doc 01 §4 calls a real cap, enforced rather than merely declared.
+     *
+     * `MAX_PHOTOS` existed as a constant that nothing checked, so a catalogue could hold
+     * thousands. Doc 05 §2 argues the caps are a curation requirement first and a cost ceiling
+     * second — an uncapped gallery is how this drifts into being an archive with a nicer player.
+     */
+    const alreadyHere = await repository.listPhotosForCatalogue(id)
+    if (alreadyHere.length >= MAX_PHOTOS) {
+      throw new ApiError(
+        'UPLOAD_LIMIT',
+        `A catalogue holds ${MAX_PHOTOS} photographs. Remove one to add another.`,
+      )
     }
 
     const photoId = randomUUID()

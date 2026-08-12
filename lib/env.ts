@@ -236,9 +236,3 @@ function load(): Env {
 }
 
 export const env: Env = load()
-
-/** Root domain without a port — what a Host header is compared against. */
-export const rootDomainHost: string = env.ROOT_DOMAIN.split(':')[0]!.toLowerCase()
-
-export const isProduction = env.NODE_ENV === 'production'
-export const isTest = env.NODE_ENV === 'test'

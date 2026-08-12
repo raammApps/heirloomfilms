@@ -338,5 +338,3 @@ export function demoSnapshot(
     photos: buildPhotos(),
   }
 }
-
-export const DEMO_IDS = { ORG_ID, OPERATOR_ID, CATALOGUE_ID, ALBUM_ID, titleId, photoId }

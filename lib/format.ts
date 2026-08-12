@@ -64,10 +64,6 @@ export function titleFromFilename(filename: string): string {
   )
 }
 
-export function pluralise(count: number, singular: string, plural = `${singular}s`): string {
-  return count === 1 ? singular : plural
-}
-
 /**
  * A free org address derived from a name.
  *

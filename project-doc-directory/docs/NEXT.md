@@ -34,6 +34,37 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
+### N-18 · A button for the handover  ·  ~2h
+
+The transfer API and the claim page are built and verified on production, but a partner has no
+way to start one — no button, no list of outstanding links, no cancel. Everything below exists
+already; this is only the surface:
+
+- `POST /api/admin/catalogues/[id]/transfer` → returns a link to copy
+- `DELETE` the same → cancels it
+- `/claim/<token>` → the couple's page
+
+Put it on the catalogue Overview beside the public link, since both are "things to send
+someone". Show the outstanding transfer and who it was issued to, because a partner will forget
+and re-issue, and the second attempt is refused by design.
+
+### N-19 · Entitlements  ·  ~half a session  ·  doc 15 §3
+
+`MAX_TITLES` and `MAX_PHOTOS` are constants. Selling storage means resolving
+catalogue → partner → plan, in that order: a couple who buys storage must not be capped by the
+partner's tier, because by then the partner is out of the relationship.
+
+Keep the defaults low regardless. Doc 05 §2 is explicit that the caps are a curation requirement
+first and a cost ceiling second.
+
+### N-20 · Razorpay  ·  doc 15 §4
+
+Two flows that should not share a code path: partners buy catalogue credits in advance, couples
+pay renewal and storage after the included months. The subscription state machine already exists
+and `resolveAccess` honours it — what is missing is only the thing that *writes* it. Verify the
+webhook the way the Bunny one is verified, and assume it gets lost, because that lesson is
+already paid for.
+
 ### N-17 · SMTP, before registration is opened to anyone  ·  ~30m  ·  **blocks partner sign-up**
 
 Supabase Auth sends a confirmation on sign-up and a link on password reset, and by default both

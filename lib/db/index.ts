@@ -48,6 +48,7 @@ export function getRepository(): Repository {
 }
 
 /** Tests swap in a purpose-built store rather than mutating the shared one. */
+/** @knipignore Injection seam for tests, matching `setVideoProvider`, which three test files use. */
 export function setRepository(repository: Repository): void {
   ;(globalThis as Global)[KEY] = repository
 }

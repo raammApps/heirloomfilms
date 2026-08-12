@@ -69,15 +69,3 @@ export const getCachedBundle = (catalogue: Catalogue): Promise<CatalogueBundle> 
 export function revalidateCatalogue(slug: string): void {
   revalidateTag(catalogueTag(slug))
 }
-
-/**
- * Same, for writers that hold a catalogue id but not its slug — the webhook and the reconcile
- * cron, which arrive by way of a title.
- *
- * Reads the row uncached on purpose: the point is to invalidate, and reading through the cache
- * to find out what to invalidate is how a stale entry survives its own eviction.
- */
-export async function revalidateCatalogueById(catalogueId: string): Promise<void> {
-  const catalogue = await getRepository().getCatalogueById(catalogueId)
-  if (catalogue) revalidateTag(catalogueTag(catalogue.slug))
-}

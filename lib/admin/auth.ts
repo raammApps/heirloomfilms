@@ -14,6 +14,7 @@ export function getAuthProvider(): AuthProvider {
   return g[KEY]
 }
 
+/** @knipignore Injection seam for tests, matching `setVideoProvider`, which three test files use. */
 export function setAuthProvider(provider: AuthProvider): void {
   ;(globalThis as Global)[KEY] = provider
 }

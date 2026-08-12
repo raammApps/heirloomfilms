@@ -28,7 +28,8 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      reporter: ['text-summary', 'lcov'],
+      // `json-summary` is what CI turns into the coverage table in the run summary.
+      reporter: ['text-summary', 'lcov', 'json-summary'],
       include: ['lib/**', 'modules/**', 'components/**'],
     },
   },

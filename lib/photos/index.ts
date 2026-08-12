@@ -15,6 +15,7 @@ export function getPhotoProvider(): PhotoProvider {
   return g[KEY]
 }
 
+/** @knipignore Injection seam for tests, matching `setVideoProvider`, which three test files use. */
 export function setPhotoProvider(provider: PhotoProvider): void {
   ;(globalThis as Global)[KEY] = provider
 }
@@ -60,5 +61,5 @@ export function defaultAlbumId(catalogueId: string): string {
 }
 
 export * from './provider'
-export { PHOTO_WIDTHS, photoSrcSet } from './srcset'
+export { PHOTO_WIDTHS } from './srcset'
 

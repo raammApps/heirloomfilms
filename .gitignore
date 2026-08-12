@@ -33,3 +33,6 @@ blob-report/
 # scripts/make-sample-video.mjs. Nothing else belongs in there.
 .vercel
 .env*
+
+# Test and coverage output
+/reports

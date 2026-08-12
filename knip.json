@@ -1,0 +1,28 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "app/**/{page,layout,route,not-found,error,global-error}.{ts,tsx}",
+    "scripts/*.{ts,mjs}",
+    "tests/**/*.test.{ts,tsx}",
+    "e2e/**/*.spec.ts",
+    "*.config.{ts,mjs}"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "modules/**/*.{ts,tsx}",
+    "scripts/**/*.{ts,mjs}"
+  ],
+  "ignoreDependencies": [
+    "tailwindcss",
+    "axe-core"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "tags": [
+    "-knipignore"
+  ],
+  "exclude": [
+    "types"
+  ]
+}

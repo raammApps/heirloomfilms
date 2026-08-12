@@ -43,7 +43,36 @@ jobs:
         run: pnpm typecheck
 
       - name: Unit and component tests
-        run: pnpm test
+        run: pnpm test:ci
+
+      # Renders pass/fail as a table in the run summary and inline on the diff, so a red build
+      # says which assertion failed without anyone opening the log.
+      - name: Test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Unit and component tests
+          path: reports/vitest.json
+          reporter: vitest-json
+          fail-on-error: false
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "
+              const c = require('./coverage/coverage-summary.json').total;
+              const row = (k) => \`| \${k} | \${c[k].pct}% | \${c[k].covered}/\${c[k].total} |\`;
+              console.log('| | covered | |');
+              console.log('|---|---|---|');
+              ['statements','branches','functions','lines'].forEach(k => console.log(row(k)));
+            " >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Code nothing imports, and dependencies nothing uses. Caught here so it never accumulates
+      # — it already found an unused `framer-motion` and a photo cap that enforced nothing.
+      - name: Dead code and unused dependencies
+        run: pnpm check:dead
 
       - name: Palette contrast gate
         run: pnpm check:contrast

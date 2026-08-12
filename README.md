@@ -13,6 +13,15 @@ running and shipping the code.
 
 ---
 
+## Documentation
+
+| | |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How it fits together, with diagrams — **start here** |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Running it: accounts, variables, DNS |
+| [`docs/README.md`](docs/README.md) | Why there are two documentation trees |
+| [`project-doc-directory/docs/`](project-doc-directory/docs/) | The specification, and `PROGRESS` / `NEXT` |
+
 ## Quick start
 
 ```bash
