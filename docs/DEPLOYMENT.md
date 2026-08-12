@@ -332,7 +332,14 @@ partner self-registration.
 password to something random, precisely because nothing used it. Flip `AUTH_DRIVER` without
 changing it and the console locks.
 
-1. Supabase → Authentication → Users → the operator → set a password you know.
+1. Supabase → Authentication → Users → the operator → **"Reset password" on the existing row.**
+
+   > **Do not delete and recreate the user.** `operators.id` references `auth.users(id)` **on
+   > delete cascade**, so removing the auth account silently deletes the operator row with it —
+   > and then no driver can sign you in, because the local one reads the same row. This happened:
+   > the account came back with a new id, the operator row was gone, and login failed on both
+   > drivers in a way that looked like the new authenticator was broken. If it happens again, the
+   > fix is to re-insert the `operators` row with the *new* `auth.users.id`.
 2. Confirm `operators.id` equals that user's `auth.users.id`. It will, if the operator was
    created the way §4 describes.
 3. Set `AUTH_DRIVER=supabase` on the Vercel project and redeploy.

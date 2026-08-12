@@ -467,3 +467,32 @@ The integration suite caught the RLS change and was itself wrong: it asserted an
 published catalogue, which encoded the leak as intended behaviour. Rewritten to assert the
 capability is gone.
 
+## Partners can register — 12 Aug 2026
+
+A studio signs up at `/admin/register`, gets an org and an operator row, and builds catalogues
+for its couples. Verified against production: a partner registers, signs in, sees none of the
+existing catalogues, gets 404 rather than 403 on one by id, creates their own and sees exactly
+that one — while the original operator still sees only theirs. The probe was then removed.
+
+No new isolation mechanism: partners are orgs, couples will be orgs, and `org_id` scoping is
+untouched. `platform_admins` is a separate table rather than a role, because an admin who
+belonged to an org would make every scoped query ask whether this member is special, and that
+branch is where cross-tenant leaks live.
+
+Auth moved to Supabase for real (`AUTH_DRIVER=supabase`), which registration requires:
+`operators.id` references `auth.users(id)`, and only a genuine Supabase account satisfies it.
+The local driver stays for the suite and CI, which run with no Supabase project at all.
+
+Three things went wrong and each taught something:
+
+- Registration 500'd on the first live attempt — the local driver mints its own uuid, which the
+  foreign key refuses. Now refused up front with a message naming the fix.
+- It left an **orphan org**, contradicting the previous commit's claim that a partial failure was
+  safe. There is no transaction across the two writes, so the operator step now compensates.
+- Setting the operator's Supabase password by **deleting and recreating** the auth user cascaded
+  through `on delete cascade` and destroyed the `operators` row, so login failed on *both*
+  drivers and looked like the new authenticator was at fault. Documented in DEPLOYMENT.md §11.
+
+Still blocking real partners: SMTP (N-17). Sign-up and password reset both send email, and
+Supabase's built-in sender allows a few messages an hour.
+
