@@ -1,10 +1,14 @@
 import { log } from '@/lib/log'
 import type { Album, Catalogue, ModuleInstance, Title } from '@/lib/schema'
 import billboard from './billboard'
+import checklist from './checklist'
+import continueWatching from './continue-watching'
 import curatedRow from './curated-row'
 import letter from './letter'
 import photoGrid from './photo-grid'
 import photoRow from './photo-row'
+import randomiser from './randomiser'
+import timeline from './timeline'
 import type { ModuleDefinition, ValidatedInstance } from './contract'
 
 /**
@@ -19,6 +23,13 @@ const REGISTRY = {
   photo_row: photoRow,
   letter,
   photo_grid: photoGrid,
+
+  // Phase 1 (doc 09 P1-07). Each is one import and one line here; nothing else in the codebase
+  // changed to admit them, which is the property `tests/unit/registry.test.ts` exists to hold.
+  continue_watching: continueWatching,
+  timeline,
+  checklist,
+  randomiser,
 } as const
 
 export type ModuleType = keyof typeof REGISTRY

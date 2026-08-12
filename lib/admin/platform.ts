@@ -1,6 +1,5 @@
 import 'server-only'
 import { getRepository } from '@/lib/db'
-import { ApiError } from '@/lib/http/errors'
 import { getAuthProvider } from './auth'
 import type { PlatformAdmin } from '@/lib/schema'
 
@@ -16,6 +15,10 @@ import type { PlatformAdmin } from '@/lib/schema'
  * The practical consequence, and it is the point: **there is no way to widen an operator into an
  * admin.** `getOperatorSession` reads the `operators` row; this reads `platform_admins`. Nothing
  * converts between them, in either direction.
+ *
+ * There is no `requirePlatformAdmin` throwing counterpart yet, because no API route is
+ * platform-scoped — the two pages call this and answer `notFound()`. A 404 rather than a refusal
+ * is deliberate: an operator poking at `/admin/platform` should not learn the surface exists.
  */
 
 export async function getPlatformAdmin(): Promise<PlatformAdmin | null> {
@@ -24,12 +27,4 @@ export async function getPlatformAdmin(): Promise<PlatformAdmin | null> {
   const user = await getAuthProvider().currentUser()
   if (!user) return null
   return getRepository().getPlatformAdmin(user.id)
-}
-
-export async function requirePlatformAdmin(): Promise<PlatformAdmin> {
-  const admin = await getPlatformAdmin()
-  // 404, not 403. An operator poking at `/admin/platform` should not learn that the surface
-  // exists — the same reasoning that makes another org's catalogue a 404 rather than a refusal.
-  if (!admin) throw new ApiError('NOT_FOUND', 'Not found')
-  return admin
 }

@@ -1,5 +1,5 @@
+import dynamic from 'next/dynamic'
 import { defineModule } from '../contract'
-import Editor from './Editor'
 import Guest from './Guest'
 import { configSchema, type PhotoGridConfig } from './schema'
 
@@ -18,7 +18,14 @@ export default defineModule<PhotoGridConfig>({
   schema: configSchema,
 
   Guest,
-  Editor,
+  /**
+   * Lazy, because the editor is admin-only and the registry is imported by the guest page.
+   *
+   * Every module's `index.ts` is one import away from `ModuleRenderer`, so a statically imported
+   * Editor put the admin's form fields and icon set into the bundle of every guest on a phone.
+   * `pnpm check:bundle` caught it when the Phase 1 modules made it four editors worse.
+   */
+  Editor: dynamic(() => import('./Editor')),
 
   defaults: (_catalogue, _titles, albums) => ({ albumId: albums[0]?.id ?? null, columns: 3 }),
 

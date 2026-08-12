@@ -67,6 +67,10 @@ export const dictionary = {
 
     'letter.signature': 'With love,',
 
+    'checklist.progress': '{done} of {total}',
+    'randomiser.again': 'Again',
+    'randomiser.waiting': '{count} to choose from',
+
     'footer.presentedBy': 'Presented by {name}',
     'footer.privacy': 'Privacy',
     'footer.renew': 'Renew',
@@ -154,6 +158,10 @@ export const dictionary = {
     'photo.counter': '{total} में से {index}',
 
     'letter.signature': 'प्यार के साथ,',
+
+    'checklist.progress': '{total} में से {done}',
+    'randomiser.again': 'फिर से',
+    'randomiser.waiting': '{count} में से एक',
 
     'footer.presentedBy': 'प्रस्तुति: {name}',
     'footer.privacy': 'गोपनीयता',

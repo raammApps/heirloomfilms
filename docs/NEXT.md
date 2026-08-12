@@ -100,14 +100,6 @@ Doc 12 §1 rule 2 forbids `-flix` in "product, package, repo, domain, class, com
 package is `mehfil` and no code carries the suffix, but the directory does. Renaming to `mehfil`
 makes the rule hold end to end.
 
-### N-10 · Phase 1 modules  ·  doc 09 P1-07
-
-`continue_watching`, `timeline`, `checklist`, `randomiser`. The registry, the `module_state`
-table and the endpoint are all ready. Adding one should touch its own folder plus one registry
-line — `tests/unit/registry.test.ts` fails the build otherwise. Remember `meta.content`.
-
----
-
 ## Held by Sandeep, not by an agent (doc 13 §8)
 
 **Insert yourself into `platform_admins`** if you want the platform console. It is built and

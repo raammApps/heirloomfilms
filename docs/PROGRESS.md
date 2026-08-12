@@ -806,3 +806,47 @@ The table is empty, so nobody can reach the console today. That is the correct d
 the first row is in NEXT.md under Sandeep's items.
 
 325 unit and component, 90 E2E.
+
+## N-10 · The four Phase 1 modules, and what adding them exposed
+
+`continue_watching`, `timeline`, `checklist`, `randomiser` — each one folder plus one registry
+line, which is the property `tests/unit/registry.test.ts` exists to hold and which held.
+
+- **`timeline`** — "Our Story", dated moments down a spine with an optional photograph each.
+  Server-rendered: it is text and images with nothing to hydrate. The editor is hand-written,
+  which doc 14 §5.8 reserves for config that is "genuinely spatial" and names the timeline as its
+  example.
+- **`checklist`** — the first module whose state belongs to the *guest*, which is what
+  `module_state` and `/api/module-state` were built for in Phase 0. `localStorage` first and the
+  server second, so a guest who skipped the profile gate still gets a list that remembers; ticks
+  are optimistic and fire-and-forget, because a spinner on a checkbox at a reception on venue
+  wifi is the worst possible place to teach somebody about latency.
+- **`randomiser`** — "Date Night Planner". The one module that persists nothing, deliberately: a
+  remembered answer turns a game into an obligation. It never returns the same option twice in a
+  row, because with four options chance alone repeats often enough to read as broken.
+- **`continue_watching`** — needed **no contract change at all.** Progress is already on
+  `useCatalogue()`, assembled once for the page, so it reads from there rather than fetching. It
+  honours the `completed` flag rather than recomputing a threshold, so "finished" has one
+  definition in the product. Doc 14 §2's reservation — that most films here are short and get
+  finished — is surfaced as an advisory when every film is under five minutes.
+
+### The registry test, corrected rather than appeased
+
+It pinned the exact five Phase 0 types, so adding a Phase 1 module failed it for a reason that
+had nothing to do with Phase 0. It now pins each phase separately and asserts the total, which is
+what it was actually protecting: the registry is the complete and only inventory.
+
+### What this exposed, which is the more useful half
+
+**Every module's editor was shipping to every guest.** `modules/registry.ts` imports each
+module's `index.ts`, which imported both `Guest` and `Editor` — so the admin's form fields and
+icon set were in the bundle of a guest on a phone, and had been since Phase 0. Four more editors
+made it visible: browse first-load went 139.7KB → 143.9KB against a 150KB budget, and
+`check:bundle` printed *"under 5% headroom — the next import will break this"*.
+
+`Editor` is now a `next/dynamic` import in all nine modules. Browse is back to **141.6KB with
+8.4KB of headroom**, and the admin-only half of a module can no longer reach a guest by accident.
+That gate has now caught two real regressions, which is two more than it caught in the year it
+spent looking like paperwork.
+
+341 unit and component tests, 90 E2E.

@@ -70,14 +70,33 @@ describe('firstRowInstanceId', () => {
 })
 
 describe('the registry is the only wiring point', () => {
-  it('exposes every Phase 0 module', () => {
-    expect(moduleTypes().sort()).toEqual([
+  /**
+   * Pinned per phase rather than as one flat list.
+   *
+   * The original assertion listed the five Phase 0 types, which meant adding a Phase 1 module
+   * failed it for no reason that had anything to do with Phase 0. Splitting it keeps what the
+   * test was actually protecting — that the registry is the complete and only inventory — while
+   * letting the inventory grow.
+   */
+  it('exposes exactly the Phase 0 modules at phase 0', () => {
+    expect(listModules({ phase: 0 }).map((m) => m.meta.type).sort()).toEqual([
       'billboard',
       'curated_row',
       'letter',
       'photo_grid',
       'photo_row',
     ])
+  })
+
+  it('adds the Phase 1 modules and nothing else', () => {
+    const phase1 = listModules({ phase: 1 })
+      .filter((m) => m.meta.phase === 1)
+      .map((m) => m.meta.type)
+      .sort()
+
+    expect(phase1).toEqual(['checklist', 'continue_watching', 'randomiser', 'timeline'])
+    // And the full inventory is the two phases together — nothing is registered off-book.
+    expect(moduleTypes().length).toBe(9)
   })
 
   it('gives every module a complete definition', () => {
