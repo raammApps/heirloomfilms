@@ -151,13 +151,30 @@ export const moduleInstanceSchema = z.object({
 export type ModuleInstance = z.infer<typeof moduleInstanceSchema>
 
 // ── Entities ──────────────────────────────────────────────────────────────────
+/**
+ * A partner sells weddings; a couple owns one. They differ in what they may do, never in how
+ * they are isolated — both are orgs, and `org_id` scoping is unchanged (doc 15 §1).
+ */
+export const orgKindSchema = z.enum(['partner', 'couple'])
+export type OrgKind = z.infer<typeof orgKindSchema>
+
 export const orgSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
   slug: slugSchema,
+  kind: orgKindSchema.default('partner'),
   branding: brandingSchema.default({}),
   createdAt: z.string(),
 })
+
+/** What a partner signs up with. The password never lands in this object. */
+export const partnerRegistrationSchema = z.object({
+  businessName: z.string().trim().min(2).max(80),
+  contactName: z.string().trim().min(2).max(80),
+  email: z.string().email(),
+  password: z.string().min(12, 'Use at least 12 characters').max(200),
+})
+export type PartnerRegistration = z.infer<typeof partnerRegistrationSchema>
 export type Org = z.infer<typeof orgSchema>
 
 export const operatorSchema = z.object({

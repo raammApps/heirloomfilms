@@ -37,4 +37,16 @@ export interface AuthProvider {
 
   /** Clear the session. */
   signOut(response: NextResponse): Promise<void>
+
+  /**
+   * Create the credential for a new account and return the id an `operators` row must use.
+   *
+   * Only the credential. It grants nothing on its own: until an `operators` row exists, the
+   * holder authenticates and is still refused, which is the property partner registration is
+   * built on — the account is made first, access second, and the second step is ours.
+   *
+   * Returns null when the address is already registered, so the caller reports one outcome and
+   * never becomes an account-enumeration oracle.
+   */
+  signUp(email: string, password: string): Promise<AuthenticatedUser | null>
 }

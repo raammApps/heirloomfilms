@@ -78,6 +78,40 @@ export class MemoryRepository implements Repository {
     return this.clone(this.data.orgs.find((o) => o.id === id) ?? null)
   }
 
+  async getOrgBySlug(slug: string): Promise<Org | null> {
+    return this.clone(this.data.orgs.find((o) => o.slug === slug) ?? null)
+  }
+
+  async createOrg(org: Org): Promise<Org> {
+    if (this.data.orgs.some((o) => o.slug === org.slug)) {
+      throw new ApiError('VALIDATION_FAILED', 'That address is taken', {
+        fields: { slug: 'Another business is already using this address' },
+      })
+    }
+    this.data.orgs.push(this.clone(org))
+    this.touched()
+    return this.clone(org)
+  }
+
+  async listOrgs(kind?: Org['kind']): Promise<Org[]> {
+    return this.clone(
+      this.data.orgs
+        .filter((o) => !kind || o.kind === kind)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    )
+  }
+
+  async createOperator(operator: Operator): Promise<Operator> {
+    if (this.data.operators.some((o) => o.email.toLowerCase() === operator.email.toLowerCase())) {
+      throw new ApiError('VALIDATION_FAILED', 'That email is already registered', {
+        fields: { email: 'This address already has an account' },
+      })
+    }
+    this.data.operators.push(this.clone(operator))
+    this.touched()
+    return this.clone(operator)
+  }
+
   async getOperatorByEmail(email: string): Promise<Operator | null> {
     const needle = email.trim().toLowerCase()
     return this.clone(this.data.operators.find((o) => o.email.toLowerCase() === needle) ?? null)

@@ -1,4 +1,5 @@
 import 'server-only'
+import { randomUUID } from 'node:crypto'
 import { cookies } from 'next/headers'
 import type { NextResponse } from 'next/server'
 import { cookieOptions, createSession, readSession, SESSION_COOKIE, SESSION_TTL_S, verifySecret } from '@/lib/auth'
@@ -42,6 +43,17 @@ export class LocalAuthProvider implements AuthProvider {
       cookieOptions(SESSION_TTL_S),
     )
     return { id: operator.id, email: operator.email }
+  }
+
+  /**
+   * There is no credential store here beyond the `operators` row, so this only mints the id the
+   * caller will use. The hash is written by the caller alongside the rest of the row — a
+   * password without an operator row would be unreachable and unrecoverable.
+   */
+  async signUp(email: string, _password: string): Promise<AuthenticatedUser | null> {
+    const existing = await getRepository().getOperatorByEmail(email)
+    if (existing) return null
+    return { id: randomUUID(), email }
   }
 
   async signOut(response: NextResponse): Promise<void> {

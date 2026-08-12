@@ -46,7 +46,14 @@ export class SupabaseRepository implements Repository {
 
   // ── Mappers ─────────────────────────────────────────────────────────────────
   private static toOrg(r: Row): Org {
-    return { id: r.id, name: r.name, slug: r.slug, branding: r.branding ?? {}, createdAt: r.created_at }
+    return {
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      kind: r.kind ?? 'partner',
+      branding: r.branding ?? {},
+      createdAt: r.created_at,
+    }
   }
 
   private static toOperator(r: Row): Operator {
@@ -206,6 +213,60 @@ export class SupabaseRepository implements Repository {
   async getOrg(id: string): Promise<Org | null> {
     const { data } = await this.db.from('orgs').select('*').eq('id', id).maybeSingle()
     return data ? SupabaseRepository.toOrg(data) : null
+  }
+
+  async getOrgBySlug(slug: string): Promise<Org | null> {
+    const { data } = await this.db.from('orgs').select('*').eq('slug', slug).maybeSingle()
+    return data ? SupabaseRepository.toOrg(data) : null
+  }
+
+  async createOrg(org: Org): Promise<Org> {
+    const { data, error } = await this.db
+      .from('orgs')
+      .insert({ id: org.id, name: org.name, slug: org.slug, kind: org.kind, branding: org.branding })
+      .select()
+      .single()
+    // The unique index on slug is what settles two businesses registering the same name at
+    // once; checking first and inserting second would just narrow the window.
+    if (error?.code === '23505') {
+      throw new ApiError('VALIDATION_FAILED', 'That address is taken', {
+        fields: { slug: 'Another business is already using this address' },
+      })
+    }
+    if (error) throw new ApiError('INTERNAL', error.message)
+    return SupabaseRepository.toOrg(data)
+  }
+
+  async listOrgs(kind?: Org['kind']): Promise<Org[]> {
+    let query = this.db.from('orgs').select('*').order('created_at', { ascending: false })
+    if (kind) query = query.eq('kind', kind)
+    const { data, error } = await query
+    if (error) throw new ApiError('INTERNAL', error.message)
+    return (data ?? []).map(SupabaseRepository.toOrg)
+  }
+
+  async createOperator(operator: Operator): Promise<Operator> {
+    const { data, error } = await this.db
+      .from('operators')
+      .insert({
+        id: operator.id,
+        org_id: operator.orgId,
+        email: operator.email,
+        name: operator.name,
+        role: operator.role,
+        // Null under Supabase Auth: the credential lives there, and this column exists only for
+        // the self-hosted path.
+        password_hash: operator.passwordHash || null,
+      })
+      .select()
+      .single()
+    if (error?.code === '23505') {
+      throw new ApiError('VALIDATION_FAILED', 'That email is already registered', {
+        fields: { email: 'This address already has an account' },
+      })
+    }
+    if (error) throw new ApiError('INTERNAL', error.message)
+    return SupabaseRepository.toOperator(data)
   }
 
   async getOperatorByEmail(email: string): Promise<Operator | null> {

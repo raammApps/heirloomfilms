@@ -34,6 +34,12 @@ export type CreateTitleInput = Omit<
 export interface Repository {
   // ── Orgs & operators ────────────────────────────────────────────────────────
   getOrg(id: string): Promise<Org | null>
+  getOrgBySlug(slug: string): Promise<Org | null>
+  /** Partner sign-up. Fails if the slug is taken, which is how a race is settled. */
+  createOrg(org: Org): Promise<Org>
+  /** Every org on the platform. Platform-admin only — no route may call this org-scoped. */
+  listOrgs(kind?: Org['kind']): Promise<Org[]>
+  createOperator(operator: Operator): Promise<Operator>
   getOperatorByEmail(email: string): Promise<Operator | null>
   getOperator(id: string): Promise<Operator | null>
 

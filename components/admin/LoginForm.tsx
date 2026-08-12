@@ -77,7 +77,10 @@ export function LoginForm() {
         >
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
-      </form>
+        <p className="mt-4 text-[13px] text-[var(--color-l-text-mid)]">
+        New here? <a href="/admin/register" className="underline">Create a partner account</a>
+      </p>
+    </form>
     </main>
   )
 }

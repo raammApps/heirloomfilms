@@ -59,6 +59,21 @@ export class SupabaseAuthProvider implements AuthProvider {
     return { id: data.user.id, email: data.user.email }
   }
 
+  /**
+   * Supabase owns the credential and, if the project requires it, sends the confirmation email.
+   *
+   * A repeat address comes back looking like a success — Supabase deliberately does not confirm
+   * whether an account exists — so the absence of an identity is the only reliable signal, and
+   * the caller reports one outcome either way.
+   */
+  async signUp(email: string, password: string): Promise<AuthenticatedUser | null> {
+    const { data, error } = await this.client().auth.signUp({ email, password })
+    if (error || !data.user?.email) return null
+    // An existing address returns a user with no identities rather than an error.
+    if (Array.isArray(data.user.identities) && data.user.identities.length === 0) return null
+    return { id: data.user.id, email: data.user.email }
+  }
+
   async signOut(response: NextResponse): Promise<void> {
     await this.client(response).auth.signOut()
   }
