@@ -62,11 +62,22 @@ will help, because the limit belongs to the project rather than to their address
 Configure a real provider (`docs/DEPLOYMENT.md` §12) and check the Site URL, or the confirmation
 link lands somewhere that is not this deployment.
 
-### N-16 · Partner model  ·  see doc 15
+### N-16 · Platform admin — the last unbuilt piece of the partner model  ·  doc 15 §1
 
-Platform admin, partner registration, couple accounts, ownership transfer, entitlements,
-Razorpay. Sequenced in doc 15 §6 — the order matters, and steps 1–3 (this item, ISR, Supabase
-Auth) are worth doing whether or not the partner model happens.
+This was an umbrella over six things. Five have landed: partner registration, couple accounts,
+ownership transfer (N-18), entitlements (N-19) and Supabase Auth. Razorpay is tracked separately
+as N-20. What is left is the one surface nobody has built.
+
+`platform_admins` exists as a table (migration 0004) and **no code reads it.** A platform admin is
+deliberately *not* a member of an org — doc 15 §1's argument is that if "admin" were a membership,
+every org-scoped query would have to ask whether this member is special, and cross-tenant leaks
+live in that branch. The cost of that choice is that platform-wide views have to be written one at
+a time, on purpose.
+
+What is actually needed, in order: a list of every org and its catalogue count; the ability to
+look at one partner's catalogues read-only when they ask for support; and nothing else until
+somebody asks for it. `Repository.listOrgs` is already there and already documented as
+platform-admin-only.
 
 ### N-14 · Real footage  ·  operator task
 
