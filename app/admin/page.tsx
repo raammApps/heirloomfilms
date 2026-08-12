@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { AdminChrome, StatusPill } from '@/components/admin/AdminChrome'
-import { getOperatorSession } from '@/lib/admin/session'
+import { AdminChrome } from '@/components/admin/AdminChrome'
+import { CatalogueBoard, type CatalogueRow } from '@/components/admin/CatalogueBoard'
+import { IconPlus } from '@/components/admin/icons'
+import { getOperatorSession, getSessionOrg } from '@/lib/admin/session'
 import { getRepository } from '@/lib/db'
 import { env } from '@/lib/env'
 import { formatWeddingDate } from '@/lib/format'
-import { PublicLink } from '@/components/admin/PublicLink'
 import { catalogueUrl } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
@@ -15,68 +16,58 @@ export default async function CatalogueListPage() {
   const session = await getOperatorSession()
   if (!session) redirect('/admin/login')
 
-  const catalogues = await getRepository().listCatalogues({ orgId: session.orgId })
+  const repository = getRepository()
+
+  // Counts come from one method rather than `listTitles` per row: a partner with thirty weddings
+  // would otherwise make sixty round trips to draw this screen, and it would get slower with
+  // every wedding they sold.
+  const [catalogues, counts, org] = await Promise.all([
+    repository.listCatalogues({ orgId: session.orgId }),
+    repository.catalogueCounts({ orgId: session.orgId }),
+    getSessionOrg(session),
+  ])
+
+  const rows: CatalogueRow[] = catalogues.map((catalogue) => ({
+    id: catalogue.id,
+    name: catalogue.coupleName.en,
+    slug: catalogue.slug,
+    url: catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '/', env.TENANCY_MODE),
+    status: catalogue.status,
+    subStatus: catalogue.subStatus,
+    weddingDate: catalogue.weddingDate,
+    // Formatted on the server: the date format is locale data, and doing it in the browser is
+    // how a server-rendered list starts flickering on hydration.
+    weddingDateLabel: formatWeddingDate(catalogue.weddingDate, 'en'),
+    counts: counts[catalogue.id] ?? { titles: 0, ready: 0, published: 0, failed: 0, photos: 0 },
+  }))
 
   return (
-    <AdminChrome operatorName={session.operator.name}>
+    <AdminChrome
+      operatorName={session.operator.name}
+      operatorEmail={session.operator.email}
+      orgName={org?.name}
+    >
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[24px] font-bold">Catalogues</h1>
+        <div>
+          <h1 className="text-[24px] font-bold tracking-[-0.01em]">Catalogues</h1>
+          <p className="mt-0.5 text-[14px] text-[var(--color-l-text-mid)]">
+            {catalogues.length === 0
+              ? 'Nothing here yet.'
+              : `${catalogues.length} wedding${catalogues.length === 1 ? '' : 's'}${org?.name ? ` at ${org.name}` : ''}.`}
+          </p>
+        </div>
         <Link
           href="/admin/new"
-          className="inline-flex h-11 items-center rounded-[var(--radius-pill)] bg-accent px-5 font-semibold text-accent-ink"
+          className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-pill)] bg-accent px-5 font-semibold text-accent-ink"
         >
+          <span aria-hidden>
+            <IconPlus />
+          </span>
           New catalogue
         </Link>
       </div>
 
-      {catalogues.length === 0 ? (
-        <p className="text-[15px] text-[var(--color-l-text-mid)]">
-          No catalogues yet. Creating one takes about half an hour, most of it uploading.
-        </p>
-      ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {catalogues.map((catalogue) => (
-            <li
-              key={catalogue.id}
-              className="rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-white p-4"
-            >
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <Link href={`/admin/c/${catalogue.id}`} className="text-[17px] font-semibold">
-                  {catalogue.coupleName.en}
-                </Link>
-                <StatusPill status={catalogue.status} />
-              </div>
-
-              <p className="text-[13px] text-[var(--color-l-text-mid)]">
-                {formatWeddingDate(catalogue.weddingDate, 'en')}
-              </p>
-
-              <div className="mt-3">
-                <PublicLink
-                  url={catalogueUrl(catalogue.slug, env.ROOT_DOMAIN, '/', env.TENANCY_MODE)}
-                  status={catalogue.status}
-                  compact
-                />
-              </div>
-
-              <div className="mt-4 flex gap-2">
-                <Link
-                  href={`/admin/c/${catalogue.id}/titles`}
-                  className="rounded-[var(--radius-pill)] border border-[var(--color-l-line)] px-3 py-1.5 text-[13px]"
-                >
-                  Films
-                </Link>
-                <Link
-                  href={`/admin/c/${catalogue.id}/customizer`}
-                  className="rounded-[var(--radius-pill)] border border-[var(--color-l-line)] px-3 py-1.5 text-[13px]"
-                >
-                  Customizer
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <CatalogueBoard rows={rows} />
     </AdminChrome>
   )
 }

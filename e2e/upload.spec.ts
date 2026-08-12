@@ -137,7 +137,9 @@ test.describe('E2E-5: upload resilience', () => {
     await expect(page.locator('input[value="Mehendi Wide"]')).toBeVisible({ timeout: 10_000 })
 
     await page.getByRole('link', { name: 'Overview' }).click()
-    await expect(page.getByText('The link')).toBeVisible()
+    // The heading, not the words: `getByText` matches case-insensitively on a substring, and the
+    // overview's prose says "the link" in three other places.
+    await expect(page.getByRole('heading', { name: 'The link' })).toBeVisible()
 
     // Back on Films the row is still there, still tracked — nothing was lost by navigating.
     await page.getByRole('link', { name: 'Films', exact: true }).click()

@@ -26,6 +26,26 @@ import type {
 
 export type CatalogueFilter = { orgId: string }
 
+/**
+ * Counts the catalogue list shows, for every catalogue in an org.
+ *
+ * A separate method rather than a field on `Catalogue` because these are derived: writing them
+ * onto the row would mean every title upload and every photo delete had to remember to keep a
+ * counter honest, and the first one that forgot would be invisible.
+ *
+ * It exists at all because the alternative on the list page is `listTitles` per row. A partner
+ * with thirty weddings would make sixty round trips to draw one screen, and the page would get
+ * slower every wedding they sold.
+ */
+export type CatalogueCounts = {
+  titles: number
+  /** Playable — what a guest would actually find, which is the number an operator cares about. */
+  ready: number
+  published: number
+  failed: number
+  photos: number
+}
+
 export type CreateTitleInput = Omit<
   Title,
   'createdAt' | 'publishedAt' | 'viewCount' | 'watchSeconds'
@@ -56,6 +76,11 @@ export interface Repository {
 
   // ── Catalogues ──────────────────────────────────────────────────────────────
   listCatalogues(filter: CatalogueFilter): Promise<Catalogue[]>
+  /**
+   * Counts for every catalogue in the org, keyed by catalogue id. Org-scoped like everything
+   * else here: it cannot be asked about a catalogue the caller does not own.
+   */
+  catalogueCounts(filter: CatalogueFilter): Promise<Record<string, CatalogueCounts>>
   getCatalogue(id: string, orgId: string): Promise<Catalogue | null>
   /** Unscoped lookup, for paths that already hold a trusted id (webhooks, ISR revalidation). */
   getCatalogueById(id: string): Promise<Catalogue | null>

@@ -12,6 +12,7 @@ export default defineModule<PhotoRowConfig>({
     occasions: ['wedding', 'anniversary', 'proposal', 'birthday', 'engagement'],
     phase: 0,
     content: 'photo',
+    shape: 'row',
   },
 
   schema: configSchema,

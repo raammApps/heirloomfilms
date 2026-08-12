@@ -16,6 +16,7 @@ export default defineModule<BillboardConfig>({
     occasions: ['wedding', 'anniversary', 'proposal', 'birthday', 'engagement'],
     phase: 0,
     content: 'video',
+    shape: 'hero',
     singleton: true,
   },
 

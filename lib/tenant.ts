@@ -121,3 +121,18 @@ export function adminUrl(rootDomain: string, mode: TenancyMode = 'subdomain'): s
   const protocol = isLocalDomain(rootDomain) ? 'http' : 'https'
   return mode === 'path' ? `${protocol}://${rootDomain}/admin` : `${protocol}://admin.${rootDomain}`
 }
+
+/**
+ * A page belonging to no tenant and to no console — today, `/claim/<token>`.
+ *
+ * It exists because deriving one by stripping `/admin` off `adminUrl` is only correct in path
+ * mode. In subdomain mode that produces `https://admin.<root>/claim/…`, and middleware rewrites
+ * *everything* on the admin host into `/admin/*` — so the one link in the product a stranger has
+ * to be able to open resolved to a 404, and only in the mode the E2E suite runs.
+ *
+ * The root host is the same in both modes, which is the whole point of putting it here.
+ */
+export function rootUrl(rootDomain: string, path: string): string {
+  const protocol = isLocalDomain(rootDomain) ? 'http' : 'https'
+  return `${protocol}://${rootDomain}${path.startsWith('/') ? path : `/${path}`}`
+}

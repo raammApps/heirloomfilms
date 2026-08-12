@@ -12,6 +12,7 @@ export default defineModule<LetterConfig>({
     occasions: ['wedding', 'anniversary', 'proposal', 'birthday', 'engagement'],
     phase: 0,
     content: 'text',
+    shape: 'prose',
   },
 
   schema: configSchema,

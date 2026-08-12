@@ -34,20 +34,6 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
-### N-18 · A button for the handover  ·  ~2h
-
-The transfer API and the claim page are built and verified on production, but a partner has no
-way to start one — no button, no list of outstanding links, no cancel. Everything below exists
-already; this is only the surface:
-
-- `POST /api/admin/catalogues/[id]/transfer` → returns a link to copy
-- `DELETE` the same → cancels it
-- `/claim/<token>` → the couple's page
-
-Put it on the catalogue Overview beside the public link, since both are "things to send
-someone". Show the outstanding transfer and who it was issued to, because a partner will forget
-and re-issue, and the second attempt is refused by design.
-
 ### N-19 · Entitlements  ·  ~half a session  ·  doc 15 §3
 
 `MAX_TITLES` and `MAX_PHOTOS` are constants. Selling storage means resolving
@@ -83,13 +69,13 @@ Platform admin, partner registration, couple accounts, ownership transfer, entit
 Razorpay. Sequenced in doc 15 §6 — the order matters, and steps 1–3 (this item, ISR, Supabase
 Auth) are worth doing whether or not the partner model happens.
 
-### N-12 · Two blind spots the suite has, now that we know they exist  ·  ~2h
+### N-12 · Three blind spots the suite has, now that we know they exist  ·  ~2h
 
 Validation against real infrastructure found three fatal bugs that 220 unit tests and 69 E2E
-tests all passed straight through. Both blind spots are structural, not oversights:
+tests all passed straight through. All three blind spots are structural, not oversights:
 
 1. **E2E only ever runs `TENANCY_MODE=subdomain`.** `playwright.config.ts` sets
-   `ROOT_DOMAIN=mehfil.localhost:3000` and never sets the mode, so path mode — *what production
+   `ROOT_DOMAIN=mehfil.localhost:<port>` and never sets the mode, so path mode — *what production
    runs* — has no coverage at all. That is how Play could 404 for every guest with a green
    suite. Add a third Playwright project running the guest journey in path mode; the routes
    differ, so it is a real second surface, not a duplicate.
@@ -100,7 +86,14 @@ tests all passed straight through. Both blind spots are structural, not oversigh
    a passing script. Drive the actual `<video>` through hls.js in that script and assert
    `readyState === 4`, the way `verify:upload` already drives a real browser.
 
-Until both exist, "the tests pass" says nothing about the configuration that is deployed.
+3. **A URL the app generates is only tested when something follows it.** Found while building
+   the handover UI: `ROOT_DOMAIN` in `playwright.config.ts` said `:3000` while the server ran on
+   `:3100`. Every spec navigates by relative path through `baseURL`, so nothing noticed for the life of
+   the suite — until a spec opened a link the *application* had produced and found either a
+   connection refusal or a stray dev server with its own store. The port is fixed and the claim
+   link is now followed end to end; the public catalogue link still is not.
+
+Until all of this exists, "the tests pass" says nothing about the configuration that is deployed.
 
 ### N-13 · Customizer, second pass  ·  ~half a session
 

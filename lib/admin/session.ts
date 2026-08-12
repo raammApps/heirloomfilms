@@ -2,7 +2,7 @@ import 'server-only'
 import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
 import { getAuthProvider } from './auth'
-import type { Catalogue, Operator } from '@/lib/schema'
+import type { Catalogue, Operator, Org } from '@/lib/schema'
 
 /**
  * Operator identity, and the single place `org_id` enters a query.
@@ -28,6 +28,19 @@ export async function getOperatorSession(): Promise<OperatorSession | null> {
   if (!operator) return null
 
   return { operator, orgId: operator.orgId }
+}
+
+/**
+ * The session's org, for the console's chrome and for the few places that show a partner
+ * something a couple has no use for.
+ *
+ * Separate from `OperatorSession` on purpose. Every API route calls `requireOperator`, and none
+ * of them need this — folding it in would buy a query on every write to read a row nobody looks
+ * at. It is display only: `orgId` still comes from the operator row, and no query is ever scoped
+ * by what this returns.
+ */
+export async function getSessionOrg(session: OperatorSession): Promise<Org | null> {
+  return getRepository().getOrg(session.orgId)
 }
 
 export async function requireOperator(): Promise<OperatorSession> {

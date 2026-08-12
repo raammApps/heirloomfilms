@@ -529,3 +529,83 @@ the hand-aligned spec tables were not.
 Also added along the way: `docs/ARCHITECTURE.md`, which is what was actually missing — six
 Mermaid diagrams covering what talks to what, who can see what, a guest opening a link, a film
 arriving, the module registry, and a handover.
+
+## The console, rebuilt around what an operator is deciding
+
+The admin worked and looked like scaffolding. Every screen was a stack of bordered white cards
+with no hierarchy, and — more importantly — no screen answered the question the operator actually
+had in front of it.
+
+**The list.** Every catalogue card was identical whether it held fifteen finished films or
+nothing at all, and there was no search, no filter and no sort. That is fine for the demo org's
+one wedding and breaks in a partner's first month, which is a problem for a product doc 15 sells
+to studios running dozens at a time. The card now carries film and photograph counts, the wedding
+date with how far away it is, and one line saying what the catalogue needs — ranked, so a lapsed
+subscription outranks a failed upload outranks an unpublished draft. Above it: live, drafts and
+how many need attention. Search and filter are client-side, because the whole list is already on
+the page and a round trip per keystroke would make the fastest screen the slowest.
+
+The counts come from a new `Repository.catalogueCounts`, not from `listTitles` per row. The
+obvious version makes two round trips per wedding and gets slower with every wedding a partner
+sells; this one is four queries regardless.
+
+**The wizard.** Step 2 asked an operator to choose the shape of the entire guest page from three
+radio buttons and a sentence of prose — the most consequential decision in the flow, made blind.
+Templates now have thumbnails. They are drawn rather than rendered, because mounting five real
+guest components at 90px would pull the player into the wizard's bundle; the shapes come from a
+new `meta.shape` on each module, so `TemplateThumbnail` never names a module type and adding a
+module still costs one registry line.
+
+Step 1 was five identical inputs with a field labelled "Web address" that never showed the
+address. It now shows the real one, resolved through `catalogueUrl`, so an operator in path mode
+sees `/c/<slug>` rather than a subdomain that will not exist.
+
+**The overview.** The wizard used to end by handing over the customizer and saying nothing about
+whether the job was done. There is now a checklist, and "done" is a real definition rather than a
+feeling: a guest opening the link finds a published page with something to watch. Photographs and
+branding are listed but do not gate it — plenty of real deliveries are films only. It is a pure
+function with its own tests, because a checklist that lies is worse than none.
+
+**The chrome.** The rail was 220px of whitespace serving two links, with no org identity and no
+way to sign out. Below `md` it was hidden and nothing replaced it, so on a phone the console had
+no navigation at all — an operator who opened a catalogue could reach the rest of the admin only
+with the browser's back button.
+
+### N-18 · The handover has a button
+
+The transfer API and the couple's claim page had been live and verified on production for a
+while; a partner simply had nothing to click. The panel sits on the overview beside the public
+link, because both are "things to send someone". Two constraints shaped it: the link is shown
+**exactly once** (only its SHA-256 is stored, so there is no "show it again" to build), and one
+live handover per catalogue is enforced server-side — so the outstanding one is named, with the
+address it went to, and cancelling is how you reissue.
+
+### Three bugs the rebuild surfaced
+
+None of these were in the code being rewritten. They were found because something finally
+exercised them.
+
+1. **The claim link was broken in subdomain mode.** It was built by stripping `/admin` off
+   `adminUrl`, which is a no-op there — leaving `https://admin.<root>/claim/…`, a host whose
+   middleware rewrites *every* path into `/admin/*`. The one URL in the product a stranger has to
+   be able to open answered 404. Production runs path mode, where the strip happened to work,
+   which is exactly why it survived. There is now a `rootUrl` helper and a unit test that asserts
+   the old derivation and the new one differ in precisely one of the two modes.
+
+2. **The E2E config pointed at the wrong port.** `ROOT_DOMAIN` said `:3000` while the server ran
+   on `:3100`. Every spec navigates by relative path through `baseURL`, so it went unnoticed for
+   the life of the suite — the first test to follow a link the *application* generated found
+   either a connection refusal or whatever stray dev server was on 3000, with its own store. That
+   is now the third entry under N-12.
+
+3. **A `<select>` inside its own `<label>`** takes the label's entire text content as its
+   accessible name, so the sort control announced itself as "Sort Wedding date Couple What needs
+   doing" — and `getByLabel('Couple')` in a wizard test matched a control on a different page.
+
+The axe gate caught a fourth on its own: `opacity-70` layered on already-muted text drops below
+4.5:1. It was a reviewer-invisible change and the gate failed the build for it.
+
+308 unit and component tests (up from 279), 78 E2E (up from 72). New coverage is deliberately on
+the parts that are code rather than markup: the attention ranking, the checklist definition, the
+board's filtering, and the handover end to end — including a couple in a fresh browser context
+opening the link a partner just copied.

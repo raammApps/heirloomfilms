@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   adminUrl,
   cataloguePath,
+  rootUrl,
   catalogueUrl,
   isLocalDomain,
   normaliseHost,
@@ -174,6 +175,40 @@ describe('adminUrl', () => {
     expect(adminUrl('raammcorp.in')).toBe('https://admin.raammcorp.in')
     expect(adminUrl('raammcorp.in', 'path')).toBe('https://raammcorp.in/admin')
     expect(adminUrl('lvh.me:3000', 'path')).toBe('http://lvh.me:3000/admin')
+  })
+})
+
+/**
+ * The claim link is the one URL in the product that a stranger — a couple who has never used
+ * this app — has to be able to open. It is also the only one built for a host that is neither
+ * the console nor a tenant.
+ */
+describe('rootUrl', () => {
+  it('is the root host in both modes, because that is the point of it', () => {
+    expect(rootUrl('raammcorp.in', '/claim/abc')).toBe('https://raammcorp.in/claim/abc')
+    expect(rootUrl('mehfil.localhost:3000', '/claim/abc')).toBe(
+      'http://mehfil.localhost:3000/claim/abc',
+    )
+  })
+
+  it('tolerates a path given without its leading slash', () => {
+    expect(rootUrl('raammcorp.in', 'claim/abc')).toBe('https://raammcorp.in/claim/abc')
+  })
+
+  /**
+   * The regression. The claim link was built by stripping `/admin` off `adminUrl`, which is a
+   * no-op in subdomain mode — leaving `https://admin.<root>/claim/…`, a host whose middleware
+   * rewrites every path into `/admin/*`. Production runs path mode, where the strip worked, so
+   * the broken half was the half nothing exercised.
+   */
+  it('never points a claim link at the admin host', () => {
+    for (const mode of ['subdomain', 'path'] as const) {
+      const stripped = adminUrl('raammcorp.in', mode).replace(/\/admin$/, '')
+      const correct = rootUrl('raammcorp.in', '/claim/abc')
+      expect(correct).not.toContain('admin.')
+      // And the old derivation really does differ, in exactly one of the two modes.
+      expect(`${stripped}/claim/abc` === correct).toBe(mode === 'path')
+    }
   })
 })
 

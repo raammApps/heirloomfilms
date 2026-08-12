@@ -14,7 +14,12 @@ import type {
   Profile,
   Title,
 } from '@/lib/schema'
-import type { CatalogueFilter, CreateTitleInput, Repository } from './repository'
+import type {
+  CatalogueCounts,
+  CatalogueFilter,
+  CreateTitleInput,
+  Repository,
+} from './repository'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Supabase rows are untyped JSON at this
    boundary; every row is narrowed by an explicit mapper immediately below. */
@@ -364,6 +369,64 @@ export class SupabaseRepository implements Repository {
       .order('created_at', { ascending: false })
     if (error) throw new ApiError('INTERNAL', error.message)
     return (data ?? []).map(SupabaseRepository.toCatalogue)
+  }
+
+  /**
+   * Four queries regardless of how many weddings the org has, rather than two per wedding.
+   *
+   * Only the columns being counted are selected — the point is to avoid dragging every title
+   * and photo row across the wire to arrive at five integers.
+   */
+  async catalogueCounts({ orgId }: CatalogueFilter): Promise<Record<string, CatalogueCounts>> {
+    const { data: catalogues, error } = await this.db
+      .from('catalogues')
+      .select('id')
+      .eq('org_id', orgId)
+    if (error) throw new ApiError('INTERNAL', error.message)
+
+    const ids = (catalogues ?? []).map((row: Row) => row.id as string)
+    const counts: Record<string, CatalogueCounts> = {}
+    for (const id of ids) counts[id] = { titles: 0, ready: 0, published: 0, failed: 0, photos: 0 }
+    if (ids.length === 0) return counts
+
+    const { data: titles } = await this.db
+      .from('titles')
+      .select('catalogue_id, status, published')
+      .in('catalogue_id', ids)
+
+    for (const row of (titles ?? []) as Row[]) {
+      const entry = counts[row.catalogue_id as string]
+      if (!entry) continue
+      entry.titles += 1
+      if (row.status === 'ready') entry.ready += 1
+      if (row.status === 'failed') entry.failed += 1
+      if (row.published) entry.published += 1
+    }
+
+    // Photos belong to albums, albums to catalogues. Resolved with two flat queries rather than
+    // an embedded filter, so the shape of the result does not depend on join syntax.
+    const { data: albums } = await this.db
+      .from('albums')
+      .select('id, catalogue_id')
+      .in('catalogue_id', ids)
+
+    const albumCatalogue = new Map(
+      ((albums ?? []) as Row[]).map((row) => [row.id as string, row.catalogue_id as string]),
+    )
+
+    if (albumCatalogue.size > 0) {
+      const { data: photos } = await this.db
+        .from('photos')
+        .select('album_id')
+        .in('album_id', [...albumCatalogue.keys()])
+
+      for (const row of (photos ?? []) as Row[]) {
+        const entry = counts[albumCatalogue.get(row.album_id as string) ?? '']
+        if (entry) entry.photos += 1
+      }
+    }
+
+    return counts
   }
 
   async getCatalogue(id: string, orgId: string): Promise<Catalogue | null> {

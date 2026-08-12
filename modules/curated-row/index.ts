@@ -13,6 +13,7 @@ export default defineModule<CuratedRowConfig>({
     occasions: ['wedding', 'anniversary', 'proposal', 'birthday', 'engagement'],
     phase: 0,
     content: 'video',
+    shape: 'row',
   },
 
   schema: configSchema,

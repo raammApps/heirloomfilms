@@ -5,31 +5,44 @@ import { useEffect, useState } from 'react'
 import { suggestSlug } from '@/lib/format'
 import { TEMPLATES } from '@/lib/admin/templates'
 import { FLIX_SUFFIX, type Title } from '@/lib/schema'
+import { catalogueUrl, type TenancyMode } from '@/lib/tenant'
+import { IconCheck } from './icons'
+import { TemplateThumbnail } from './TemplateThumbnail'
 import { TitleList } from './TitleList'
 import { UploadManager } from './UploadManager'
 
 type Step = 1 | 2 | 3 | 4
 
-const STEP_LABELS: Record<Step, string> = {
-  1: 'The wedding',
-  2: 'The shape',
-  3: 'Upload',
-  4: 'Titles',
-}
+const STEPS: { n: Step; label: string; hint: string }[] = [
+  { n: 1, label: 'The wedding', hint: 'Names, date and the address guests will use' },
+  { n: 2, label: 'The shape', hint: 'A starting layout you can rearrange afterwards' },
+  { n: 3, label: 'Upload', hint: 'Films go straight to the video service, not through us' },
+  { n: 4, label: 'Titles', hint: 'Name them and choose what guests see' },
+]
 
 const DRAFT_KEY = 'mehfil.wizard.draft'
 
 /**
  * The four-step create wizard (doc 02 §3).
  *
- * Two properties matter more than the form itself:
+ * Three properties matter more than the form itself:
  *  - **nothing is lost on refresh** — an operator does this between phone calls, so step 1–2
  *    input is mirrored to localStorage until the catalogue exists;
  *  - **upload starts at step 3 and keeps running** through step 4 and beyond. Making an
  *    operator wait for a 6GB upload before they can type a title wastes the only thing they
- *    have less of than money.
+ *    have less of than money;
+ *  - **the address is visible while it is being decided.** The slug field is the one input an
+ *    operator cannot change casually later — it is in every guest's WhatsApp — and it used to be
+ *    a box labelled "Web address" that never showed the address.
  */
-export function CreateWizard() {
+export function CreateWizard({
+  rootDomain,
+  tenancyMode,
+}: {
+  /** Passed in rather than read here: `lib/env` is server-only, and this runs in the browser. */
+  rootDomain: string
+  tenancyMode: TenancyMode
+}) {
   const router = useRouter()
   const [step, setStep] = useState<Step>(1)
   const [catalogueId, setCatalogueId] = useState<string | null>(null)
@@ -89,6 +102,7 @@ export function CreateWizard() {
   }, [slug])
 
   const appNameProblem = FLIX_SUFFIX.test(appName)
+  const created = catalogueId !== null
 
   const create = async () => {
     setBusy(true)
@@ -124,58 +138,96 @@ export function CreateWizard() {
   }
 
   return (
-    <div className="max-w-[640px]">
-      <ol className="mb-6 flex flex-wrap gap-2" aria-label="Steps">
-        {([1, 2, 3, 4] as Step[]).map((n) => (
-          <li
-            key={n}
-            aria-current={step === n ? 'step' : undefined}
-            className={`rounded-[var(--radius-pill)] px-3 py-1.5 text-[13px] ${
-              step === n
-                ? 'bg-[var(--color-l-text-hi)] text-white'
-                : 'bg-[var(--color-l-surface-2)] text-[var(--color-l-text-mid)]'
-            }`}
-          >
-            {n}. {STEP_LABELS[n]}
-          </li>
-        ))}
-      </ol>
+    <div className="max-w-[720px]">
+      <Stepper current={step} created={created} />
+
+      {created ? (
+        <p className="mb-5 flex items-center gap-2 rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--color-ok)_30%,white)] bg-[color-mix(in_srgb,var(--color-ok)_8%,white)] px-3.5 py-2.5 text-[13px]">
+          <span aria-hidden className="text-[var(--color-ok)]">
+            <IconCheck />
+          </span>
+          <span>
+            <strong className="font-semibold">{coupleName}</strong> exists as a draft at{' '}
+            <code className="rounded bg-white/70 px-1 py-0.5">/{slug}</code>. Nothing from here on
+            can lose it.
+          </span>
+        </p>
+      ) : null}
 
       {step === 1 ? (
         <section>
-          <Text label="Couple" value={coupleName} onChange={setCoupleName} placeholder="Aanya & Vikram" />
-          <Text
-            label="Wedding date"
-            value={weddingDate}
-            onChange={setWeddingDate}
-            type="date"
-            error={errors.weddingDate}
-          />
-          <Text label="City" value={city} onChange={setCity} placeholder="Jaipur" />
+          <Card title="The couple" hint="What guests see, and how the wedding is listed for you.">
+            <Text
+              label="Couple"
+              value={coupleName}
+              onChange={setCoupleName}
+              placeholder="Aanya & Vikram"
+              autoFocus
+            />
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Text
+                label="Wedding date"
+                value={weddingDate}
+                onChange={setWeddingDate}
+                type="date"
+                error={errors.weddingDate}
+              />
+              <Text label="City" value={city} onChange={setCity} placeholder="Jaipur" />
+            </div>
+          </Card>
 
-          <Text
-            label="Web address"
-            value={slug}
-            onChange={(next) => {
-              setSlugTouched(true)
-              setSlug(next)
-            }}
-            hint={slugState ? (slugState.available ? 'Available' : slugState.reason) : undefined}
-            error={errors.slug ?? (slugState && !slugState.available ? slugState.reason : undefined)}
-          />
+          <Card
+            title="Where it lives"
+            hint="The address goes into every guest's phone. Changing it later breaks links already sent."
+          >
+            <Text
+              label="Web address"
+              value={slug}
+              onChange={(next) => {
+                setSlugTouched(true)
+                setSlug(next)
+              }}
+              mono
+              error={errors.slug ?? (slugState && !slugState.available ? slugState.reason : undefined)}
+            />
 
-          <Text
-            label="App name"
-            value={appName}
-            onChange={setAppName}
-            placeholder={coupleName ? `${coupleName} Originals` : 'Aanya & Vikram Originals'}
-            hint="What guests see as the wordmark on the profile screen."
-            error={
-              appNameProblem
-                ? 'Try "…Stream", "…Originals" or "The … Files" instead — the -flix suffix is out.'
-                : errors['appName.en']
-            }
-          />
+            {/*
+              The real address, resolved the same way the guest route resolves it — so an
+              operator in path mode sees `/c/<slug>` rather than a subdomain that will not exist.
+            */}
+            <p className="-mt-2 mb-4 flex flex-wrap items-center gap-2 text-[13px]">
+              <code className="rounded bg-[var(--color-l-surface-2)] px-2 py-1 text-[12px] text-[var(--color-l-text-mid)]">
+                {catalogueUrl(slug || 'your-couple', rootDomain, '/', tenancyMode).replace(
+                  /^https?:\/\//,
+                  '',
+                )}
+              </code>
+              {slugState ? (
+                <span
+                  className={
+                    slugState.available
+                      ? 'font-medium text-[#1c5f2a]'
+                      : 'font-medium text-[var(--color-error)]'
+                  }
+                >
+                  {slugState.available ? 'Available' : (slugState.reason ?? 'Taken')}
+                </span>
+              ) : null}
+            </p>
+
+            <Text
+              label="App name"
+              value={appName}
+              onChange={setAppName}
+              placeholder={coupleName ? `${coupleName} Originals` : 'Aanya & Vikram Originals'}
+              hint="The wordmark on the guest's profile screen. Leave it blank to use the suggestion."
+              error={
+                appNameProblem
+                  ? 'Try "…Stream", "…Originals" or "The … Files" instead — the -flix suffix is out.'
+                  : errors['appName.en']
+              }
+            />
+          </Card>
 
           <Nav
             onNext={() => setStep(2)}
@@ -188,29 +240,51 @@ export function CreateWizard() {
 
       {step === 2 ? (
         <section>
-          <p className="mb-3 text-[14px] text-[var(--color-l-text-mid)]">
-            Pick a starting shape. You can rearrange everything afterwards.
+          <p className="mb-4 text-[14px] text-[var(--color-l-text-mid)]">
+            Pick a starting shape. Every section can be reordered, renamed, hidden or removed
+            afterwards — this only decides what is already there when you open the customizer.
           </p>
-          <ul className="mb-6 space-y-2">
-            {TEMPLATES.map((option) => (
-              <li key={option.id}>
-                <label className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-white p-3">
-                  <input
-                    type="radio"
-                    name="template"
-                    checked={template === option.id}
-                    onChange={() => setTemplate(option.id)}
-                    className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
-                  />
-                  <span>
-                    <span className="block text-[15px] font-semibold">{option.label}</span>
-                    <span className="block text-[13px] text-[var(--color-l-text-mid)]">
+
+          <ul className="mb-6 grid gap-3 sm:grid-cols-3">
+            {TEMPLATES.map((option) => {
+              const chosen = template === option.id
+              return (
+                <li key={option.id}>
+                  <label
+                    className={`flex h-full cursor-pointer flex-col rounded-[var(--radius-card)] border-2 bg-white p-3 transition-colors ${
+                      chosen
+                        ? 'border-[var(--color-accent)]'
+                        : 'border-[var(--color-l-line)] hover:border-[var(--color-l-text-mid)]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="template"
+                      checked={chosen}
+                      onChange={() => setTemplate(option.id)}
+                      className="sr-only"
+                    />
+
+                    <TemplateThumbnail sectionTypes={option.sections.map((s) => s.type)} />
+
+                    <span className="mt-3 flex items-center gap-1.5 text-[15px] font-semibold">
+                      {option.label}
+                      {chosen ? (
+                        <span aria-hidden className="text-[var(--color-accent)]">
+                          <IconCheck />
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="mt-1 text-[13px] text-[var(--color-l-text-mid)]">
                       {option.description}
                     </span>
-                  </span>
-                </label>
-              </li>
-            ))}
+                    <span className="mt-2 text-[12px] text-[var(--color-l-text-mid)]">
+                      {option.sections.length} sections
+                    </span>
+                  </label>
+                </li>
+              )
+            })}
           </ul>
 
           {errors._ ? (
@@ -235,7 +309,7 @@ export function CreateWizard() {
             while you work anywhere else in the admin.
           </p>
           <UploadManager catalogueId={catalogueId} />
-          <Nav onNext={() => setStep(4)} nextLabel="Title the films" />
+          <Nav onBack={() => setStep(2)} onNext={() => setStep(4)} nextLabel="Title the films" />
         </section>
       ) : null}
 
@@ -262,6 +336,71 @@ export function CreateWizard() {
         </section>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * Steps 1–2 can be walked back; 3–4 cannot, because by then the catalogue exists and "back" past
+ * its own creation is not a thing the operator can be offered. The stepper says so rather than
+ * leaving them to discover it.
+ */
+function Stepper({ current, created }: { current: Step; created: boolean }) {
+  return (
+    <ol className="mb-6 flex flex-wrap gap-x-1 gap-y-2" aria-label="Steps">
+      {STEPS.map(({ n, label, hint }) => {
+        const done = created ? n < current : n < current
+        const active = n === current
+        return (
+          <li key={n} aria-current={active ? 'step' : undefined} className="flex items-center">
+            <span
+              className={`flex items-center gap-2 rounded-[var(--radius-pill)] px-3 py-1.5 text-[13px] ${
+                active
+                  ? 'bg-[var(--color-l-text-hi)] font-semibold text-white'
+                  : done
+                    ? 'bg-[color-mix(in_srgb,var(--color-ok)_14%,white)] text-[#1c5f2a]'
+                    : 'bg-[var(--color-l-surface-2)] text-[var(--color-l-text-mid)]'
+              }`}
+              title={hint}
+            >
+              <span
+                aria-hidden
+                className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                  active ? 'bg-white/20' : done ? 'bg-[var(--color-ok)] text-white' : 'bg-white'
+                }`}
+              >
+                {done ? '✓' : n}
+              </span>
+              {label}
+            </span>
+            {n < 4 ? (
+              <span aria-hidden className="mx-1 h-px w-3 bg-[var(--color-l-line)] sm:w-5" />
+            ) : null}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+function Card({
+  title,
+  hint,
+  children,
+}: {
+  title: string
+  hint?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="mb-4 rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-white p-4">
+      <h2 className="text-[15px] font-semibold">{title}</h2>
+      {hint ? (
+        <p className="mb-4 mt-0.5 text-[13px] text-[var(--color-l-text-mid)]">{hint}</p>
+      ) : (
+        <div className="mb-4" />
+      )}
+      {children}
+    </section>
   )
 }
 
@@ -316,6 +455,8 @@ function Text({
   hint,
   error,
   type = 'text',
+  mono = false,
+  autoFocus = false,
 }: {
   label: string
   value: string
@@ -324,6 +465,8 @@ function Text({
   hint?: string
   error?: string
   type?: string
+  mono?: boolean
+  autoFocus?: boolean
 }) {
   const id = label.toLowerCase().replace(/\s+/g, '-')
   return (
@@ -338,7 +481,14 @@ function Text({
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={error ? true : undefined}
-        className="w-full rounded-[var(--radius-input)] border border-[var(--color-l-line)] bg-white px-3 py-2.5 text-[15px]"
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- the first field of a create form the
+        // operator navigated to deliberately; nothing else on the page competes for focus.
+        autoFocus={autoFocus}
+        autoCapitalize={mono ? 'none' : undefined}
+        spellCheck={mono ? false : undefined}
+        className={`h-11 w-full rounded-[var(--radius-input)] border bg-white px-3 text-[15px] ${
+          mono ? 'font-mono text-[14px]' : ''
+        } ${error ? 'border-[var(--color-error)]' : 'border-[var(--color-l-line)]'}`}
       />
       {error ? (
         <p role="alert" className="mt-1 text-[13px] text-[var(--color-error)]">

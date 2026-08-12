@@ -27,6 +27,16 @@ export type ModuleMeta = {
    * video") without naming a module type, which would put a switch back in the customizer.
    */
   content: 'video' | 'photo' | 'text'
+  /**
+   * Roughly what the section looks like on the page, for surfaces that must *draw* a page they
+   * cannot render — the create wizard's template thumbnails, where mounting five real guest
+   * components at postage-stamp size would cost more than the whole step.
+   *
+   * A layout word rather than a module type, for the same reason `content` is: it lets the
+   * wizard describe a shape without a `switch` on type outside this folder, which
+   * `tests/unit/registry.test.ts` forbids and doc 14 §7 is the reason for.
+   */
+  shape: 'hero' | 'row' | 'grid' | 'prose'
   /** Some modules (the billboard) may only appear once in a catalogue. */
   singleton?: boolean
 }

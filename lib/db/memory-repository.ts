@@ -13,7 +13,12 @@ import type {
   Profile,
   Title,
 } from '@/lib/schema'
-import type { CatalogueFilter, CreateTitleInput, Repository } from './repository'
+import type {
+  CatalogueCounts,
+  CatalogueFilter,
+  CreateTitleInput,
+  Repository,
+} from './repository'
 
 export type Snapshot = {
   transfers: Transfer[]
@@ -172,6 +177,31 @@ export class MemoryRepository implements Repository {
         .filter((c) => c.orgId === orgId)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     )
+  }
+
+  async catalogueCounts({ orgId }: CatalogueFilter): Promise<Record<string, CatalogueCounts>> {
+    const mine = new Set(this.data.catalogues.filter((c) => c.orgId === orgId).map((c) => c.id))
+
+    const counts: Record<string, CatalogueCounts> = {}
+    for (const id of mine) counts[id] = { titles: 0, ready: 0, published: 0, failed: 0, photos: 0 }
+
+    for (const title of this.data.titles) {
+      const row = counts[title.catalogueId]
+      if (!row) continue
+      row.titles += 1
+      if (title.status === 'ready') row.ready += 1
+      if (title.status === 'failed') row.failed += 1
+      if (title.published) row.published += 1
+    }
+
+    // Photos hang off albums, so the catalogue is one hop away.
+    const albumCatalogue = new Map(this.data.albums.map((a) => [a.id, a.catalogueId]))
+    for (const photo of this.data.photos) {
+      const row = counts[albumCatalogue.get(photo.albumId) ?? '']
+      if (row) row.photos += 1
+    }
+
+    return counts
   }
 
   async getCatalogue(id: string, orgId: string): Promise<Catalogue | null> {

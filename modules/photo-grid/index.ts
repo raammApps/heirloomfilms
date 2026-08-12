@@ -12,6 +12,7 @@ export default defineModule<PhotoGridConfig>({
     occasions: ['wedding', 'anniversary', 'proposal', 'birthday', 'engagement'],
     phase: 0,
     content: 'photo',
+    shape: 'grid',
   },
 
   schema: configSchema,

@@ -7,7 +7,7 @@ import { ApiError } from '@/lib/http/errors'
 import { noStore, readJson, route } from '@/lib/http/handler'
 import { log } from '@/lib/log'
 import { transferSchema } from '@/lib/schema'
-import { adminUrl } from '@/lib/tenant'
+import { rootUrl } from '@/lib/tenant'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -66,12 +66,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     log.info('transfer issued', { catalogueId: catalogue.id, transferId: transfer.id })
 
-    // The only time the plaintext token exists outside the link. It is not stored, and this
-    // response is the partner's single chance to copy it.
-    const base = adminUrl(env.ROOT_DOMAIN, env.TENANCY_MODE).replace(/\/admin$/, '')
+    /**
+     * The only time the plaintext token exists outside the link. It is not stored, and this
+     * response is the partner's single chance to copy it.
+     *
+     * Built from the **root** host. This used to strip `/admin` off `adminUrl`, which is a no-op
+     * in subdomain mode and left the link pointing at `admin.<root>/claim/…` — a host whose
+     * middleware rewrites every path into `/admin/*`, so the couple got a 404. Production runs
+     * path mode, where the strip happened to work, which is exactly why it survived.
+     */
     return noStore({
       transfer: { id: transfer.id, toEmail: transfer.toEmail, expiresAt: transfer.expiresAt },
-      claimUrl: `${base}/claim/${token}`,
+      claimUrl: rootUrl(env.ROOT_DOMAIN, `/claim/${token}`),
     })
   })
 }

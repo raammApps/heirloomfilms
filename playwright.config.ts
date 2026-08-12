@@ -51,7 +51,16 @@ export default defineConfig({
       // Explicit opt-in: a production build normally refuses an ephemeral store.
       ALLOW_EPHEMERAL_DATA: '1',
       VIDEO_DRIVER: 'fake',
-      ROOT_DOMAIN: 'mehfil.localhost:3000',
+      /**
+       * The port has to match the one the server is actually on.
+       *
+       * It said `:3000` while the server ran on 3100, so every absolute URL the app produced —
+       * the public catalogue link, the handover link — pointed at a port nothing was listening
+       * on. Nothing caught it because every other spec navigates by relative path through
+       * `baseURL`; the first test to follow a link the *app* generated found either a connection
+       * refusal or, worse, whatever stray dev server happened to be on 3000 with its own store.
+       */
+      ROOT_DOMAIN: `mehfil.localhost:${PORT}`,
       SESSION_SECRET: 'e2e-session-secret-0123456789abcdefghijklmnop',
       DEV_OPERATOR_EMAIL: 'operator@mehfil.test',
       // Not the repo's published default: the production guard refuses that, and this suite
