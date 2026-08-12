@@ -17,6 +17,7 @@
  */
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
+import { chromium } from '@playwright/test'
 
 if (existsSync('.env.local')) {
   for (const line of readFileSync('.env.local', 'utf8').split('\n')) {
@@ -58,6 +59,95 @@ function sign(path: string, expires: number): string {
 /** The first non-comment line of a master playlist: the rendition HLS will fetch next. */
 function firstRendition(manifest: string): string | null {
   return manifest.split('\n').find((line) => line.trim() && !line.startsWith('#')) ?? null
+}
+
+/**
+ * N-12 §2 — put a real player in front of the real CDN.
+ *
+ * Everything above this proves the *CDN*: given a URL with a token already on it, does Bunny
+ * serve it. That is not the question a guest asks. hls.js resolves child playlists and segments
+ * relative to the manifest, **relative resolution drops the query string**, and every one of
+ * them then arrives unsigned and comes back 403 — a player that attaches cleanly and can never
+ * load a byte. That shipped, behind a script that was passing.
+ *
+ * Curl cannot find it, because curl is told the URL. Only something that walks the manifest by
+ * itself can, so this drives Chromium with hls.js and waits for frames to actually decode.
+ *
+ * `xhrSetup` is copied from `components/streaming/useHlsPlayback.ts` rather than imported — the
+ * hook is a React module and this is a standalone node script. That duplication is the weak
+ * point of this check, so if the two drift, the divergence is the thing to look at first.
+ */
+async function playsInARealPlayer(
+  manifestUrl: string,
+  signedQuery: string,
+  signedPrefix: string,
+): Promise<{ ok: boolean; detail: string }> {
+  const browser = await chromium.launch()
+  try {
+    const page = await browser.newPage()
+
+    // A real http origin rather than about:blank: an opaque `null` origin changes how the
+    // browser treats the cross-origin media requests, which is not the thing under test.
+    await page.route('https://playback.verify/', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<!doctype html><video id="v" muted></video>' }),
+    )
+
+    // tsx compiles this file with esbuild's `keepNames`, which rewrites function expressions to
+    // call a `__name` helper. That helper exists in node and not in the page, so any evaluated
+    // body containing a named function throws `__name is not defined` before it runs. A string
+    // literal is not compiled, so this shim survives the transform.
+    await page.addInitScript('globalThis.__name = globalThis.__name || ((fn) => fn)')
+
+    await page.goto('https://playback.verify/')
+    await page.addScriptTag({ path: 'node_modules/hls.js/dist/hls.min.js' })
+
+    return await page.evaluate(
+      async ([url, query, prefix]) => {
+        const Hls = (window as unknown as { Hls: any }).Hls
+        if (!Hls?.isSupported()) return { ok: false, detail: 'hls.js reports no MSE support' }
+
+        const video = document.getElementById('v') as HTMLVideoElement
+        const hls = new Hls({
+          xhrSetup: (xhr: XMLHttpRequest, requestUrl: string) => {
+            xhr.withCredentials = false
+            if (!query || requestUrl.includes('token=') || !requestUrl.startsWith(prefix!)) return
+            xhr.open('GET', requestUrl + query, true)
+          },
+        })
+
+        return await new Promise<{ ok: boolean; detail: string }>((resolve) => {
+          const fail = (detail: string) => {
+            hls.destroy()
+            resolve({ ok: false, detail })
+          }
+          const timer = setTimeout(() => fail('timed out before any frame decoded'), 45_000)
+
+          hls.on(Hls.Events.ERROR, (_e: unknown, data: any) => {
+            if (!data?.fatal) return
+            clearTimeout(timer)
+            const code = data.response?.code ? ` HTTP ${data.response.code}` : ''
+            fail(`${data.type} / ${data.details}${code}`)
+          })
+
+          // HAVE_ENOUGH_DATA. Anything less means the manifest parsed but the media never
+          // arrived, which is exactly the failure mode being hunted.
+          video.addEventListener('canplaythrough', () => {
+            clearTimeout(timer)
+            const state = video.readyState
+            hls.destroy()
+            resolve({ ok: state >= 4, detail: `readyState=${state}` })
+          })
+
+          hls.loadSource(url!)
+          hls.attachMedia(video)
+          hls.on(Hls.Events.MANIFEST_PARSED, () => void video.play().catch(() => {}))
+        })
+      },
+      [manifestUrl, signedQuery, signedPrefix] as const,
+    )
+  } finally {
+    await browser.close()
+  }
 }
 
 async function main(): Promise<void> {
@@ -134,15 +224,22 @@ async function main(): Promise<void> {
     const posterUnsigned = await fetch(`https://${HOST}${directory}thumbnail_1.jpg`)
     console.log(`   signed HTTP ${poster.status} · unsigned HTTP ${posterUnsigned.status}`)
 
+    // The question none of the steps above asks: can a *player* walk this on its own?
+    console.log('8. playing it in a real browser through hls.js…')
+    const played = withToken.ok
+      ? await playsInARealPlayer(signed, query, `https://${HOST}${directory}`)
+      : { ok: false, detail: 'skipped — the manifest itself was refused' }
+    console.log(`   ${played.ok ? 'decoded frames' : 'FAILED'} · ${played.detail}`)
+
     console.log()
     const servesPoster = poster.ok && posterUnsigned.status !== 200
     const servesSigned = withToken.ok
     const refusesUnsigned = without.status === 403 || without.status === 401
     const servesChild = childStatus === 200
 
-    if (servesSigned && refusesUnsigned && servesChild && servesPoster) {
+    if (servesSigned && refusesUnsigned && servesChild && servesPoster && played.ok) {
       const renditions = (manifest.match(/RESOLUTION=(\d+x\d+)/g) ?? []).join(', ')
-      console.log('PASS — signature accepted, whole rendition tree authorised, unsigned refused.')
+      console.log('PASS — signature accepted, unsigned refused, and a real player reached frames.')
       if (renditions) console.log(`  ladder: ${renditions}`)
       return
     }
@@ -166,6 +263,14 @@ async function main(): Promise<void> {
       console.error(`FAIL — the manifest loaded but the child playlist returned ${childStatus}.`)
       console.error('  The token is scoped to one file instead of the directory, so playback')
       console.error('  would start and immediately stall. Sign `/{guid}/`, not the .m3u8.')
+    }
+    if (servesSigned && servesChild && !played.ok) {
+      console.error(`FAIL — every URL this script fetched was fine, but a real player could not`)
+      console.error(`  play the stream: ${played.detail}.`)
+      console.error('  That gap is the whole point of step 8: curl is handed the signed URL,')
+      console.error('  while hls.js resolves child playlists and segments *relative* to the')
+      console.error('  manifest and drops the query string. Check `xhrSetup` in')
+      console.error('  components/streaming/useHlsPlayback.ts — it is what reattaches the token.')
     }
     process.exitCode = 1
   } finally {

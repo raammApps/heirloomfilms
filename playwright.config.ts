@@ -4,6 +4,33 @@ const PORT = 3100
 const BASE_URL = `http://localhost:${PORT}`
 
 /**
+ * A second server, in the mode production actually runs.
+ *
+ * `TENANCY_MODE` is read at boot, so path mode cannot be a project option on the subdomain
+ * server — it needs its own process. Worth the extra build: path mode had **no coverage at all**
+ * while being the deployed configuration, which is how Play could 404 for every guest with a
+ * green suite (N-12). The routes genuinely differ — `/c/<slug>/watch/<title>` against
+ * `/watch/<title>` — so this is a second surface, not a duplicate run.
+ */
+const PATH_PORT = 3101
+const PATH_BASE_URL = `http://localhost:${PATH_PORT}`
+
+/** Everything the two servers agree on. Divergence here is what N-12 §3 was about. */
+const SHARED_ENV = {
+  NODE_ENV: 'production',
+  DATA_DRIVER: 'memory',
+  // Explicit opt-in: a production build normally refuses an ephemeral store.
+  ALLOW_EPHEMERAL_DATA: '1',
+  VIDEO_DRIVER: 'fake',
+  SESSION_SECRET: 'e2e-session-secret-0123456789abcdefghijklmnop',
+  DEV_OPERATOR_EMAIL: 'operator@mehfil.test',
+  // Not the repo's published default: the production guard refuses that, and this suite
+  // deliberately boots with NODE_ENV=production. Fixed rather than random so specs can
+  // sign in without threading a secret through them.
+  DEV_OPERATOR_PASSWORD: 'e2e-operator-password',
+}
+
+/**
  * Playwright drives the six critical journeys from doc 10 §2.
  *
  * Mobile first, because ~90% of traffic is a mid-range Android arriving from a WhatsApp link.
@@ -29,44 +56,63 @@ export default defineConfig({
       name: 'mobile',
       // Doc 04 §1 and CLAUDE.md constraint 2: design and test at 360×800 first.
       use: { ...devices['Pixel 5'], viewport: { width: 360, height: 800 } },
+      testIgnore: /path-mode\.spec\.ts/,
     },
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+      testIgnore: /path-mode\.spec\.ts/,
+    },
+    {
+      name: 'path-mode',
+      // Mobile, because that is what a guest arrives on and path mode is a guest-facing concern.
+      use: {
+        ...devices['Pixel 5'],
+        viewport: { width: 360, height: 800 },
+        baseURL: PATH_BASE_URL,
+      },
+      testMatch: /path-mode\.spec\.ts/,
     },
   ],
 
-  webServer: {
-    command: 'pnpm build && pnpm start',
-    url: `${BASE_URL}/api/health`,
-    reuseExistingServer: !process.env.CI,
-    // A cold `next build` on a loaded machine exceeds three minutes. The suite itself runs in
-    // well under a minute, so a generous boot budget costs nothing and removes a CI failure
-    // that says "timed out" when nothing is actually wrong.
-    timeout: 420_000,
-    env: {
-      PORT: String(PORT),
-      NODE_ENV: 'production',
-      DATA_DRIVER: 'memory',
-      // Explicit opt-in: a production build normally refuses an ephemeral store.
-      ALLOW_EPHEMERAL_DATA: '1',
-      VIDEO_DRIVER: 'fake',
-      /**
-       * The port has to match the one the server is actually on.
-       *
-       * It said `:3000` while the server ran on 3100, so every absolute URL the app produced —
-       * the public catalogue link, the handover link — pointed at a port nothing was listening
-       * on. Nothing caught it because every other spec navigates by relative path through
-       * `baseURL`; the first test to follow a link the *app* generated found either a connection
-       * refusal or, worse, whatever stray dev server happened to be on 3000 with its own store.
-       */
-      ROOT_DOMAIN: `mehfil.localhost:${PORT}`,
-      SESSION_SECRET: 'e2e-session-secret-0123456789abcdefghijklmnop',
-      DEV_OPERATOR_EMAIL: 'operator@mehfil.test',
-      // Not the repo's published default: the production guard refuses that, and this suite
-      // deliberately boots with NODE_ENV=production. Fixed rather than random so specs can
-      // sign in without threading a secret through them.
-      DEV_OPERATOR_PASSWORD: 'e2e-operator-password',
+  webServer: [
+    {
+      command: 'pnpm build && pnpm start',
+      url: `${BASE_URL}/api/health`,
+      reuseExistingServer: !process.env.CI,
+      // A cold `next build` on a loaded machine exceeds three minutes. The suite itself runs in
+      // well under a minute, so a generous boot budget costs nothing and removes a CI failure
+      // that says "timed out" when nothing is actually wrong.
+      timeout: 420_000,
+      env: {
+        ...SHARED_ENV,
+        PORT: String(PORT),
+        /**
+         * The port has to match the one the server is actually on.
+         *
+         * It said `:3000` while the server ran on 3100, so every absolute URL the app produced —
+         * the public catalogue link, the handover link — pointed at a port nothing was listening
+         * on. Nothing caught it because every other spec navigates by relative path through
+         * `baseURL`; the first test to follow a link the *app* generated found either a connection
+         * refusal or, worse, whatever stray dev server happened to be on 3000 with its own store.
+         */
+        ROOT_DOMAIN: `mehfil.localhost:${PORT}`,
+      },
     },
-  },
+    {
+      // The second build is nearly free: `.next` is warm from the first, and only the env differs.
+      command: 'pnpm build && pnpm start',
+      url: `${PATH_BASE_URL}/api/health`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 420_000,
+      env: {
+        ...SHARED_ENV,
+        PORT: String(PATH_PORT),
+        TENANCY_MODE: 'path',
+        // No subdomain label: in path mode the catalogue hangs off the root host at /c/<slug>,
+        // and `localhost` is reachable without the wildcard DNS that CI does not have.
+        ROOT_DOMAIN: `localhost:${PATH_PORT}`,
+      },
+    },
+  ],
 })

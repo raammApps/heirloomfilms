@@ -21,7 +21,11 @@ matter** rather than coverage percentage.
 1. `resolveTenant` for every host shape (root, www, admin, valid, reserved, unknown, custom domain, port, uppercase).
 2. Module renderer: unknown `type` renders nothing and does not throw; disabled modules are skipped; order is respected.
 3. Adding a module requires no change outside `modules/<type>/` — assert the registry is the only touch point.
-4. Trending suppression: hidden below `minPlays`; New suppressed on a catalogue younger than 14 days.
+4. ~~Trending suppression: hidden below `minPlays`; New suppressed on a catalogue younger than 14
+   days.~~ **Withdrawn.** Doc 01 §5.1 cut both rows — VE-13 because trending is meaningless across
+   eight items and would rank the billboard first every time, VE-14 because the whole catalogue
+   publishes at once. Verified absent from the code. The number is kept rather than renumbered so
+   references to "doc 10 §1 test 4" still land somewhere that explains itself.
 5. A play counts toward `view_count_7d` only past 30 seconds watched.
 6. `playback_progress` marks `completed` past 95% and the title leaves Continue Watching.
 7. Playback token is scoped to catalogue **and** title; a token for title A cannot fetch title B.

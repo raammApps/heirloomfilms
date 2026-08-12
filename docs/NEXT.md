@@ -12,13 +12,17 @@ Update this file as items land — move them out, do not leave them ticked.
 
 ## Where things stand, in one paragraph
 
-Phase 0 is built: guest catalogue, player, admin, customizer, and the module registry. All six
-doc 10 §2 journeys run, plus an OG size budget and a zero-axe-violations gate. **180 unit and
-component tests, 69 E2E, all green.** **Both external services are live and verified end to end**: the app boots on
-`DATA_DRIVER=supabase` + `VIDEO_DRIVER=bunny`, an operator logs in against real Postgres, and
-create → publish → guest page works. `pnpm test:integration` is 10/10, and `pnpm verify:upload` proves a real
-TUS upload survives a network drop. Local development stays on `file` + `bunny` so the demo
-catalogue is available. Working tree clean on `master`.
+Phase 0 is built and deployed: guest catalogue, player, admin console, customizer, the module
+registry, and the partner/handover model. All six doc 10 §2 journeys run, plus an OG size budget,
+a first-load JS budget and a zero-axe-violations gate. **308 unit and component tests, 81 E2E,
+all green.**
+
+**Both external services are live and verified end to end**: production runs on
+`DATA_DRIVER=supabase` + `VIDEO_DRIVER=bunny` at `https://marquee-film-pub.vercel.app`, an
+operator signs in against real Postgres, and create → publish → guest page works.
+`pnpm test:integration` is 10/10, and `pnpm verify:upload` proves a real TUS upload survives a
+network drop. Local development stays on `file` + `bunny` so the demo catalogue is available.
+Branch is `main`.
 
 Run `pnpm preflight` first in any new session: it reports the real state of both services in a
 few seconds and is more trustworthy than this paragraph.
@@ -68,32 +72,6 @@ link lands somewhere that is not this deployment.
 Platform admin, partner registration, couple accounts, ownership transfer, entitlements,
 Razorpay. Sequenced in doc 15 §6 — the order matters, and steps 1–3 (this item, ISR, Supabase
 Auth) are worth doing whether or not the partner model happens.
-
-### N-12 · Three blind spots the suite has, now that we know they exist  ·  ~2h
-
-Validation against real infrastructure found three fatal bugs that 220 unit tests and 69 E2E
-tests all passed straight through. All three blind spots are structural, not oversights:
-
-1. **E2E only ever runs `TENANCY_MODE=subdomain`.** `playwright.config.ts` sets
-   `ROOT_DOMAIN=mehfil.localhost:<port>` and never sets the mode, so path mode — *what production
-   runs* — has no coverage at all. That is how Play could 404 for every guest with a green
-   suite. Add a third Playwright project running the guest journey in path mode; the routes
-   differ, so it is a real second surface, not a duplicate.
-
-2. **`verify:playback` proves the CDN, not the player.** It appends the token with curl and
-   asserts 200/403. A real player resolves child playlists relative to the manifest, drops the
-   query string, and gets 403 on every one — which is exactly what happened, invisibly, behind
-   a passing script. Drive the actual `<video>` through hls.js in that script and assert
-   `readyState === 4`, the way `verify:upload` already drives a real browser.
-
-3. **A URL the app generates is only tested when something follows it.** Found while building
-   the handover UI: `ROOT_DOMAIN` in `playwright.config.ts` said `:3000` while the server ran on
-   `:3100`. Every spec navigates by relative path through `baseURL`, so nothing noticed for the life of
-   the suite — until a spec opened a link the *application* had produced and found either a
-   connection refusal or a stray dev server with its own store. The port is fixed and the claim
-   link is now followed end to end; the public catalogue link still is not.
-
-Until all of this exists, "the tests pass" says nothing about the configuration that is deployed.
 
 ### N-13 · Customizer, second pass  ·  ~half a session
 
@@ -149,18 +127,6 @@ permission-granted material. Sandeep's, per doc 13 §8.
 ---
 
 ## Tier 3 — debt, in the order it will start hurting
-
-### N-7 · Operator auth is a signed cookie, not Supabase Auth  ·  ~3h
-
-The schema and RLS are written for Supabase Auth (`operators.id` references `auth.users.id`);
-the app verifies a scrypt hash itself. Fine for one operator, wrong for Phase 2's org roles.
-Contained to `lib/admin/session.ts`.
-
-### N-8 · Doc 10 §1 test 4 is stale  ·  ~10min, doc change only
-
-It requires "Trending suppression … New suppressed on a catalogue younger than 14 days", but
-doc 01 §5.1 **cut** both features (VE-13, VE-14). Verified absent from the code. Either update
-doc 10 or reread the requirement as "assert they do not exist".
 
 ### N-9 · The repo directory is named `couple-flix`  ·  ~5min
 

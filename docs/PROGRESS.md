@@ -609,3 +609,45 @@ The axe gate caught a fourth on its own: `opacity-70` layered on already-muted t
 the parts that are code rather than markup: the attention ranking, the checklist definition, the
 board's filtering, and the handover end to end — including a couple in a fresh browser context
 opening the link a partner just copied.
+
+## N-12 · The two blind spots, closed — and each one proven by breaking it
+
+Both halves of N-12 were about the same thing: a suite can be green because it never asked the
+question, not because the answer was right. So neither is claimed on the basis that it passes.
+Each was verified by **reintroducing the original bug and watching it fail**, then restoring.
+
+**Path mode now has a Playwright project of its own.** `TENANCY_MODE` is read at boot, so it
+cannot be a project option — it needs a second server, on its own port, in the mode production
+actually deploys. Five specs, all about *addressing* rather than rendering, because rendering is
+identical between the modes and addressing is the entire difference: the catalogue serves from
+`/c/<slug>`, Play lands on a route that exists, a deep link opens cold the way a forwarded one
+does, and the public link **the console itself printed** is opened by a guest in a fresh context.
+
+Proof it is real: `cataloguePath` was reverted to the shipped bug — the catalogue assumed to be
+the site root in both modes — and three of the five failed. That bug reached production behind
+220 unit and 69 E2E tests.
+
+**`verify:playback` now drives a real player.** Steps 1–7 prove the *CDN*: hand Bunny a URL with
+a token on it and it serves it. That is not the question a guest asks. hls.js resolves child
+playlists and segments relative to the manifest, relative resolution drops the query string, and
+every one then arrives unsigned and 403s — a player that attaches cleanly and never loads a byte.
+Curl cannot find that, because curl is told the URL. Step 8 launches Chromium, loads hls.js with
+the same `xhrSetup` the app uses, and waits for `readyState === 4` against the real CDN.
+
+Proof it is real: the token reattachment was removed from step 8, and it failed with
+`networkError / levelLoadError HTTP 403` — the same error that shipped — while steps 1–7 stayed
+green, which is exactly the disagreement the step exists to expose.
+
+One honest weakness, stated in the script: `xhrSetup` is *copied* from `useHlsPlayback.ts` rather
+than imported, because the hook is a React module and this is a standalone node script. If those
+two drift, the check quietly stops testing the real thing. That is the first place to look if
+this ever passes while playback is broken.
+
+Also retired, both stale rather than done-today: **N-7** (operator auth is already on Supabase
+Auth behind the driver seam) and **N-8** (doc 10 §1 test 4 demanded tests for Trending and New,
+which doc 01 §5.1 cut as VE-13/VE-14 — verified absent, and doc 10 now says so rather than
+carrying a requirement nothing can satisfy). NEXT.md's opening paragraph was also wrong in four
+ways at once — test counts, E2E counts, deployment status and branch name — which matters because
+it is the first thing a cold session reads.
+
+308 unit and component tests, 86 E2E across three projects.
