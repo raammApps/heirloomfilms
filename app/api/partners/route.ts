@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getAuthProvider } from '@/lib/admin/auth'
 import { hashSecret } from '@/lib/crypto'
 import { getRepository } from '@/lib/db'
+import { env } from '@/lib/env'
 import { suggestSlug } from '@/lib/format'
 import { ApiError } from '@/lib/http/errors'
 import { readJson, route } from '@/lib/http/handler'
@@ -20,10 +21,14 @@ export const dynamic = 'force-dynamic'
  * which is most of what is interesting about it. Everything else either requires a session or
  * belongs to a catalogue somebody already holds a link to.
  *
- * Creates three things in a deliberate order: the credential, the org, the operator row. The
- * credential is worthless without the row — a Supabase user with no `operators` record
- * authenticates and is still refused — so a failure partway leaves an account that can do
- * nothing rather than an org nobody can reach.
+ * Creates three things in order: the credential, the org, the operator row.
+ *
+ * The credential is safe to strand — a Supabase user with no `operators` record authenticates
+ * and is still refused, so it grants nothing. **The org is not.** An org with no operator is
+ * unreachable by every query here and invisible in every UI; it can only be found by reading the
+ * table. There is no transaction spanning the two writes, so the operator step compensates
+ * explicitly on failure. This was found the hard way: a foreign-key violation left exactly such
+ * an orphan on the live database.
  */
 
 /** Slow enough that a script gains nothing, generous enough that a real business never sees it. */
@@ -53,10 +58,26 @@ export async function POST(request: Request) {
 
     const body = await readJson(request, partnerRegistrationSchema)
     const repository = getRepository()
+    const auth = getAuthProvider()
+
+    /**
+     * The local driver cannot register anyone against Postgres.
+     *
+     * `operators.id` references `auth.users(id)`, and the local driver mints its own uuid —
+     * Postgres rejects the insert with a foreign-key violation, which reached an operator as a
+     * bare 500. Registration needs an authenticator that actually creates the account the
+     * schema points at.
+     */
+    if (auth.name === 'local' && env.DATA_DRIVER === 'supabase') {
+      throw new ApiError(
+        'INTERNAL',
+        'Registration needs AUTH_DRIVER=supabase on this deployment. See DEPLOYMENT.md §11.',
+      )
+    }
 
     // The credential first: if this fails there is nothing to unwind, and it is the only step
     // that can tell us the address is already taken.
-    const user = await getAuthProvider().signUp(body.email, body.password)
+    const user = await auth.signUp(body.email, body.password)
     if (!user) {
       // Same message whether the address is registered or the provider refused. An honest
       // "already registered" here would turn this endpoint into a list of every partner.
@@ -76,17 +97,26 @@ export async function POST(request: Request) {
     })
     await repository.createOrg(org)
 
-    await repository.createOperator({
-      id: user.id,
-      orgId: org.id,
-      email: body.email,
-      name: body.contactName,
-      role: 'admin',
-      // Only the local driver reads this; under Supabase Auth the credential lives there and
-      // this column stays empty.
-      passwordHash: getAuthProvider().name === 'local' ? hashSecret(body.password) : '',
-      createdAt: new Date().toISOString(),
-    })
+    try {
+      await repository.createOperator({
+        id: user.id,
+        orgId: org.id,
+        email: body.email,
+        name: body.contactName,
+        role: 'admin',
+        // Only the local driver reads this; under Supabase Auth the credential lives there and
+        // this column stays empty.
+        passwordHash: auth.name === 'local' ? hashSecret(body.password) : '',
+        createdAt: new Date().toISOString(),
+      })
+    } catch (error) {
+      // An org with no operator is unreachable by every query in this system and invisible in
+      // every UI — it can only be found by reading the table. There is no transaction spanning
+      // these two writes, so the compensation is explicit.
+      await repository.deleteOrg(org.id).catch(() => {})
+      log.error('partner registration: rolled back the org', { orgId: org.id, error: String(error) })
+      throw error
+    }
 
     log.info('partner registered', { orgId: org.id, slug: org.slug })
 

@@ -40,6 +40,8 @@ export interface Repository {
   /** Every org on the platform. Platform-admin only — no route may call this org-scoped. */
   listOrgs(kind?: Org['kind']): Promise<Org[]>
   createOperator(operator: Operator): Promise<Operator>
+  /** Compensation for a half-finished registration. Not a user-facing delete. */
+  deleteOrg(id: string): Promise<void>
   getOperatorByEmail(email: string): Promise<Operator | null>
   getOperator(id: string): Promise<Operator | null>
 

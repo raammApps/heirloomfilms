@@ -112,6 +112,11 @@ export class MemoryRepository implements Repository {
     return this.clone(operator)
   }
 
+  async deleteOrg(id: string): Promise<void> {
+    this.data.orgs = this.data.orgs.filter((o) => o.id !== id)
+    this.touched()
+  }
+
   async getOperatorByEmail(email: string): Promise<Operator | null> {
     const needle = email.trim().toLowerCase()
     return this.clone(this.data.operators.find((o) => o.email.toLowerCase() === needle) ?? null)

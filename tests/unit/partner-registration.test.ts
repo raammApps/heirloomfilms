@@ -124,3 +124,26 @@ describe('operator creation', () => {
     expect(await repository.getCatalogue('33333333-3333-4333-8333-333333333333', b.id)).toBeNull()
   })
 })
+
+describe('a half-finished registration', () => {
+  /**
+   * Found on the live database: `operators.id` references `auth.users(id)`, the local auth
+   * driver mints its own uuid, and Postgres refused the insert — leaving an org with no
+   * operator. Unreachable by every query here and invisible in every UI; it could only be found
+   * by reading the table.
+   */
+  it('leaves no org behind when the operator cannot be created', async () => {
+    const a = org('lensa')
+    await repository.createOrg(a)
+    expect(await repository.listOrgs()).toHaveLength(1)
+
+    // What the route does when the operator insert throws.
+    await repository.deleteOrg(a.id)
+    expect(await repository.listOrgs()).toHaveLength(0)
+  })
+
+  it('deleting an org that is already gone is not an error', async () => {
+    // The compensation runs on a failure path; it must not fail in turn.
+    await expect(repository.deleteOrg('aaaaaaaa-1111-4111-8111-111111111111')).resolves.toBeUndefined()
+  })
+})

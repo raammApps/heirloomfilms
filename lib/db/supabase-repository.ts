@@ -269,6 +269,11 @@ export class SupabaseRepository implements Repository {
     return SupabaseRepository.toOperator(data)
   }
 
+  async deleteOrg(id: string): Promise<void> {
+    const { error } = await this.db.from('orgs').delete().eq('id', id)
+    if (error) throw new ApiError('INTERNAL', error.message)
+  }
+
   async getOperatorByEmail(email: string): Promise<Operator | null> {
     const { data } = await this.db
       .from('operators')
