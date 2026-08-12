@@ -1,3 +1,4 @@
+import type { Entitlement } from '@/lib/entitlements'
 import type {
   Album,
   Catalogue,
@@ -63,6 +64,19 @@ export interface Repository {
   createOperator(operator: Operator): Promise<Operator>
   /** Compensation for a half-finished registration. Not a user-facing delete. */
   deleteOrg(id: string): Promise<void>
+
+  // ── Entitlements (doc 15 §3) ────────────────────────────────────────────────
+  /**
+   * The grants that apply to a catalogue: its own, and its owning org's.
+   *
+   * Returned as a pair rather than pre-resolved because the *order* is a product decision
+   * (catalogue beats org, per field) and belongs in `lib/entitlements.ts` where it can be tested
+   * without a database — not duplicated across three drivers.
+   */
+  getEntitlements(
+    catalogueId: string,
+    orgId: string,
+  ): Promise<{ catalogue: Entitlement | null; org: Entitlement | null }>
 
   // ── Transfers (doc 15 §2) ───────────────────────────────────────────────────
   createTransfer(transfer: Transfer): Promise<Transfer>

@@ -6,7 +6,8 @@ import { getRepository } from '@/lib/db'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, route } from '@/lib/http/handler'
 import { defaultAlbumId, getPhotoProvider, photoKey, PHOTO_WIDTHS } from '@/lib/photos'
-import { albumSchema, MAX_PHOTOS, photoSchema } from '@/lib/schema'
+import { albumSchema, photoSchema } from '@/lib/schema'
+import { resolveLimits } from '@/lib/entitlements'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -140,12 +141,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
      * `MAX_PHOTOS` existed as a constant that nothing checked, so a catalogue could hold
      * thousands. Doc 05 §2 argues the caps are a curation requirement first and a cost ceiling
      * second — an uncapped gallery is how this drifts into being an archive with a nicer player.
+     *
+     * Resolved per catalogue since doc 15 §3: the number is sellable, the enforcement is not.
      */
-    const alreadyHere = await repository.listPhotosForCatalogue(id)
-    if (alreadyHere.length >= MAX_PHOTOS) {
+    const [alreadyHere, grants] = await Promise.all([
+      repository.listPhotosForCatalogue(id),
+      repository.getEntitlements(id, catalogue.orgId),
+    ])
+    const limits = resolveLimits(grants.catalogue, grants.org)
+
+    if (alreadyHere.length >= limits.maxPhotos) {
       throw new ApiError(
         'UPLOAD_LIMIT',
-        `A catalogue holds ${MAX_PHOTOS} photographs. Remove one to add another.`,
+        `A catalogue holds ${limits.maxPhotos} photographs. Remove one to add another.`,
       )
     }
 

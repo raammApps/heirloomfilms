@@ -3,6 +3,7 @@ import { requireOwnedCatalogue } from '@/lib/admin/session'
 import { revalidateCatalogue } from '@/lib/catalogue-cache'
 import { hashSecret } from '@/lib/auth'
 import { getRepository } from '@/lib/db'
+import { resolveLimits } from '@/lib/entitlements'
 import { log } from '@/lib/log'
 import { getPhotoProvider, PHOTO_WIDTHS } from '@/lib/photos'
 import { getVideoProvider } from '@/lib/video'
@@ -54,12 +55,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const { id } = await params
     const { catalogue } = await requireOwnedCatalogue(id)
     const repository = getRepository()
-    const [titles, albums, photos] = await Promise.all([
+    const [titles, albums, photos, grants] = await Promise.all([
       repository.listTitles(catalogue.id),
       repository.listAlbums(catalogue.id),
       repository.listPhotosForCatalogue(catalogue.id),
+      repository.getEntitlements(catalogue.id, catalogue.orgId),
     ])
-    return noStore({ catalogue, titles, albums, photos })
+    // The caps travel with the data. A client that imports a constant is a client that shows the
+    // wrong number the moment the catalogue is upgraded (doc 15 §3).
+    const limits = resolveLimits(grants.catalogue, grants.org)
+    return noStore({ catalogue, titles, albums, photos, limits })
   })
 }
 

@@ -359,6 +359,5 @@ export type CatalogueBundle = {
   photos: Photo[]
 }
 
-// ── Content caps (doc 01 §4 — a soft cap is a real cap) ───────────────────────
-export const MAX_TITLES = 15
-export const MAX_PHOTOS = 60
+// Content caps used to live here as `MAX_TITLES` / `MAX_PHOTOS`. They are entitlements now —
+// see `lib/entitlements.ts` and doc 15 §3. A constant cannot be sold.

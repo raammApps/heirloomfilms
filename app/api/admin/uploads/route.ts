@@ -6,7 +6,7 @@ import { slugify, titleFromFilename } from '@/lib/format'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, readJson, route } from '@/lib/http/handler'
 import { log } from '@/lib/log'
-import { MAX_TITLES } from '@/lib/schema'
+import { resolveLimits } from '@/lib/entitlements'
 import { getVideoProvider, isAcceptedVideo, MAX_UPLOAD_BYTES } from '@/lib/video'
 
 export const runtime = 'nodejs'
@@ -45,12 +45,19 @@ export async function POST(request: Request) {
       throw new ApiError('UPLOAD_LIMIT', 'That file is larger than the per-file cap')
     }
 
-    // The 15-title cap is a curation feature first and a cost ceiling second (doc 01 §4).
-    const existing = await repository.listTitles(catalogue.id)
-    if (existing.length >= MAX_TITLES) {
+    // The title cap is a curation feature first and a cost ceiling second (doc 01 §4). It is
+    // resolved rather than imported now (doc 15 §3): a couple who buys space must not stay
+    // capped by the tier of a partner who has already left the relationship.
+    const [existing, grants] = await Promise.all([
+      repository.listTitles(catalogue.id),
+      repository.getEntitlements(catalogue.id, catalogue.orgId),
+    ])
+    const limits = resolveLimits(grants.catalogue, grants.org)
+
+    if (existing.length >= limits.maxTitles) {
       throw new ApiError(
         'VALIDATION_FAILED',
-        `A catalogue holds ${MAX_TITLES} films. Past that it stops being a keepsake and becomes a folder — remove one first.`,
+        `A catalogue holds ${limits.maxTitles} films. Past that it stops being a keepsake and becomes a folder — remove one first.`,
         { fields: { catalogueId: 'This catalogue is full' } },
       )
     }

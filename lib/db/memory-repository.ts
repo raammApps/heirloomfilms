@@ -13,6 +13,7 @@ import type {
   Profile,
   Title,
 } from '@/lib/schema'
+import type { Entitlement } from '@/lib/entitlements'
 import type {
   CatalogueCounts,
   CatalogueFilter,
@@ -21,6 +22,7 @@ import type {
 } from './repository'
 
 export type Snapshot = {
+  entitlements: Entitlement[]
   transfers: Transfer[]
   orgs: Org[]
   operators: Operator[]
@@ -37,6 +39,7 @@ export type Snapshot = {
 
 export function emptySnapshot(): Snapshot {
   return {
+    entitlements: [],
     transfers: [],
     orgs: [],
     operators: [],
@@ -118,6 +121,19 @@ export class MemoryRepository implements Repository {
     this.data.operators.push(this.clone(operator))
     this.touched()
     return this.clone(operator)
+  }
+
+  // ── Entitlements ────────────────────────────────────────────────────────────
+  async getEntitlements(
+    catalogueId: string,
+    orgId: string,
+  ): Promise<{ catalogue: Entitlement | null; org: Entitlement | null }> {
+    return {
+      catalogue: this.clone(
+        this.data.entitlements.find((e) => e.catalogueId === catalogueId) ?? null,
+      ),
+      org: this.clone(this.data.entitlements.find((e) => e.orgId === orgId) ?? null),
+    }
   }
 
   // ── Transfers ───────────────────────────────────────────────────────────────

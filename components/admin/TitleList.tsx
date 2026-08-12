@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { formatClock } from '@/lib/format'
-import { CATEGORIES, MAX_TITLES, type Category, type Title } from '@/lib/schema'
+import { CATEGORIES, type Category, type Title } from '@/lib/schema'
+import { DEFAULT_LIMITS } from '@/lib/entitlements'
 import { categoryEyebrow } from '@/lib/poster'
 import { UploadManager } from './UploadManager'
 
@@ -15,7 +16,18 @@ const CATEGORY_OPTIONS = CATEGORIES.map((value) => ({ value, label: categoryEyeb
  * Processing and failed titles are visible to the operator and hidden from guests (doc 02 §5).
  * A failure states the provider's actual reason and offers retry — never silently absent.
  */
-export function TitleList({ catalogueId, titles }: { catalogueId: string; titles: Title[] }) {
+export function TitleList({
+  catalogueId,
+  titles,
+  // Defaulted rather than required: every caller that knows the catalogue's real cap passes it,
+  // and the fallback is the *lowest* number, so a caller that forgets under-promises rather than
+  // letting an operator upload past a limit that will refuse them at the server.
+  maxTitles = DEFAULT_LIMITS.maxTitles,
+}: {
+  catalogueId: string
+  titles: Title[]
+  maxTitles?: number
+}) {
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
 
@@ -62,13 +74,13 @@ export function TitleList({ catalogueId, titles }: { catalogueId: string; titles
     router.refresh()
   }
 
-  const atCap = titles.length >= MAX_TITLES
+  const atCap = titles.length >= maxTitles
 
   return (
     <>
       {atCap ? (
         <div className="mb-4 rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-[var(--color-l-surface-2)] p-4">
-          <p className="text-[14px] font-semibold">This catalogue is full at {MAX_TITLES} films.</p>
+          <p className="text-[14px] font-semibold">This catalogue is full at {maxTitles} films.</p>
           <p className="mt-1 text-[13px] text-[var(--color-l-text-mid)]">
             That is on purpose. Past fifteen it stops being a keepsake somebody opens and becomes
             a folder they scroll. Remove one to add another.

@@ -38,22 +38,17 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
-### N-19 · Entitlements  ·  ~half a session  ·  doc 15 §3
-
-`MAX_TITLES` and `MAX_PHOTOS` are constants. Selling storage means resolving
-catalogue → partner → plan, in that order: a couple who buys storage must not be capped by the
-partner's tier, because by then the partner is out of the relationship.
-
-Keep the defaults low regardless. Doc 05 §2 is explicit that the caps are a curation requirement
-first and a cost ceiling second.
-
-### N-20 · Razorpay  ·  doc 15 §4
+### N-20 · Razorpay  ·  doc 15 §4  ·  **needs `0006_entitlements.sql` run first**
 
 Two flows that should not share a code path: partners buy catalogue credits in advance, couples
 pay renewal and storage after the included months. The subscription state machine already exists
 and `resolveAccess` honours it — what is missing is only the thing that *writes* it. Verify the
 webhook the way the Bunny one is verified, and assume it gets lost, because that lesson is
 already paid for.
+
+The entitlement tables and the resolver now exist (N-19); what is missing is the thing that
+*writes* a row. `plans` is empty on purpose — the price list is a business decision, not a
+migration.
 
 ### N-17 · SMTP, before registration is opened to anyone  ·  ~30m  ·  **blocks partner sign-up**
 
@@ -143,6 +138,11 @@ line — `tests/unit/registry.test.ts` fails the build otherwise. Remember `meta
 ---
 
 ## Held by Sandeep, not by an agent (doc 13 §8)
+
+**Run `supabase/migrations/0006_entitlements.sql`.** Creates `plans` and `entitlements`. Until it
+is applied the Supabase driver logs a warning and resolves every catalogue to the default caps —
+deliberately the *low* answer, so nothing is over-granted while the table is missing, but also
+means no upgrade can take effect.
 
 **Rotate the admin password.** `pnpm rotate:password` writes a new one to `.env.operator.local`
 (gitignored, never printed) and prints the SQL. Run that `update operators …` in the Supabase SQL

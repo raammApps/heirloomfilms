@@ -651,3 +651,38 @@ ways at once — test counts, E2E counts, deployment status and branch name — 
 it is the first thing a cold session reads.
 
 308 unit and component tests, 86 E2E across three projects.
+
+## N-19 · The caps became something you can sell
+
+`MAX_TITLES = 15` and `MAX_PHOTOS = 60` were constants in `lib/schema.ts`. A constant cannot be
+sold, and doc 15 §3 is where the partner model needs them to stop being one.
+
+The shape is a `plans` / `entitlements` pair in Postgres, a `getEntitlements` on the repository
+returning both grants that could apply, and `resolveLimits` in `lib/entitlements.ts` doing the
+ordering. Splitting it that way is deliberate: the *order* is a product decision, so it lives in
+a pure function with its own tests rather than being reimplemented in each of three drivers.
+
+Two properties are worth stating because they are easy to get subtly wrong:
+
+**Catalogue beats org, per field.** After a handover the partner cannot see the catalogue and
+cannot be asked to upgrade — so their tier must never cap what the couple bought. Per field
+rather than per row, because a grant that buys storage should not drag the title cap back to the
+default as a side effect, which is exactly what whole-row precedence would do.
+
+**It fails toward the low cap.** The Supabase driver returns nulls on a query error rather than
+throwing, and nulls resolve to the defaults. That is not laziness about error handling: the table
+does not exist until migration 0006 is applied, and the choice is between a deploy where every
+quota check throws and nobody can upload, or one where everybody has the free tier. The first is
+an outage; the second is recoverable. Erring toward "unlimited" would be a bill.
+
+Nothing writes an entitlement row yet — that is N-20, the billing webhook. Building the
+resolution first means the order is settled and tested *before* money is involved, rather than
+being invented in a hurry inside a payment callback.
+
+The caps also stopped being imported by client components. `TitleList` takes `maxTitles` as a
+prop and the catalogue GET route returns the resolved limits alongside the data, so an upgraded
+catalogue shows its real number instead of whatever was compiled into the bundle. The prop
+defaults to the *lowest* value, so a caller that forgets under-promises rather than inviting an
+upload the server will refuse.
+
+10 new unit tests, all on the ordering. 318 unit and component, 86 E2E.

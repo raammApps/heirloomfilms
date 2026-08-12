@@ -2,6 +2,7 @@ import 'server-only'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { ApiError } from '@/lib/http/errors'
+import { log } from '@/lib/log'
 import type {
   Album,
   Transfer,
@@ -14,6 +15,7 @@ import type {
   Profile,
   Title,
 } from '@/lib/schema'
+import type { Entitlement } from '@/lib/entitlements'
 import type {
   CatalogueCounts,
   CatalogueFilter,
@@ -427,6 +429,51 @@ export class SupabaseRepository implements Repository {
     }
 
     return counts
+  }
+
+  /**
+   * Both grants in one round trip, and **failing toward the low cap**.
+   *
+   * A lookup error resolves to no entitlement, which `resolveLimits` turns into the defaults —
+   * the most restrictive answer. That is deliberate: this table does not exist until migration
+   * 0006 is applied, and the alternative failure mode is a deploy where every quota check throws
+   * and nobody can upload. Erring toward "you have the free tier" is recoverable; erring toward
+   * "unlimited" is a bill.
+   */
+  async getEntitlements(
+    catalogueId: string,
+    orgId: string,
+  ): Promise<{ catalogue: Entitlement | null; org: Entitlement | null }> {
+    const { data, error } = await this.db
+      .from('entitlements')
+      .select('*')
+      .or(`catalogue_id.eq.${catalogueId},org_id.eq.${orgId}`)
+
+    if (error) {
+      log.warn('entitlements: falling back to defaults', { message: error.message })
+      return { catalogue: null, org: null }
+    }
+
+    const rows = (data ?? []) as Row[]
+    return {
+      catalogue: SupabaseRepository.toEntitlement(rows.find((r) => r.catalogue_id === catalogueId)),
+      org: SupabaseRepository.toEntitlement(rows.find((r) => r.org_id === orgId)),
+    }
+  }
+
+  private static toEntitlement(row: Row | undefined): Entitlement | null {
+    if (!row) return null
+    return {
+      id: row.id,
+      orgId: row.org_id ?? null,
+      catalogueId: row.catalogue_id ?? null,
+      planId: row.plan_id ?? null,
+      maxTitles: row.max_titles ?? null,
+      maxPhotos: row.max_photos ?? null,
+      storageGb: row.storage_gb ?? null,
+      validUntil: row.valid_until ?? null,
+      createdAt: row.created_at,
+    }
   }
 
   async getCatalogue(id: string, orgId: string): Promise<Catalogue | null> {
