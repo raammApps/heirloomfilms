@@ -10,6 +10,7 @@ Everything written about this project, in one tree.
 | [`PROGRESS.md`](./PROGRESS.md) | What has been built, and why it was built that way |
 | [`NEXT.md`](./NEXT.md) | What is left, in the order to take it up |
 | [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Accounts, environment variables, DNS, and the settings that fail silently when wrong |
+| [`USAGE-GUIDE.md`](./USAGE-GUIDE.md) | Every workflow, end to end — registration, a wedding built and published, the handover, what a guest sees |
 
 ## The rest
 
