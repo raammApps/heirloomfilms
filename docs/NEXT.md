@@ -51,6 +51,48 @@ will help, because the limit belongs to the project rather than to their address
 Configure a real provider (`docs/DEPLOYMENT.md` §12) and check the Site URL, or the confirmation
 link lands somewhere that is not this deployment.
 
+### N-30 · One way of saving, and an operator who can see it  ·  ~half a session
+
+**Audited, and the complaint is right.** There are three save models in one console:
+
+| | Model | Does the operator know? |
+|---|---|---|
+| Customizer | autosave, debounced | **Yes** — "Saved as draft" |
+| Theme picker | autosave | Yes |
+| Settings | explicit **Save** button | Yes — a status line |
+| Create wizard | explicit **Continue** | Yes |
+| **Film list** | **autosave on blur** | **No. Nothing at all.** |
+
+Renaming a film, editing its synopsis or changing its category writes on blur and gives no
+confirmation, no spinner and no error if the request fails. From the operator's side that is
+indistinguishable from a form that does not save.
+
+Also **photograph captions cannot be edited at all** — `photoSchema` has the field, there is no
+PATCH route, and the manager only uploads and deletes.
+
+Pick one model per kind of surface and make it visible. Autosave is right for the customizer and
+the film list; what is missing is the *saying so*. The customizer's indicator is the pattern —
+reuse it rather than inventing a second.
+
+### N-31 · Like, share and copy link — on photographs too  ·  ~half a session
+
+Films have this: `ShareButton` uses `navigator.share`, which on a phone is the WhatsApp sheet, and
+falls back to copying. It carries a `?t=` deep link so "watch from 7:08, that is my dad crying"
+works (doc 02 §6).
+
+**Photographs have none of it.** The lightbox has no actions, and a single photograph has no
+address of its own — so the one thing a guest most wants to send their sister is the one thing
+they cannot.
+
+- **Copy link / share a photograph** — needs a per-photo route so there is something to share.
+- **Like** — exists nowhere. Per-guest, and the plumbing is already there: the profile gate gives
+  an identity and `module_state` persists per profile. Decide first whether a like is *private*
+  (a keepsake, like the checklist) or *counted and shown* — the second is a different product with
+  moderation questions attached, and a wedding is a bad place to introduce a popularity contest.
+
+Do the sharing first. It is the mechanic that spreads the link, which is the whole distribution
+model.
+
 ### N-29 · Language chosen at account creation  ·  ~half a session
 
 **New requirement.** A tenant should pick their language when their account is created, and new

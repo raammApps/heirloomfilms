@@ -41,6 +41,8 @@ graph, so there is no privilege-escalation path to get wrong; what is missing is
 | Tier selection at creation | **Missing** | The wizard has no plan step. Every catalogue gets the same default caps. |
 | Skin selection from a marketplace | **Missing** | Three hardcoded templates (`keepsake`, `films-only`, `anniversary`) chosen in the wizard. **No marketplace, no purchasable skins.** See §6. |
 | Customisation — layout, text, message | **Built** | The customizer: drag or keyboard reorder, in-place heading editing, per-section editors, live preview of the real guest components. |
+| **Saving is legible everywhere** | **Partial** | Three different models in one console and one of them is silent. The customizer autosaves and says *"Saved as draft"*; Settings has a Save button and a status line; **the film list saves on blur and says nothing at all.** An operator renaming a film has no way to know it worked. |
+| Photograph captions | **Missing** | Photographs can be uploaded and deleted. There is **no PATCH route and no caption editing** — the field exists on the record and nothing can write it. |
 | Language — guest surface | **Built** | English and Hindi, every guest string localised, silent fallback to English. |
 | Language — **chosen at account creation** | **Missing** | **New requirement.** `orgSchema` has no locale field, so a tenant cannot set the language for their account and have new catalogues inherit it. Today the guest toggles and the default is always English. |
 | Language — admin console | **Missing** | The console is English-only. A Hindi-first studio operates it in English regardless of what their guests see. |
@@ -57,6 +59,9 @@ graph, so there is no privilege-escalation path to get wrong; what is missing is
 | | Status | Where it stands |
 |---|---|---|
 | View | **Built** | Guest catalogue, player, resume, deep links, profile gate, two languages. |
+| Share a film | **Built** | `ShareButton` in the title modal — `navigator.share` (the WhatsApp sheet on a phone) with a copy-link fallback, and a `?t=` deep link so "watch from 7:08" works. |
+| Share a photograph | **Missing** | The lightbox has no actions at all. No share, no copy link, no direct address for a single photograph. |
+| Like a film or photograph | **Missing** | Nothing anywhere. Would need per-guest state, which `module_state` and the profile gate already provide. |
 | Own the account after handover | **Built** | Their own org, full console minus the handover panel. |
 | Told they now own it | **Missing** | **No migration email.** The couple learns they own it only if the partner tells them. This is the single biggest hole in the commercial model — `PRICING.md` §2. |
 | Renewal | **Missing** | `subStatus` drives a renewal screen for guests. There is no way to actually renew — no payment, no self-service, no reminder. |
