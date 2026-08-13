@@ -47,6 +47,7 @@ Three workflows are encoded in `.claude/skills/` rather than re-explained each s
 | `next-item` | Take one item from NEXT.md to a commit, following the ritual in that file |
 | `add-module` | Add a module type — one folder plus one registry line |
 | `ship` | Verify, commit, push, deploy, and confirm the health endpoint matches the commit |
+| `parallel` | Split frontend and backend across worktrees — contract first, strict ownership, E2E as the integration test |
 
 ## Deliberate deviations from the spec
 
