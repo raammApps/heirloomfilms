@@ -1,7 +1,8 @@
 # NEXT — the ordered backlog
 
-`PROGRESS.md` records what was built and why. **This file records what is left, in the order it
-should be taken up.** Read CLAUDE.md → PROGRESS.md → this file; that is a ~8k-token cold start.
+[`PRODUCT.md`](./PRODUCT.md) is **what the product is**, surface by surface — update that first
+when something changes. `PROGRESS.md` records what was built and why. **This file records what is
+left, in the order it should be taken up.** Read CLAUDE.md → PROGRESS.md → this file; that is a ~8k-token cold start.
 
 Ordering rule: unretired risk first, then things that would embarrass us in front of a planner,
 then debt. Within a tier, cheapest first.
@@ -38,18 +39,6 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
-### N-20 · Razorpay  ·  doc 15 §4  ·  **needs `0006_entitlements.sql` run first**
-
-Two flows that should not share a code path: partners buy catalogue credits in advance, couples
-pay renewal and storage after the included months. The subscription state machine already exists
-and `resolveAccess` honours it — what is missing is only the thing that *writes* it. Verify the
-webhook the way the Bunny one is verified, and assume it gets lost, because that lesson is
-already paid for.
-
-The entitlement tables and the resolver now exist (N-19); what is missing is the thing that
-*writes* a row. `plans` is empty on purpose — the price list is a business decision, not a
-migration.
-
 ### N-17 · SMTP, before registration is opened to anyone  ·  ~30m  ·  **blocks partner sign-up**
 
 Supabase Auth sends a confirmation on sign-up and a link on password reset, and by default both
@@ -61,6 +50,70 @@ will help, because the limit belongs to the project rather than to their address
 
 Configure a real provider (`docs/DEPLOYMENT.md` §12) and check the Site URL, or the confirmation
 link lands somewhere that is not this deployment.
+
+### N-21 · The migration email  ·  ~2h  ·  **blocked by N-17**
+
+A couple only learns they own their wedding if the partner remembers to tell them. That is the
+single biggest hole in the commercial model (`PRICING.md` §2): they pay a studio ₹20,000, then a
+year later a company they have never heard of asks them for money.
+
+At handover, email them: this is yours, here is your login, here is the renewal date, here is what
+happens if you do not. Then the expiry warnings — 30 / 14 / 7 / 1 days, and each day of grace.
+
+### N-22 · Download everything, before deletion  ·  ~half a session
+
+**Gates the 30-day deletion policy.** Deleting a wedding is not a recoverable mistake, and a couple
+who changed email address loses it permanently. An export offered through the grace period turns
+the worst moment in the product into a reasonable one — nobody lost anything, they were handed it.
+
+Do not ship deletion without this.
+
+### N-23 · Plan capacity in the console  ·  ~2h
+
+Nothing shows what a plan holds. `PRICING.md` §6 requires "this plan holds about 9 hours" at
+purchase and a warning at 80% used — otherwise a partner buys the wrong tier and hits the cap at
+80% uploaded. Storage is also **not enforced at upload**; the cap is advisory today.
+
+### N-24 · Lifecycle: renewal, lapse, deletion  ·  doc 15
+
+The state machine exists and `resolveAccess` honours it. Nothing writes it. Needs: a renewal path,
+the lapse transition, and the deletion job 30 days after — the only cost that compounds
+(`SCALE-PLAN.md` §4.1).
+
+### N-25 · Delivery metering  ·  ~2h
+
+`getUsage` returns real stored bytes and `deliveredGb: 0`. Until it is real, allowances cannot be
+enforced and no catalogue's cost can be attributed. Fine at 60 weddings from the Bunny dashboard;
+impossible at 300.
+
+### N-26 · Saved branding presets — the marketplace's honest first version  ·  doc: `PRODUCT.md` §6
+
+A theme marketplace is the largest item on the product map and none of it exists. **The first
+version worth building is not a marketplace**: more templates, plus branding presets a partner
+saves and reuses across weddings. No payment, no review process, no versioning — and it delivers
+most of the value ("all my weddings look like my studio").
+
+`PRODUCT.md` §6 lists the five product questions that have to be answered before a real
+marketplace is scoped. Build a marketplace when a third party asks to publish into one.
+
+### N-27 · Platform admin, beyond read-only  ·  doc 15 §1
+
+The console lists orgs and one org's catalogues, read-only. Missing: create a tenant, assign a
+plan or quota, suspend, and any view of users. Today all of it is SQL.
+
+Keep read-only as the default stance; add writes one at a time, with an audit trail.
+
+### N-20 · Razorpay  ·  doc 15 §4  ·  **needs `0006_entitlements.sql` run first**
+
+Two flows that should not share a code path: partners buy catalogue credits in advance, couples
+pay renewal and storage after the included months. The subscription state machine already exists
+and `resolveAccess` honours it — what is missing is only the thing that *writes* it. Verify the
+webhook the way the Bunny one is verified, and assume it gets lost, because that lesson is
+already paid for.
+
+The entitlement tables and the resolver now exist (N-19); what is missing is the thing that
+*writes* a row. `plans` is empty on purpose — the price list is a business decision, not a
+migration.
 
 ### N-14 · Real footage  ·  operator task
 

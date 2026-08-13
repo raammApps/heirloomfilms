@@ -6,6 +6,7 @@ Everything written about this project, in one tree.
 
 | | |
 |---|---|
+| [`PRODUCT.md`](./PRODUCT.md) | **What the product is**, surface by surface, with what exists and what does not. Update this first on a pivot. |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | How the system fits together, with diagrams. The best single entry point. |
 | [`PROGRESS.md`](./PROGRESS.md) | What has been built, and why it was built that way |
 | [`NEXT.md`](./NEXT.md) | What is left, in the order to take it up |

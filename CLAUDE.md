@@ -8,6 +8,8 @@ This file covers the **codebase**: what exists, and the rules that keep it coher
 
 ## Context discipline
 
+- `docs/PRODUCT.md` is **what the product is**, surface by surface, with what exists and what does
+  not. It is the file to update on a pivot or a new requirement — before `NEXT.md`, before code.
 - `docs/PROGRESS.md` is what was built and why.
   `docs/NEXT.md` is **what is left, in the order to take it up**. Read
   CLAUDE.md → PROGRESS → NEXT; a cold start is then ~8k tokens regardless of repo size.
