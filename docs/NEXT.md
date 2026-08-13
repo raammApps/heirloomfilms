@@ -172,7 +172,13 @@ migration.
 
 ### N-14 · Real footage  ·  operator task
 
-The guest surface has been judged against generated gradients and flat test images throughout.
+**Partly done.** A first real catalogue is live (`swarit-and-smriti`) and the verdict was "it
+looks good" — which is the signal this item exists to get. But it holds two WhatsApp-compressed
+clips and ten photographs, so it does not yet answer the two questions that need real material:
+how many GB a finished hour actually costs, and whether the card treatment, row gradients and
+billboard scrim hold up against 300 DSLR frames.
+
+The guest surface has otherwise been judged against generated gradients and flat test images.
 Card treatment, row edge gradients and billboard scrim are all still unassessed against real
 photographs, and that is the largest remaining gap between this and something that reads as a
 streaming product. Nothing else on this list changes that impression as much.
