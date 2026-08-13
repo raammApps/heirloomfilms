@@ -44,7 +44,8 @@ in that year. Storage barely moves; only delivery does, and delivery only grows 
 product is working.
 
 **This is the number that makes the business easy.** At ~₹150/catalogue/year against a
-₹4,000+ licence, hosting is a rounding error — which means margin is never the constraint and
+₹4,000+ licence (**the old price — see [`../PRICING.md`](../PRICING.md)**; the conclusion holds,
+the figure moved), hosting is a rounding error — which means margin is never the constraint and
 the interesting decisions are all about product, not cost. It also materially changes the
 lifetime-hosting question; see doc 11 §3.
 

@@ -98,6 +98,13 @@ Non-obvious requirements, each of which is a real failure if missed:
 
 ---
 
+> **⚠ Superseded — pricing.** The figures in this section are the original Phase 0 model and are
+> **no longer what we sell.** [`docs/PRICING.md`](../PRICING.md) is current: three plans priced on
+> storage (₹2,500 / ₹7,000 / ₹12,000), **twelve** months included rather than three, renewal per
+> tier, 4K as a minute allowance, and 30-day deletion after lapse. This section is kept because the
+> *reasoning* — why the couple pays rather than the planner, why tiers grade on craft — still
+> holds, and because it is the record of what was intended.
+
 ## 3. Entitlements, because "limited space" has to live somewhere
 
 `MAX_TITLES = 15` and `MAX_PHOTOS = 60` are constants in `lib/schema.ts`. The moment a partner

@@ -39,6 +39,13 @@ the couple will actually show people. See doc 01 §4.
 
 ## 3. Pricing
 
+> **⚠ Superseded — pricing.** The figures in this section are the original Phase 0 model and are
+> **no longer what we sell.** [`docs/PRICING.md`](../PRICING.md) is current: three plans priced on
+> storage (₹2,500 / ₹7,000 / ₹12,000), **twelve** months included rather than three, renewal per
+> tier, 4K as a minute allowance, and 30-day deletion after lapse. This section is kept because the
+> *reasoning* — why the couple pays rather than the planner, why tiers grade on craft — still
+> holds, and because it is the record of what was intended.
+
 Two revenue lines: a per-wedding licence from the planner, and a subscription from the couple
 from month 4. Hosting costs ~₹320/wedding/year (doc 05 §2), so both lines are high margin.
 

@@ -397,6 +397,10 @@ To an ordinary operator this surface **answers 404**, so they do not learn it ex
 
 ## 15. Limits and entitlements
 
+> **These are the defaults, not the plans.** What a customer actually gets is set by their plan —
+> see [`PRICING.md`](./PRICING.md). Two of these do not yet match what we sell: the code grants
+> three months where we sell twelve, and caps films at 15 on every plan (N-28).
+
 | Limit | Default |
 |---|---|
 | Films per catalogue | 15 |

@@ -51,6 +51,33 @@ will help, because the limit belongs to the project rather than to their address
 Configure a real provider (`docs/DEPLOYMENT.md` §12) and check the Site URL, or the confirmation
 link lands somewhere that is not this deployment.
 
+### N-28 · Align the code with the pricing we actually sell  ·  ~1h
+
+Two constants contradict [`PRICING.md`](./PRICING.md), and both are one-liners with real
+consequences:
+
+1. **`INCLUDED_MONTHS = 3`** in `app/api/admin/catalogues/route.ts`, and doc 07 §5 says the same.
+   We sell **twelve**. Every catalogue created today expires nine months early.
+2. **`maxTitles: 15`** applies to every plan. We now sell storage only, so an 80 GB Cinema customer
+   with a film per function hits a cap their plan never mentioned. Raise it per tier or drop it —
+   but doc 05 §2's argument that the cap is a curation requirement first deserves a decision rather
+   than a default.
+
+Cheap, and wrong in a way a customer would notice.
+
+### N-29 · Language chosen at account creation  ·  ~half a session
+
+**New requirement.** A tenant should pick their language when their account is created, and new
+catalogues should inherit it.
+
+Today `orgSchema` has no locale, `DEFAULT_LOCALE` is always English, and the guest toggles. So a
+Hindi-first studio in Jaipur sets up every wedding in English and hopes guests find the switch.
+
+- `orgSchema.locale`, set at registration, inherited by catalogues at creation.
+- The catalogue's default locale drives what a guest sees **before** they touch the toggle.
+- Separately: **the admin console is English-only.** Localising it is a larger job — every operator
+  string, ~40 components — and worth scoping on its own once the guest side inherits properly.
+
 ### N-21 · The migration email  ·  ~2h  ·  **blocked by N-17**
 
 A couple only learns they own their wedding if the partner remembers to tell them. That is the

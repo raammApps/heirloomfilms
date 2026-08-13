@@ -219,6 +219,13 @@ does not scale past Sandeep manually editing JSON.
 - [ ] Optional passcode gate.
 - [ ] No public directory, search, or cross-catalogue browse exists anywhere in the product.
 
+> **⚠ Superseded — pricing.** The figures in this section are the original Phase 0 model and are
+> **no longer what we sell.** [`docs/PRICING.md`](../PRICING.md) is current: three plans priced on
+> storage (₹2,500 / ₹7,000 / ₹12,000), **twelve** months included rather than three, renewal per
+> tier, 4K as a minute allowance, and 30-day deletion after lapse. This section is kept because the
+> *reasoning* — why the couple pays rather than the planner, why tiers grade on craft — still
+> holds, and because it is the record of what was intended.
+
 ## 7. Retention and subscription model
 
 **3 months included with the planner's per-wedding licence, subscription after.**

@@ -80,7 +80,7 @@ scripts/make_wireframes.py    Regenerates the wireframes
    rows in a weekend. A module registry plus a non-technical customizer turns a 6–20 hour
    bespoke build into 30 minutes of an operator's time, forty times a season. `docs/14`.
 3. **B2B white-label, not direct-to-consumer.** See `docs/11 §1`.
-4. **3 months included, then the couple subscribes** at ₹249/mo or ₹1,999/yr. This is what
+4. ~~**3 months included, then the couple subscribes** at ₹249/mo or ₹1,999/yr. This is what
    fixes the Nov–Jan seasonality. `docs/01 §7`.
 
 ## Phasing

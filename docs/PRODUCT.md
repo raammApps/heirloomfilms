@@ -13,7 +13,7 @@ missing here, and `PRICING.md` prices what is built.
 | **Partial** | Some of it works; the gap is named |
 | **Missing** | Does not exist |
 
-Last reviewed: **14 August 2026**.
+Last reviewed: **14 August 2026** — full consistency audit against the code and the spec.
 
 ---
 
@@ -41,12 +41,16 @@ graph, so there is no privilege-escalation path to get wrong; what is missing is
 | Tier selection at creation | **Missing** | The wizard has no plan step. Every catalogue gets the same default caps. |
 | Skin selection from a marketplace | **Missing** | Three hardcoded templates (`keepsake`, `films-only`, `anniversary`) chosen in the wizard. **No marketplace, no purchasable skins.** See §6. |
 | Customisation — layout, text, message | **Built** | The customizer: drag or keyboard reorder, in-place heading editing, per-section editors, live preview of the real guest components. |
-| Language | **Built** | English and Hindi throughout, every operator string localised. |
+| Language — guest surface | **Built** | English and Hindi, every guest string localised, silent fallback to English. |
+| Language — **chosen at account creation** | **Missing** | **New requirement.** `orgSchema` has no locale field, so a tenant cannot set the language for their account and have new catalogues inherit it. Today the guest toggles and the default is always English. |
+| Language — admin console | **Missing** | The console is English-only. A Hindi-first studio operates it in English regardless of what their guests see. |
 | Account handover | **Built** | Single-use link, 14 days, hash-stored, one live transfer per catalogue, cancellable. Partner loses access entirely; credit survives. |
 | Custom domain | **Partial** | Stored and validated. **Not served** — needs a CNAME plus the domain added to the hosting project, and nothing automates or verifies either. |
 | Passcode | **Built** | Optional, five wrong tries locks the address for fifteen minutes. |
 | Add storage | **Missing** | `entitlements` supports per-catalogue grants with expiry. No purchase flow, no UI, no proration. |
 | See what a plan holds | **Missing** | Nothing shows "this plan holds about 9 hours" at purchase, or warns at 80% used. **Required by the pricing** — see `PRICING.md` §6. |
+| Film cap matches the plan | **Partial** | Every catalogue is capped at **15 films** regardless of plan. `PRICING.md` sells storage only, so an 80 GB Cinema customer with a film per function hits a cap the plan never mentioned. Either raise it per tier or drop it. |
+| Included term matches what is sold | **Partial** | The code grants **3 months** (`INCLUDED_MONTHS`); `PRICING.md` sells **12**. Doc 07 also says three. One of them has to move. |
 
 ### 1.3 User — the couple
 

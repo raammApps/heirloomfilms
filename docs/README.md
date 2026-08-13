@@ -27,7 +27,12 @@ Everything written about this project, in one tree.
 
 ## Spec versus reality
 
-`spec/` says what was **intended**. Everything above it says what is **true**. They diverge in
+`spec/` says what was **intended**. Everything above it says what is **true**.
+
+**The largest divergence is pricing.** Docs 01, 11 and 15 carry the original Phase 0 model —
+₹4,000/₹7,000/₹14,000, three months included, ₹249/month afterwards. [`PRICING.md`](./PRICING.md)
+is what we sell. Those sections now carry a superseded banner rather than being rewritten, because
+their *reasoning* still holds even where the numbers do not. They diverge in
 places, and where they do, the divergence is argued rather than silent — `CLAUDE.md` lists the
 deliberate deviations, and `PROGRESS.md` records what changed and why.
 
