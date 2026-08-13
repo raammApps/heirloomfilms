@@ -11,8 +11,9 @@ Everything written about this project, in one tree.
 | [`NEXT.md`](./NEXT.md) | What is left, in the order to take it up |
 | [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Accounts, environment variables, DNS, and the settings that fail silently when wrong |
 | [`USAGE-GUIDE.md`](./USAGE-GUIDE.md) | Every workflow, end to end — registration, a wedding built and published, the handover, what a guest sees |
+| [`PRICING.md`](./PRICING.md) | **The plans and prices, on one page.** Start here for anything commercial. |
 | [`SCALE-PLAN.md`](./SCALE-PLAN.md) | Whether Vercel, Bunny and Supabase hold as volume grows, where each one breaks, and the costs that compound |
-| [`PRICING-MODEL.md`](./PRICING-MODEL.md) | What it costs to run a wedding, what to charge a channel partner, and why storage is the wrong axis to price on |
+| [`PRICING-MODEL.md`](./PRICING-MODEL.md) | The working-out behind `PRICING.md` — every cost derived, and what was tried and rejected |
 
 ## The rest
 

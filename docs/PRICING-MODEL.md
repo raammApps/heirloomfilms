@@ -1,4 +1,11 @@
-# Pricing model
+# Pricing model — the working-out
+
+> **[`PRICING.md`](./PRICING.md) is the answer.** This is how it was derived: every cost from
+> source, the options tried and rejected, and six revisions of being wrong in public. Read it when
+> you need to know *why* a number is what it is, or to redo the model when a rate moves.
+>
+> Where the two disagree, `PRICING.md` wins — it folds in the 30-day deletion policy, no partner
+> renewal share, the migration email, three plans instead of five, and GST.
 
 What we sell, what it costs us, and why.
 
