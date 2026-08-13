@@ -10,7 +10,9 @@ This file covers the **codebase**: what exists, and the rules that keep it coher
 
 - `docs/PROGRESS.md` is what was built and why.
   `docs/NEXT.md` is **what is left, in the order to take it up**. Read
-  CLAUDE.md → PROGRESS → NEXT; a cold start is then ~5k tokens regardless of repo size.
+  CLAUDE.md → PROGRESS → NEXT; a cold start is then ~8k tokens regardless of repo size.
+  The Phase 0 build log lives in `docs/archive/progress-phase-0.md` and is **not** read on the way
+  in — its lessons are distilled at the top of PROGRESS.
   Append to PROGRESS and remove the item from NEXT as each lands.
 - Run `pnpm preflight` before trusting anything either file says about Supabase or Bunny.
 - Never read the `.svg` wireframes into context. `docs/spec/03-wireframes.md` carries the text.
@@ -33,6 +35,16 @@ the check will tell you before review does.
 | Secrets never in the browser bundle | `server-only` on `lib/env.ts` and the driver modules |
 
 Run `pnpm verify` before committing. One ticket from doc 09 per commit.
+
+## Skills
+
+Three workflows are encoded in `.claude/skills/` rather than re-explained each session:
+
+| | |
+|---|---|
+| `next-item` | Take one item from NEXT.md to a commit, following the ritual in that file |
+| `add-module` | Add a module type — one folder plus one registry line |
+| `ship` | Verify, commit, push, deploy, and confirm the health endpoint matches the commit |
 
 ## Deliberate deviations from the spec
 

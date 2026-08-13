@@ -1,7 +1,7 @@
 # NEXT — the ordered backlog
 
 `PROGRESS.md` records what was built and why. **This file records what is left, in the order it
-should be taken up.** Read CLAUDE.md → PROGRESS.md → this file; that is a ~5k-token cold start.
+should be taken up.** Read CLAUDE.md → PROGRESS.md → this file; that is a ~8k-token cold start.
 
 Ordering rule: unretired risk first, then things that would embarrass us in front of a planner,
 then debt. Within a tier, cheapest first.
