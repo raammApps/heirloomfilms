@@ -196,6 +196,91 @@ from the start and they would have to reprice to follow.
 
 ---
 
+## 7. The Indian wedge, and the flaw in stating it
+
+Sandeep's argument: Indians watch video over photographs, Drive video is painful, and we are
+one-click, navigable and mobile-first. **The market data supports it more strongly than the claim
+does — but the argument as stated is aimed at the wrong person.**
+
+### What the numbers say
+
+| | India, 2026 |
+|---|---|
+| Streaming users | **601 million** — over 40% of the population |
+| **Mobile-first viewing** | **73%**, against ~40% globally |
+| Daily streaming | ~180 minutes |
+| Growth from Tier 2/3 cities | **60% of new subscribers** |
+| Connected TV viewers | **129 million, up 87%** |
+
+Three of these matter to us specifically:
+
+**73% mobile-first against a 40% global average** is the single most useful number here. Every
+competitor is a US product designed desktop-first with a mobile view added. This was designed at
+360×800 and gated on LCP and playback-start on 4G. That is not a marketing claim we would have to
+invent — it is a build decision already made, now with a market number behind it.
+
+**129 million on connected TV, growing 87%**, is the argument for the Cinema tier. "The highlights
+film on the living-room TV when family visit" is not a hypothetical use case; it is the fastest
+growing screen in the country, and it is the only place 4K is visible.
+
+**60% of growth from Tier 2 and Tier 3** is where weddings are largest and most function-heavy —
+and where a fifteen-hour delivery is normal rather than excessive.
+
+### The Drive problem is real, and sharper than "hard to play"
+
+Worth naming precisely, because the precision is the pitch:
+
+- **"Request access."** A guest taps a forwarded link and hits a permission wall for something
+  they were invited to see. The couple then plays access-control administrator for two hundred
+  people, at the worst possible time.
+- **No adaptive streaming.** Drive serves one file. On a mid-range Android on 4G at a reception,
+  that buffers or downloads — and a 3 GB download on a metered connection is not a thing a guest
+  will do.
+- **A folder is not a running order.** Eight functions named `WED_FINAL_v3.mp4` is not something a
+  grandmother navigates. There is no billboard, no "start here", no sense of what to watch first.
+- **It dies quietly.** The link outlives nobody's attention; in three years the folder is in
+  someone's storage-full account.
+
+### But here is the flaw
+
+**The studio does not feel any of that pain. The couple and the guests do.**
+
+Every item above is a benefit to somebody who is not writing the cheque. A studio using Drive
+today is not blocked — from where they sit, delivery works: they upload, they send a link, they
+are done. The complaints land on the couple, and only some of them come back as *"my grandmother
+couldn't open it"*.
+
+So *"Drive is hard to play"* is true, and it is a **weak pitch to a studio**, because it asks them
+to pay to solve someone else's problem.
+
+### The stronger version of your own argument
+
+**This is distribution, not delivery.**
+
+Drive delivers to one person: the couple. This delivers to **two hundred guests, every one of whom
+opens a page with the studio's name on it**, on the phone in their hand, at the moment they are
+most emotional about a wedding they just attended — a wedding *this studio filmed*.
+
+That is not a hosting cost. It is the cheapest customer acquisition a wedding studio will ever
+buy, and it is measurable: the console already counts plays and watch time.
+
+Three sentences, in order of strength:
+
+1. *"Two hundred people will open your work on their phone with your name on it. Drive shows them
+   a permission screen."*
+2. *"Your couple sends one link and nobody asks them for access."*
+3. *"It looks like Netflix, and it works on a ₹12,000 Android on 4G."*
+
+**Lead with the first.** It reframes the price from a cost the studio absorbs into a channel they
+are buying — which is the same reframe §3 says the whole pricing model depends on.
+
+### What would make it undeniable
+
+**Real footage** (N-14). Every argument above is currently demonstrated with generated gradients.
+A studio judges this in about four seconds of looking at their own work on the screen, and no
+amount of the above substitutes. It is the highest-value item on the backlog for exactly this
+reason.
+
 ## Sources
 
 - [Pixieset pricing](https://pixieset.com/pricing/) · [Pixieset video allowances](https://help.pixieset.com/hc/en-us/articles/5689799203469-Uploading-videos-to-a-collection)
