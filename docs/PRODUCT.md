@@ -49,8 +49,8 @@ graph, so there is no privilege-escalation path to get wrong; what is missing is
 | Passcode | **Built** | Optional, five wrong tries locks the address for fifteen minutes. |
 | Add storage | **Missing** | `entitlements` supports per-catalogue grants with expiry. No purchase flow, no UI, no proration. |
 | See what a plan holds | **Missing** | Nothing shows "this plan holds about 9 hours" at purchase, or warns at 80% used. **Required by the pricing** — see `PRICING.md` §6. |
-| Film cap matches the plan | **Partial** | Every catalogue is capped at **15 films** regardless of plan. `PRICING.md` sells storage only, so an 80 GB Cinema customer with a film per function hits a cap the plan never mentioned. Either raise it per tier or drop it. |
-| Included term matches what is sold | **Partial** | The code grants **3 months** (`INCLUDED_MONTHS`); `PRICING.md` sells **12**. Doc 07 also says three. One of them has to move. |
+| Limits match the plan | **Built** | Storage is the only limit and it is enforced at both upload paths against real bytes. The film and photograph count caps are gone (N-28). |
+| Included term matches what is sold | **Built** | Twelve months, matching `PRICING.md` (N-28). |
 
 ### 1.3 User — the couple
 
@@ -76,7 +76,7 @@ graph, so there is no privilege-escalation path to get wrong; what is missing is
 | Authentication | **Built** | Supabase Auth behind an `AuthProvider` seam; `local` driver keeps CI and tests offline. |
 | Tenant management | **Partial** | Orgs, operators, handover and `origin_org_id` all exist. No lifecycle: no suspend, no plan assignment, no deletion. |
 | Storage connector | **Built** | `VideoProvider` and `PhotoProvider` seams, Bunny and fake drivers. Resumable multi-gigabyte upload, proven against a real network drop. |
-| Quota management | **Partial** | `resolveLimits` resolves catalogue → org → default, per field, and the console shows usage against caps. **Nothing writes a grant, and storage is not enforced at upload.** |
+| Quota management | **Partial** | Storage resolves catalogue → org → default and **is enforced at both upload paths** against real stored bytes; the console shows GB used against the plan. **Nothing writes a grant yet** — that is the payment work. |
 | Renewal | **Missing** | The state machine exists and `resolveAccess` honours it. Nothing writes it, warns about it, or acts on lapse. |
 | Payment | **Missing** | No gateway, no invoices, no webhook. N-20. |
 | Deletion and retention | **Missing** | `subStatus` has `cold`; **no code acts on it.** The retention policy is stated in the product and enforced nowhere — the only cost that compounds (`SCALE-PLAN.md` §4.1). |

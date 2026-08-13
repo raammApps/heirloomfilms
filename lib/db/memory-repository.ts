@@ -237,6 +237,21 @@ export class MemoryRepository implements Repository {
     return counts
   }
 
+  async catalogueStorageBytes(catalogueId: string): Promise<number> {
+    const films = this.data.titles
+      .filter((t) => t.catalogueId === catalogueId)
+      .reduce((total, t) => total + (t.sizeBytes ?? 0), 0)
+
+    const albumIds = new Set(
+      this.data.albums.filter((a) => a.catalogueId === catalogueId).map((a) => a.id),
+    )
+    const photos = this.data.photos
+      .filter((p) => albumIds.has(p.albumId))
+      .reduce((total, p) => total + (p.sizeBytes ?? 0), 0)
+
+    return films + photos
+  }
+
   async getCatalogue(id: string, orgId: string): Promise<Catalogue | null> {
     return this.clone(
       this.data.catalogues.find((c) => c.id === id && c.orgId === orgId) ?? null,

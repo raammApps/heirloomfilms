@@ -105,6 +105,7 @@ describe('POST /api/webhooks/bunny', () => {
     vi.spyOn(provider, 'getStatus').mockResolvedValue({
       state: 'failed',
       durationS: null,
+      storageBytes: null,
       posterCandidates: [],
       thumbnailsUrl: null,
       errorMessage: 'The provider could not encode this file',
@@ -126,6 +127,7 @@ describe('POST /api/webhooks/bunny', () => {
     const getStatus = vi.spyOn(provider, 'getStatus').mockResolvedValue({
       state: 'processing',
       durationS: null,
+      storageBytes: null,
       posterCandidates: [],
       thumbnailsUrl: null,
       errorMessage: null,

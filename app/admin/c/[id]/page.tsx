@@ -9,7 +9,7 @@ import { SetupChecklist } from '@/components/admin/SetupChecklist'
 import { getOperatorSession, getSessionOrg } from '@/lib/admin/session'
 import { catalogueAttention } from '@/lib/admin/catalogue-health'
 import { setupChecklist } from '@/lib/admin/setup-checklist'
-import { resolveLimits } from '@/lib/entitlements'
+import { bytesToGb, resolveLimits } from '@/lib/entitlements'
 import { getRepository } from '@/lib/db'
 import { env } from '@/lib/env'
 import { formatWeddingDate } from '@/lib/format'
@@ -30,12 +30,13 @@ export default async function CatalogueOverviewPage({
   const catalogue = await repository.getCatalogue(id, session.orgId)
   if (!catalogue) notFound()
 
-  const [titles, photos, org, transfer, grants] = await Promise.all([
+  const [titles, photos, org, transfer, grants, usedBytes] = await Promise.all([
     repository.listTitles(catalogue.id),
     repository.listPhotosForCatalogue(catalogue.id),
     getSessionOrg(session),
     repository.getLiveTransferForCatalogue(catalogue.id),
     repository.getEntitlements(catalogue.id, catalogue.orgId),
+    repository.catalogueStorageBytes(catalogue.id),
   ])
 
   const limits = resolveLimits(grants.catalogue, grants.org)
@@ -83,8 +84,16 @@ export default async function CatalogueOverviewPage({
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Stat label="Films" value={`${counts.titles} of ${limits.maxTitles}`} />
-            <Stat label="Ready" value={`${counts.ready}`} />
+            {/*
+              Storage rather than a film count, because storage is what the plan sells and what a
+              catalogue actually costs. "9 of 15 films" measured the wrong thing and refused the
+              wrong uploads.
+            */}
+            <Stat
+              label="Storage"
+              value={`${bytesToGb(usedBytes).toFixed(1)} of ${limits.storageGb} GB`}
+            />
+            <Stat label="Films" value={`${counts.titles} · ${counts.ready} ready`} />
             <Stat label="Shown to guests" value={`${counts.published}`} />
           </div>
 

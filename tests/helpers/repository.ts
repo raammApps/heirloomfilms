@@ -70,6 +70,7 @@ export function makeTitle(catalogueId: string, overrides: Partial<Title> = {}): 
     posterUrl: null,
     posterCandidates: [],
     posterSource: 'generated',
+    sizeBytes: null,
     thumbnailsUrl: null,
     trailerUrl: null,
     captions: [],

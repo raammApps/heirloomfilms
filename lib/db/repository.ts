@@ -111,6 +111,14 @@ export interface Repository {
    * else here: it cannot be asked about a catalogue the caller does not own.
    */
   catalogueCounts(filter: CatalogueFilter): Promise<Record<string, CatalogueCounts>>
+  /**
+   * Bytes this catalogue occupies — films plus photographs, every rendition.
+   *
+   * Unscoped by org on purpose: it is called from the upload path, which has already proven
+   * ownership through `requireOwnedCatalogue`, and from the console, which did the same. Adding a
+   * second scope here would be ceremony, not safety.
+   */
+  catalogueStorageBytes(catalogueId: string): Promise<number>
   getCatalogue(id: string, orgId: string): Promise<Catalogue | null>
   /** Unscoped lookup, for paths that already hold a trusted id (webhooks, ISR revalidation). */
   getCatalogueById(id: string): Promise<Catalogue | null>

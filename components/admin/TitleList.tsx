@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { formatClock } from '@/lib/format'
 import { CATEGORIES, type Category, type Title } from '@/lib/schema'
-import { DEFAULT_LIMITS } from '@/lib/entitlements'
 import { categoryEyebrow } from '@/lib/poster'
 import { UploadManager } from './UploadManager'
 
@@ -22,11 +21,9 @@ export function TitleList({
   // Defaulted rather than required: every caller that knows the catalogue's real cap passes it,
   // and the fallback is the *lowest* number, so a caller that forgets under-promises rather than
   // letting an operator upload past a limit that will refuse them at the server.
-  maxTitles = DEFAULT_LIMITS.maxTitles,
 }: {
   catalogueId: string
   titles: Title[]
-  maxTitles?: number
 }) {
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -74,21 +71,15 @@ export function TitleList({
     router.refresh()
   }
 
-  const atCap = titles.length >= maxTitles
 
   return (
     <>
-      {atCap ? (
-        <div className="mb-4 rounded-[var(--radius-card)] border border-[var(--color-l-line)] bg-[var(--color-l-surface-2)] p-4">
-          <p className="text-[14px] font-semibold">This catalogue is full at {maxTitles} films.</p>
-          <p className="mt-1 text-[13px] text-[var(--color-l-text-mid)]">
-            That is on purpose. Past fifteen it stops being a keepsake somebody opens and becomes
-            a folder they scroll. Remove one to add another.
-          </p>
-        </div>
-      ) : (
-        <UploadManager catalogueId={catalogueId} />
-      )}
+      {/*
+        No count cap any more — the plans sell gigabytes (`docs/PRICING.md`), so the limit is
+        storage and it is enforced where the bytes are: the upload route refuses with the figure,
+        which is a better place to learn it than a banner above an empty form.
+      */}
+      <UploadManager catalogueId={catalogueId} />
 
       {titles.length === 0 ? (
         <p className="text-[15px] text-[var(--color-l-text-mid)]">

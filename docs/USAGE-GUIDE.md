@@ -134,7 +134,7 @@ Drag files in, or use the picker.
 
 - **Accepted:** `.mp4`, `.mov`, `.mkv`, `.webm`, `.avi`, `.m4v`
 - **Per file:** up to 20GB
-- **Per catalogue:** 15 films by default — see [Limits](#15-limits-and-entitlements)
+- **Per catalogue:** limited by storage, not by count — see [Limits](#15-limits-and-entitlements)
 
 Bytes go **straight from your browser to the video service**, never through the app. Practical
 consequences:
@@ -173,7 +173,7 @@ Names are guessed from filenames — correct them. Each film has a **name**, an 
 
 **Where:** a catalogue → **Photographs**
 
-- **60 per catalogue** by default.
+- Limited by storage rather than by count.
 - Photographs are **resized in your browser before upload**, to three widths (2048 / 1024 / 480).
   A 40MB frame straight off a DSLR does not have to travel, and guests are served a size that
   suits their screen.
@@ -397,16 +397,19 @@ To an ordinary operator this surface **answers 404**, so they do not learn it ex
 
 ## 15. Limits and entitlements
 
-> **These are the defaults, not the plans.** What a customer actually gets is set by their plan —
-> see [`PRICING.md`](./PRICING.md). Two of these do not yet match what we sell: the code grants
-> three months where we sell twelve, and caps films at 15 on every plan (N-28).
+**Storage is the only limit.** There is no cap on how many films or photographs a catalogue
+holds — a wedding with a film per function is exactly what the product is for. What a customer
+gets is set by their plan; see [`PRICING.md`](./PRICING.md).
 
 | Limit | Default |
 |---|---|
-| Films per catalogue | 15 |
-| Photographs per catalogue | 60 |
-| Per-file upload | 20GB |
-| Storage | 20GB |
+| **Storage per catalogue** | **20 GB** |
+| Per-file upload | 20 GB |
+| Included term | 12 months |
+
+Storage counts what the provider actually stores — the encoding ladder for a film, every
+rendition for a photograph — not the file that was uploaded. An upload that would not fit is
+refused before a byte moves, with the figures in the message.
 
 The caps are **a curation requirement first and a cost ceiling second**. Fifteen films is the
 point at which a keepsake becomes a folder; if you routinely want past it, the product has

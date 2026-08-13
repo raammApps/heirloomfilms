@@ -167,6 +167,7 @@ export class BunnyProvider implements VideoProvider {
       thumbnailCount: number
       thumbnailFileName?: string
       encodeProgress: number
+      storageSize?: number
     }>(`/videos/${providerId}`)
 
     const state = STATUS_MAP[video.status] ?? 'processing'
@@ -174,6 +175,8 @@ export class BunnyProvider implements VideoProvider {
     return {
       state,
       durationS: video.length > 0 ? Math.round(video.length) : null,
+      // The same field `getUsage` reads — one call now answers both questions.
+      storageBytes: typeof video.storageSize === 'number' ? video.storageSize : null,
       // Bunny generates evenly spaced stills; the first three are the poster candidates the
       // operator picks from (doc 09 P0-10). File names, not URLs — see AssetStatus.
       posterCandidates:

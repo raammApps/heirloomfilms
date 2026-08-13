@@ -258,6 +258,15 @@ export const titleSchema = z.object({
 
   status: titleStatusSchema,
   errorMessage: z.string().nullable().default(null),
+  /**
+   * What this film occupies, in bytes.
+   *
+   * Seeded from the size the browser declares at upload, then **corrected from the provider**
+   * once transcoding finishes — the two differ, sometimes by a lot, because what is stored is the
+   * encoding ladder rather than the file that was sent. The declared figure is good enough to
+   * refuse an upload that obviously will not fit; only the provider's is good enough to bill on.
+   */
+  sizeBytes: z.number().int().nonnegative().nullable().default(null),
 
   published: z.boolean().default(false),
   sortOrder: z.number().int().default(0),
@@ -277,6 +286,8 @@ export const photoSchema = z.object({
   caption: localisedStringSchema.optional(),
   width: z.number().int().positive().nullable().default(null),
   height: z.number().int().positive().nullable().default(null),
+  /** Every rendition together — photographs are resized to three widths before upload. */
+  sizeBytes: z.number().int().nonnegative().nullable().default(null),
   sortOrder: z.number().int().default(0),
 })
 export type Photo = z.infer<typeof photoSchema>

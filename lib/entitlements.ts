@@ -13,15 +13,24 @@ import { z } from 'zod'
  * nicer player is not the goal.
  */
 
+/**
+ * **Storage is the only limit.**
+ *
+ * There were counts here — 15 films, 60 photographs — and they came from doc 05 §2's argument that
+ * a cap is a curation requirement first and a cost ceiling second. That argument was written when
+ * a wedding meant a highlights film and a ceremony edit. A real Indian wedding is every function
+ * from both sides, 10–15 hours, and a count cap now refuses content the customer has paid to
+ * store: an 80 GB plan with a film per function hits fifteen long before it hits its gigabytes.
+ *
+ * So the plans sell gigabytes and nothing else (`docs/PRICING.md`), and the customer decides
+ * whether that is twenty short films or six long ones. It is also the honest cap, because it is
+ * the one that maps to what a catalogue actually costs us.
+ */
 export const DEFAULT_LIMITS = {
-  maxTitles: 15,
-  maxPhotos: 60,
   storageGb: 20,
 } as const
 
 export const limitsSchema = z.object({
-  maxTitles: z.number().int().positive(),
-  maxPhotos: z.number().int().positive(),
   storageGb: z.number().int().positive(),
 })
 
@@ -51,8 +60,12 @@ export type Entitlement = z.infer<typeof entitlementSchema>
  * the partner is out of the relationship entirely — they cannot see the catalogue and cannot be
  * asked to upgrade. So the catalogue's own grant wins, per field, over the org's.
  *
- * Per *field* rather than per row: an entitlement that sets only `storageGb` should not drop the
- * catalogue's title cap back to the default as a side effect.
+ * Per *field* rather than per row — which currently means one field, but the shape is kept because
+ * the next grant we sell will not be storage.
+ *
+ * `maxTitles` and `maxPhotos` remain on the entitlement row and are deliberately **not resolved**.
+ * The columns hold grants written before storage became the only limit; dropping them would throw
+ * away history for no gain, and reading them would reinstate a cap we decided not to sell.
  */
 export function resolveLimits(
   catalogueEntitlement: Entitlement | null,
@@ -68,12 +81,36 @@ export function resolveLimits(
   const first = live(catalogueEntitlement)
   const second = live(orgEntitlement)
 
-  const pick = (field: 'maxTitles' | 'maxPhotos' | 'storageGb'): number =>
+  const pick = (field: 'storageGb'): number =>
     first?.[field] ?? second?.[field] ?? DEFAULT_LIMITS[field]
 
+  return { storageGb: pick('storageGb') }
+}
+
+
+/** Gigabytes, from bytes. One place, so the console and the guards never disagree by 1024. */
+export function bytesToGb(bytes: number): number {
+  return bytes / 1024 ** 3
+}
+
+/**
+ * Whether one more upload fits.
+ *
+ * `null` sizes count as zero — a film still transcoding has not reported what it occupies, and
+ * refusing an upload on the strength of a number we do not have yet would block a legitimate
+ * second file while the first is still processing. It errs toward letting content in, which is
+ * the right direction for a keepsake: the cost of a slightly over-quota catalogue is pennies, and
+ * the cost of refusing a wedding film is a phone call.
+ */
+export function storageCheck(
+  usedBytes: number,
+  incomingBytes: number,
+  limits: Limits,
+): { fits: boolean; usedGb: number; limitGb: number } {
+  const usedGb = bytesToGb(usedBytes)
   return {
-    maxTitles: pick('maxTitles'),
-    maxPhotos: pick('maxPhotos'),
-    storageGb: pick('storageGb'),
+    fits: bytesToGb(usedBytes + incomingBytes) <= limits.storageGb,
+    usedGb,
+    limitGb: limits.storageGb,
   }
 }

@@ -7,7 +7,7 @@ import { ApiError } from '@/lib/http/errors'
 import { noStore, route } from '@/lib/http/handler'
 import { defaultAlbumId, getPhotoProvider, photoKey, PHOTO_WIDTHS } from '@/lib/photos'
 import { albumSchema, photoSchema } from '@/lib/schema'
-import { resolveLimits } from '@/lib/entitlements'
+import { resolveLimits, storageCheck } from '@/lib/entitlements'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -138,22 +138,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     /**
      * The cap doc 01 §4 calls a real cap, enforced rather than merely declared.
      *
-     * `MAX_PHOTOS` existed as a constant that nothing checked, so a catalogue could hold
-     * thousands. Doc 05 §2 argues the caps are a curation requirement first and a cost ceiling
-     * second — an uncapped gallery is how this drifts into being an archive with a nicer player.
-     *
-     * Resolved per catalogue since doc 15 §3: the number is sellable, the enforcement is not.
+     * A count cap lived here — sixty photographs — on doc 05 §2's argument that caps are a
+     * curation requirement first. The plans sell gigabytes now (`docs/PRICING.md`), so the check
+     * is storage, and it counts **every rendition**: a photograph is stored at three widths and
+     * billing does not care that they came from one file.
      */
-    const [alreadyHere, grants] = await Promise.all([
-      repository.listPhotosForCatalogue(id),
-      repository.getEntitlements(id, catalogue.orgId),
-    ])
+    const grants = await repository.getEntitlements(id, catalogue.orgId)
     const limits = resolveLimits(grants.catalogue, grants.org)
 
-    if (alreadyHere.length >= limits.maxPhotos) {
+    const usedBytes = await repository.catalogueStorageBytes(catalogue.id)
+    const room = storageCheck(usedBytes, file.size, limits)
+
+    if (!room.fits) {
       throw new ApiError(
         'UPLOAD_LIMIT',
-        `A catalogue holds ${limits.maxPhotos} photographs. Remove one to add another.`,
+        `This catalogue holds ${room.limitGb} GB and ${room.usedGb.toFixed(1)} GB is already used. ` +
+          `Add storage, or remove something first.`,
       )
     }
 
@@ -169,10 +169,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       file.type,
     )
 
+    // Every rendition counts toward storage — one photograph occupies three files.
+    let storedBytes = file.size
+
     for (const suffix of RENDITION_SUFFIXES) {
       const rendition = form.get(`file${suffix}`)
       if (!(rendition instanceof File) || !ACCEPTED[rendition.type]) continue
       if (rendition.size > MAX_BYTES) continue
+      storedBytes += rendition.size
       await provider.put(
         photoKey(catalogue.id, photoId, ACCEPTED[rendition.type]!, SUFFIX_WIDTH[suffix]),
         await rendition.arrayBuffer(),
@@ -189,6 +193,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       lqip: meta.lqip ?? null,
       width: meta.width ?? null,
       height: meta.height ?? null,
+      sizeBytes: storedBytes,
       sortOrder: existing.length,
     })
     await repository.createPhoto(photo)

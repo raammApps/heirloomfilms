@@ -61,6 +61,9 @@ export async function GET(request: Request) {
         await repository.updateTitle(title.id, {
           status: status.state,
           durationS: status.durationS ?? title.durationS,
+          // The webhook usually does this. When it is lost — the case this job exists for — the
+          // title would otherwise keep the size the browser declared at upload forever.
+          sizeBytes: status.storageBytes ?? title.sizeBytes,
           posterCandidates: candidates.length ? candidates : title.posterCandidates,
           posterUrl:
             title.posterSource === 'custom' ? title.posterUrl : (candidates[0] ?? title.posterUrl),

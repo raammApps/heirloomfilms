@@ -21,7 +21,7 @@ export class FakeVideoProvider implements VideoProvider {
   readonly name = 'fake'
 
   /** Assets transition uploading → processing → ready on a timer, mimicking a transcode. */
-  private readonly assets = new Map<string, { createdAt: number; durationS: number }>()
+  private readonly assets = new Map<string, { createdAt: number; durationS: number; sizeBytes: number }>()
 
   private static readonly PROCESSING_MS = 1_500
 
@@ -35,6 +35,7 @@ export class FakeVideoProvider implements VideoProvider {
       // A stable pseudo-duration between 45s and 20min, derived from the id so it survives a
       // reload without any storage.
       durationS: 45 + (parseInt(providerId.slice(-4), 16) % 1155),
+      sizeBytes,
     })
     return {
       providerId,
@@ -79,6 +80,7 @@ export class FakeVideoProvider implements VideoProvider {
       return {
         state: 'ready',
         durationS: null,
+        storageBytes: null,
         posterCandidates: [],
         thumbnailsUrl: null,
         errorMessage: null,
@@ -89,6 +91,11 @@ export class FakeVideoProvider implements VideoProvider {
     return {
       state: ready ? 'ready' : 'processing',
       durationS: ready ? asset.durationS : null,
+      /**
+       * The encoded ladder is bigger than the file that was sent. 1.4x is a plausible stand-in so
+       * the storage cap is exercised by the suite rather than only in production.
+       */
+      storageBytes: ready ? Math.round(asset.sizeBytes * 1.4) : null,
       posterCandidates: ready ? [1, 2, 3].map((n) => `frame-${n}`) : [],
       thumbnailsUrl: null,
       errorMessage: null,

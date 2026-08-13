@@ -146,6 +146,7 @@ export class SupabaseRepository implements Repository {
   private static toTitle(r: Row): Title {
     return {
       id: r.id,
+      sizeBytes: r.size_bytes ?? null,
       catalogueId: r.catalogue_id,
       slug: r.slug,
       name: r.name,
@@ -210,6 +211,7 @@ export class SupabaseRepository implements Repository {
   private static toPhoto(r: Row): Photo {
     return {
       id: r.id,
+      sizeBytes: r.size_bytes ?? null,
       albumId: r.album_id,
       url: r.url,
       lqip: r.lqip,
@@ -497,6 +499,26 @@ export class SupabaseRepository implements Repository {
       validUntil: row.valid_until ?? null,
       createdAt: row.created_at,
     }
+  }
+
+  async catalogueStorageBytes(catalogueId: string): Promise<number> {
+    const [{ data: titles }, { data: albums }] = await Promise.all([
+      this.db.from('titles').select('size_bytes').eq('catalogue_id', catalogueId),
+      this.db.from('albums').select('id').eq('catalogue_id', catalogueId),
+    ])
+
+    let total = ((titles ?? []) as Row[]).reduce((sum, r) => sum + Number(r.size_bytes ?? 0), 0)
+
+    const albumIds = ((albums ?? []) as Row[]).map((r) => r.id as string)
+    if (albumIds.length > 0) {
+      const { data: photos } = await this.db
+        .from('photos')
+        .select('size_bytes')
+        .in('album_id', albumIds)
+      total += ((photos ?? []) as Row[]).reduce((sum, r) => sum + Number(r.size_bytes ?? 0), 0)
+    }
+
+    return total
   }
 
   async getCatalogue(id: string, orgId: string): Promise<Catalogue | null> {

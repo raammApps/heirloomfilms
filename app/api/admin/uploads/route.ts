@@ -6,7 +6,7 @@ import { slugify, titleFromFilename } from '@/lib/format'
 import { ApiError } from '@/lib/http/errors'
 import { noStore, readJson, route } from '@/lib/http/handler'
 import { log } from '@/lib/log'
-import { resolveLimits } from '@/lib/entitlements'
+import { resolveLimits, storageCheck } from '@/lib/entitlements'
 import { getVideoProvider, isAcceptedVideo, MAX_UPLOAD_BYTES } from '@/lib/video'
 
 export const runtime = 'nodejs'
@@ -54,11 +54,27 @@ export async function POST(request: Request) {
     ])
     const limits = resolveLimits(grants.catalogue, grants.org)
 
-    if (existing.length >= limits.maxTitles) {
+    /**
+     * Storage, not a count.
+     *
+     * There was a fifteen-film cap here. It came from doc 05 §2's argument that a cap is a
+     * curation requirement first — written when a wedding meant a highlights film and a ceremony
+     * edit. A real wedding is every function from both sides, and a count cap refused content the
+     * customer had paid to store. The plans sell gigabytes now (`docs/PRICING.md`).
+     *
+     * Checked against the **declared** size, which is an estimate: what is stored is the encoding
+     * ladder, and the real figure only arrives when the provider finishes. Good enough to refuse
+     * something that obviously will not fit, which is all a pre-flight check should do.
+     */
+    const usedBytes = await repository.catalogueStorageBytes(catalogue.id)
+    const room = storageCheck(usedBytes, body.sizeBytes, limits)
+
+    if (!room.fits) {
       throw new ApiError(
         'VALIDATION_FAILED',
-        `A catalogue holds ${limits.maxTitles} films. Past that it stops being a keepsake and becomes a folder — remove one first.`,
-        { fields: { catalogueId: 'This catalogue is full' } },
+        `This catalogue holds ${room.limitGb} GB and ${room.usedGb.toFixed(1)} GB is already used. ` +
+          `Add storage, or remove a film first.`,
+        { fields: { catalogueId: 'Not enough space' } },
       )
     }
 
@@ -87,6 +103,9 @@ export async function POST(request: Request) {
       status: 'uploading',
       errorMessage: null,
       published: false,
+      // The declared size, so the next upload's pre-flight has something to add up. Corrected
+      // from the provider once encoding finishes — see the webhook.
+      sizeBytes: body.sizeBytes,
       sortOrder: existing.length,
     })
 

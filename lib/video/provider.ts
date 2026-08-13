@@ -27,6 +27,14 @@ export type AssetStatus = {
   state: 'uploading' | 'processing' | 'ready' | 'failed'
   durationS: number | null
   /**
+   * What the asset actually occupies at the provider, once encoded — the ladder, not the file
+   * that was uploaded. Null until the provider knows.
+   *
+   * This is the number the storage cap is enforced against, because it is the number we are
+   * billed for. The size the browser declares at upload is only a pre-flight estimate.
+   */
+  storageBytes: number | null
+  /**
    * Provider-relative file names (`thumbnail_1.jpg`), not URLs.
    *
    * A protected zone only serves signed URLs, and a signed URL expires — so persisting one in

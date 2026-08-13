@@ -29,8 +29,15 @@ const createSchema = z.object({
   template: z.string().default('keepsake'),
 })
 
-/** Three months included with the planner's per-wedding licence (doc 01 §7). */
-const INCLUDED_MONTHS = 3
+/**
+ * Twelve months, which is what the plans sell (`docs/PRICING.md`).
+ *
+ * It was three, from doc 01 §7's original model where the couple picked up a subscription in
+ * month four. That model is superseded: a studio can sell "a year", and explaining a three-month
+ * window plus a renewal conversation in the same breath is how a sale stalls. Every catalogue
+ * created under the old constant expired nine months early.
+ */
+const INCLUDED_MONTHS = 12
 
 export async function GET() {
   return route('admin/catalogues:list', async () => {

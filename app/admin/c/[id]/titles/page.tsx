@@ -3,7 +3,6 @@ import { AdminChrome } from '@/components/admin/AdminChrome'
 import { TitleList } from '@/components/admin/TitleList'
 import { getOperatorSession, getSessionOrg } from '@/lib/admin/session'
 import { getRepository } from '@/lib/db'
-import { resolveLimits } from '@/lib/entitlements'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,11 +17,7 @@ export default async function TitlesPage({ params }: { params: Promise<{ id: str
 
   const org = await getSessionOrg(session)
 
-  const [titles, grants] = await Promise.all([
-    repository.listTitles(catalogue.id),
-    repository.getEntitlements(catalogue.id, catalogue.orgId),
-  ])
-  const limits = resolveLimits(grants.catalogue, grants.org)
+  const titles = await repository.listTitles(catalogue.id)
 
   return (
     <AdminChrome
@@ -43,7 +38,7 @@ export default async function TitlesPage({ params }: { params: Promise<{ id: str
         </p>
       </div>
 
-      <TitleList catalogueId={catalogue.id} titles={titles} maxTitles={limits.maxTitles} />
+      <TitleList catalogueId={catalogue.id} titles={titles} />
     </AdminChrome>
   )
 }

@@ -311,12 +311,14 @@ test.describe('the operator console', () => {
     await expect(viewport.getByTestId('poster-row').first()).toBeVisible()
   })
 
-  test('offers upload and shows the cap the catalogue is measured against', async ({ page }) => {
+  test('offers upload and shows the storage the catalogue is measured against', async ({ page }) => {
     await page.getByRole('link', { name: 'Aanya & Vikram' }).click()
     // Wait for the overview to settle: the sub-nav mounts with it, and clicking a link that is
     // still being swapped in is what makes this flake rather than fail.
     await expect(page.getByRole('heading', { name: 'Aanya & Vikram' })).toBeVisible()
-    await expect(page.getByText('9 of 15')).toBeVisible()
+    // Storage, not a film count — the plans sell gigabytes (N-28), so that is what the console
+    // measures a catalogue against.
+    await expect(page.getByText(/of 20 GB/)).toBeVisible()
 
     await page.getByRole('link', { name: 'Films', exact: true }).click()
     await expect(page.getByText('Drop films here')).toBeVisible()

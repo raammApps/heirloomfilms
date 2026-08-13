@@ -144,6 +144,8 @@ function buildTitles(): Title[] {
     catalogueId: CATALOGUE_ID,
     slug: seed.slug,
     name: { en: seed.en, hi: seed.hi },
+    // Plausible for a few minutes of encoded ladder, so the demo's storage figure is not zero.
+    sizeBytes: 900 * 1024 * 1024,
     // One title deliberately has no Hindi synopsis: E2E-3 asserts that a guest reading Hindi
     // sees the English text rather than a key or a blank.
     synopsis:
@@ -179,7 +181,7 @@ function buildTitles(): Title[] {
 }
 
 function buildPhotos(): Photo[] {
-  // ~30 photographs, within the 60 cap. Generated gradients stand in for the studio's images.
+  // ~30 photographs. Generated gradients stand in for the studio's images.
   return Array.from({ length: 30 }, (_, index) => ({
     id: photoId(index + 1),
     albumId: ALBUM_ID,
@@ -188,6 +190,7 @@ function buildPhotos(): Photo[] {
     caption:
       index < PHOTO_CAPTIONS.length ? { en: PHOTO_CAPTIONS[index]! } : undefined,
     width: 1600,
+    sizeBytes: 3 * 1024 * 1024,
     height: 1200,
     sortOrder: index,
   }))
