@@ -19,6 +19,8 @@ asserted so you can redo it when a rate moves. Sources at the bottom.
 | **Highlights** | 10 GB | **₹2,500** | ₹6,000–8,000 | ₹999 |
 | **Signature** | 20 GB | **₹4,000** | ₹10,000–12,000 | ₹1,499 |
 | **Full Wedding** | 40 GB | **₹6,500** | ₹15,000–20,000 | ₹2,499 |
+| **Cinema** | 60 GB + 60 min in 4K | **₹9,500** | ₹22,000–28,000 | ₹3,499 |
+| **Cinema Plus** | 100 GB + 120 min in 4K | **₹14,000** | ₹32,000–40,000 | ₹4,999 |
 
 Twelve months. Add storage any time at **₹25/GB/month for the months left**.
 
@@ -29,10 +31,10 @@ Twelve months. Add storage any time at **₹25/GB/month for the months left**.
 | **Standard** — up to 720p | 2.15 GB | 4.7 hrs | 9.3 hrs | **18.6 hrs** |
 | **Full HD** — up to 1080p | 4.29 GB | 2.3 hrs | 4.7 hrs | 9.3 hrs |
 
-**Cinema 2K / 4K** is a paid add-on, per film: **₹1,999 per 20 minutes.**
+**A 4K tier is a storage tier with a 4K minute allowance** — see §2. On the three lower plans, 4K
+is an add-on instead: **₹1,999 per 20-minute film.**
 
-That is the whole product. Two numbers on a quotation — a plan and, if they want it, a cinema
-finish.
+That is the whole product. One number on a quotation, or two if they want cinema quality.
 
 **You never count hours.** Storage is the meter, the platform already measures it, and the
 customer trades quality against runtime inside the space they bought. That trade is theirs, not
@@ -40,7 +42,7 @@ something you police.
 
 ---
 
-## 1. Why quality is not a plan tier
+## 1. Why 720p and 1080p are not a plan tier
 
 You asked for tiers on two axes. It turns out **one of them is free**, which makes the product
 much simpler than either of us expected.
@@ -66,9 +68,9 @@ video:
 | Standard encoding, up to 1080p | **Free** |
 | Premium encoding, 4K package | **$0.15 per minute** |
 
-A whole 15-hour wedding in 4K would cost **₹12,892 in encoding alone**, before storage, against a
-₹6,500 plan. It cannot be a plan tier at any price a studio would pay. But 20 minutes of it costs
-₹286 — so it works beautifully as a per-film add-on.
+A whole 15-hour wedding in 4K would cost **₹12,892 in encoding alone**, before storage. That is
+what makes *"everything in 4K"* impossible — not 4K itself. Twenty minutes of 4K costs ₹286, and
+§2 turns that into a tier.
 
 ### What to tell the studio
 
@@ -86,27 +88,90 @@ film on top:
 
 ---
 
-## 2. Cinema 2K and 4K
+## 2. The 4K tiers
 
-Sold per film, in 20-minute blocks, because that is the unit a studio thinks in.
+You asked twice how 4K could be a tier, and I kept answering why *all-4K* cannot be. That was the
+wrong answer to the right question. **4K works as a tier — it just has to be a storage tier with a
+stated 4K allowance**, rather than a quality setting applied to everything.
+
+### Why "all in 4K" fails, in one table
+
+4K storage is 12.87 GB per hour, so the storage cap bounds it — and it is still ruinous:
+
+| Storage | Hours it holds, all-4K | Encoding | Storage/yr | **Total cost** |
+|---|---|---|---|---|
+| 40 GB | 3.1 hrs | ₹2,670 | ₹458 | ₹3,129 |
+| 100 GB | 7.8 hrs | ₹6,676 | ₹1,146 | ₹7,822 |
+| 200 GB | 15.5 hrs | ₹13,352 | ₹2,292 | **₹15,644** |
+
+**A 15-hour wedding entirely in 4K costs ₹15,644 to serve.** You would have to charge ₹35,000 to
+make it worth doing, and the studio would still be paying for 4K on a three-hour sangeet nobody
+watches above 720p.
+
+### What a 4K wedding actually looks like
+
+Nobody watches a full function in 4K on a phone. 4K matters for the films that get shown on a
+television: the highlights, the pre-wedding, maybe the ceremony edit. **One to two hours of 4K
+inside an otherwise standard wedding.**
+
+| Shape | Storage | Encoding |
+|---|---|---|
+| 13 hrs standard + 20 min 4K | 32.2 GB | ₹286 |
+| 13 hrs standard + 60 min 4K | 40.8 GB | ₹860 |
+| 15 hrs standard + 120 min 4K | 57.9 GB | ₹1,719 |
+
+That is a tier you can sell.
+
+### The two Cinema tiers
+
+| | Storage | 4K allowance | Holds | **Price** | Renewal |
+|---|---|---|---|---|---|
+| **Cinema** | 60 GB | 60 min | 22 hrs standard + 1 hr in 4K | **₹9,500** | ₹3,499 |
+| **Cinema Plus** | 100 GB | 120 min | 34 hrs standard + 2 hrs in 4K | **₹14,000** | ₹4,999 |
+
+Economics, year one:
+
+| | Storage | Encoding | Delivery | Cost | **Contribution** | Break-even |
+|---|---|---|---|---|---|---|
+| Cinema | ₹688 | ₹860 | ₹341 | ₹1,888 | **₹7,612 (80%)** | **6.8 weddings** |
+| Cinema Plus | ₹1,146 | ₹1,719 | ₹341 | ₹3,206 | **₹10,794 (77%)** | **4.8 weddings** |
+
+Partner resells Cinema at ₹22,000–28,000 and Cinema Plus at ₹32,000–40,000 — keeping 56–66%, the
+same band as the other plans.
+
+### Three things that make these work
+
+**4K is encoded once and stored forever, but delivered rarely.** Adaptive streaming gives a guest
+on 4G the 720p rung; only someone on a television with a fast line pulls the 4K. Assuming 5% of
+guests do, delivery is ₹341 — barely above a standard wedding. **You are paying to store 4K, not
+to serve it**, and that is what makes the tier affordable.
+
+**The encoding charge is one-time.** It is paid at upload and never again, which is why renewal
+drops to ₹3,499 / ₹4,999 at ~65% margin.
+
+**The allowance is in minutes, and it must be enforced at upload.** Bunny requires resolutions to
+be chosen before a file is uploaded, so this is a per-film choice in the upload flow: *"encode
+this one in 4K — 20 of your 60 minutes."* Without that enforcement a studio marks everything 4K
+and the tier loses money on the first wedding.
+
+### On the lower three plans
+
+4K stays a per-film add-on: **₹1,999 per 20 minutes**, ₹1,499 for each further 20.
 
 | | Price | Our cost | Margin |
 |---|---|---|---|
-| **Cinema finish, one film to 20 min** | **₹1,999** | ₹286 | 86% |
+| Cinema finish, one film to 20 min | ₹1,999 | ₹286 | 86% |
 | Each further 20 min | ₹1,499 | ₹215 | 86% |
 
-2K and 4K are the **same price** — let them pick. The encoding rate is the same and 2K actually
-uses less of their storage, so there is no reason to make them choose on price.
+It uses their plan's storage — 20 minutes of 4K is 4.3 GB — and you should say so, because it
+prevents the "where did my space go" call.
 
-**It uses their plan's storage**, and you should say so: 20 minutes of 4K is 4.3 GB. That is the
-honest version and it prevents the "why did my space disappear" call.
+**2K and 4K are the same price**; let them pick. The encoding rate is the same and 2K uses less of
+their storage, so there is no reason to make them choose on price.
 
-**The upsell writes itself.** A studio charges the couple ₹3,000–5,000 for a 4K master of the
-highlights film. It costs them ₹1,999 and you ₹286.
-
-> **One thing to confirm before publishing.** Bunny lists premium packages as SD / Full HD / 4K.
-> 1440p sits above Full HD so I have costed it at the 4K rate. If it bills under Full HD
-> ($0.05/min) your 2K margin improves and you might price 2K lower to make it the popular choice.
+> **Confirm before publishing.** Bunny lists premium packages as SD / Full HD / 4K. 1440p sits
+> above Full HD so I have costed it at the 4K rate. If it bills under Full HD ($0.05/min) your 2K
+> margin improves and you might price 2K lower to make it the popular choice.
 
 ---
 
@@ -146,11 +211,14 @@ guessing wrong early.
 
 | Plan | Renewal | Costs us | Margin |
 |---|---|---|---|
-| 10 GB | **₹999** | ₹149 | 85% |
-| 20 GB | **₹1,499** | ₹263 | 82% |
-| 40 GB | **₹2,499** | ₹492 | 80% |
+| Highlights 10 GB | **₹999** | ₹149 | 85% |
+| Signature 20 GB | **₹1,499** | ₹263 | 82% |
+| Full Wedding 40 GB | **₹2,499** | ₹492 | 80% |
+| Cinema 60 GB | **₹3,499** | ₹1,261 | 64% |
+| Cinema Plus 100 GB | **₹4,999** | ₹1,719 | 66% |
 
-Roughly 40% of the new-plan price. Year one includes setting the whole thing up; year two is
+Roughly 35–40% of the new-plan price. The Cinema tiers renew cheaply relative to their first year
+because **the 4K encoding charge is one-time** — paid at upload and never again. Year one includes setting the whole thing up; year two is
 hosting, and the traffic burst has passed.
 
 Charged to whoever owns the catalogue — after handover, the couple. Offer the partner **15% of
@@ -225,6 +293,8 @@ Cheaper plans contribute less, so they take more:
 | Highlights | ₹2,159 | **23.9 weddings** |
 | Signature | ₹3,544 | **14.6 weddings** |
 | Full Wedding | ₹5,815 | **8.9 weddings** |
+| Cinema | ₹7,612 | **6.8 weddings** |
+| Cinema Plus | ₹10,794 | **4.8 weddings** |
 
 **The one decision this drives:** lead with Full Wedding. Not to squeeze anyone — it is genuinely
 what a 10–15 hour wedding needs — but the side effect is profit in 9 sales instead of 24.
@@ -270,6 +340,12 @@ plan.** You are selling the axis that barely varies.
 | 10 GB | 150 GB | ₹430 | ~570 guests |
 | 20 GB | 300 GB | ₹860 | ~1,140 guests |
 | 40 GB | 600 GB | ₹1,719 | ~2,280 guests |
+| Cinema 60 GB | 800 GB | ₹2,292 | ~3,040 guests |
+| Cinema Plus 100 GB | 1,200 GB | ₹3,438 | ~4,560 guests |
+
+The Cinema allowances are larger because a 4K rung exists to be pulled: a guest on a television
+takes ten times the bandwidth of one on a phone. Even at full use the tiers hold — Cinema still
+contributes ₹5,661 and Cinema Plus ₹7,697.
 
 **Past the allowance, do not bill automatically — call them.** A catalogue over its allowance is
 either being loved, which is the best sales story you will get, or a leaked link, which they need
@@ -351,7 +427,8 @@ plan would still be 85% margin.
 | 1 | Assumed a wedding was under 2 hours. Wrongly argued against storage tiers. |
 | 2 | Corrected: a wedding is 10–15 hours, all functions, both sides. |
 | 3 | Used Bunny's published bitrates instead of the spec's estimate — 4.55 GB/hour at default settings, not 2.64. A 15-hour wedding is 68 GB and does not fit 40 GB. |
-| **4** | **Simplified to one sellable axis. Quality up to 1080p is free to encode, so it is not a tier — it only changes how many hours fit. 2K/4K become a per-film add-on. Renewal priced per tier so downgrading is meaningful. No hour counting anywhere.** |
+| 4 | Simplified to one sellable axis. Quality up to 1080p is free to encode, so it is not a tier — it only changes how many hours fit. 2K/4K become a per-film add-on. Renewal priced per tier so downgrading is meaningful. No hour counting anywhere. |
+| **5** | **Added the two Cinema tiers. 4K works as a tier once it is a storage tier with a stated 4K minute allowance — "all in 4K" is what fails, not 4K. Bounded by minutes and enforced at upload.** |
 
 ## Sources
 
