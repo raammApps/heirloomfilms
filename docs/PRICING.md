@@ -219,6 +219,11 @@ pay for "every function, three years, a 4K highlights film, their own address". 
 ₹10,000, halve the ladder** — at 84% margins you can, and the model still works. What you must not
 do is guess.
 
+[`COMPETITORS.md`](./COMPETITORS.md) §3 is the evidence that this question is real: per wedding we
+are **3–18× dearer** than Pixieset, ShootProof or OurStoria, because they sell the studio a
+subscription and we sell the couple a product. Which frame the studio is in decides whether that
+gap is irrelevant or fatal.
+
 ### GST
 
 Prices above are **exclusive**, and the price list must say so. Your Bunny, Vercel and Supabase
