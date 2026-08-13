@@ -149,7 +149,7 @@ to serve it**, and that is what makes the tier affordable.
 **The encoding charge is one-time.** It is paid at upload and never again, which is why renewal
 drops to ₹3,499 / ₹4,999 at ~65% margin.
 
-**The allowance is in minutes, and it must be enforced at upload.** Bunny requires resolutions to
+**The allowance is in minutes, and should be enforced at upload.** Bunny requires resolutions to
 be chosen before a file is uploaded, so this is a per-film choice in the upload flow: *"encode
 this one in 4K — 20 of your 60 minutes."* Without that enforcement a studio marks everything 4K
 and the tier loses money on the first wedding.
@@ -386,7 +386,147 @@ catalogue, and a link people can copy the file from.
 
 ---
 
-## 8. Before you quote anyone
+## 8. What is wrong with this pricing
+
+Six weaknesses, worst first. Some are gaps, one is a mistake I made earlier.
+
+### 8.1 GST is missing from every number here — 18%
+
+SaaS to Indian customers is **18% GST** (SAC 998314). Nothing above accounts for it, and it is not
+a rounding error:
+
+| Plan | If ₹X was meant to be **exclusive** | If it was meant to be **inclusive** |
+|---|---|---|
+| Full Wedding ₹6,500 | Partner pays ₹7,670 | **You keep ₹5,508** |
+| Cinema ₹9,500 | Partner pays ₹11,210 | **You keep ₹8,051** |
+
+Reading it inclusive takes ~15% off every margin in this document. **Decide which, and print it on
+the price list.** Studios are used to seeing "+ GST" and will not blink; discovering it on the
+invoice is a different conversation.
+
+Two related points: your Bunny, Vercel and Supabase bills are **imports of service** and attract
+reverse-charge GST, which you can reclaim as input credit **only if registered**. And exports —
+should a partner ever be outside India — are zero-rated under an LUT.
+
+**This needs an accountant, not me.** But it must be decided before you quote anyone.
+
+### 8.2 The renewal handoff is the weakest part of the model
+
+The mechanics work. The commercial relationship does not.
+
+A couple pays their studio ₹15,000–20,000 for what feels like a **deliverable**. Twelve months
+later, a company they have never heard of emails them for ₹2,499. Meanwhile the partner — the only
+person the couple trusts — earns **₹375** for having set expectations properly.
+
+**₹375 does not buy anybody's attention**, and my 40% renewal assumption has nothing behind it. The
+range matters enormously:
+
+| Renewal rate | Recurring revenue at 120 weddings |
+|---|---|
+| 10% | ₹29,988/year |
+| 25% | ₹74,970/year |
+| **40% (assumed)** | ₹1,19,952/year |
+| 60% | ₹1,79,928/year |
+
+It also breaks a *cost* assumption. `SCALE-PLAN.md` §4.1 shows storage plateauing at ~₹72,000/year
+because unrenewed catalogues get deleted. At a 10% renewal rate you are deleting 90% of weddings —
+which is fine for cost but means the business has no compounding line at all.
+
+**The structural fix: sell multiple years at the point of sale.**
+
+| | Price to partner | Effective /yr | Contribution |
+|---|---|---|---|
+| 1 year | ₹6,500 | ₹6,500 | ₹5,815 (89%) |
+| **2 years** | **₹9,500** | ₹4,750 | ₹8,323 (88%) |
+| **3 years** | **₹12,000** | ₹4,000 | ₹10,330 (86%) |
+
+The partner sells *"three years, ₹30,000"* once, while the couple is happy and paying for a
+wedding. Nobody emails a stranger for money later, you get the cash up front, and margins barely
+move. **This is a better answer than trying to raise a renewal rate you do not control.**
+
+Keep annual renewal for the couples who want it — but stop depending on it.
+
+### 8.3 You have one real product, not five
+
+At 720p, a full 10–15 hour wedding needs ~32 GB:
+
+| Plan | Holds | Can it hold a full wedding? |
+|---|---|---|
+| Highlights 10 GB | 4.7 hrs | **No** |
+| Signature 20 GB | 9.3 hrs | **No** |
+| Full Wedding 40 GB | 18.6 hrs | Yes |
+| Cinema 60 GB | 28.0 hrs | Yes |
+
+**Two of your five plans cannot do the job your customer is buying.** That is fine as a decoy
+ladder — the cheap options make Full Wedding look reasonable — but two things follow:
+
+- **The revenue mix assumption in §6 is probably wrong.** Most sales will be 40 GB or 60 GB, which
+  is *better* for you than modelled, and means break-even arrives sooner than 8.9 weddings.
+- **A partner will buy Signature for a full wedding, hit the cap at 80% uploaded, and blame you.**
+  The console must show *"this plan holds about 9 hours"* at purchase and warn at 80% used. That is
+  a product requirement created by this pricing, and it does not exist.
+
+Consider renaming Highlights to something that cannot be mistaken for a wedding package —
+*"Pre-Wedding"* or *"Single Function"*.
+
+### 8.4 Your own market says ₹5,000. I am proposing ₹15,000–20,000.
+
+You told me partners currently sell at **₹5,000 for four months**. My suggested retail for Full
+Wedding is 3–4× that, and Cinema is 4.4–5.6×.
+
+| Plan | Suggested retail | vs your stated ₹5,000 |
+|---|---|---|
+| Highlights | ₹6,000–8,000 | 1.2–1.6× |
+| Full Wedding | ₹15,000–20,000 | **3.0–4.0×** |
+| Cinema | ₹22,000–28,000 | **4.4–5.6×** |
+
+That gap has two possible explanations and **I cannot tell which from here**:
+
+1. The ₹5,000 product is genuinely lesser — four months, fewer functions, no 4K, no custom domain
+   — and a full year of everything justifies 3×.
+2. **Your market is more price-sensitive than my value-based logic assumes**, and ₹15,000 for
+   "a website for the films" is simply outside what couples in your segment will pay.
+
+**This is the single biggest untested assumption in this document.** Everything else is arithmetic;
+this is a market fact I do not have. Ask the studio owner what a couple would actually pay, and if
+the answer is ₹8,000, halve the whole ladder — at 89% margins you can, and the model still works.
+
+### 8.5 The add-on rate looks arbitrary next to the tiers
+
+| | Per GB per year |
+|---|---|
+| Inside a tier (Full Wedding) | ₹162 |
+| Add-on storage | ₹300 |
+
+**1.8× more for the same gigabyte.** §3 explains why — it signposts an upgrade — but a partner who
+works it out will read it as a penalty. Say it before they find it: *"top-ups cost more per GB than
+upgrading, so if you need more than 5, upgrade instead."* Framed as advice it is helpful. Found on
+an invoice it is a grievance.
+
+### 8.6 Sixty manual invoices
+
+No billing exists (N-20). Sixty weddings is sixty invoices, sixty follow-ups and sixty
+reconciliations, plus add-ons and renewals. "A spreadsheet is fine" is true of the *pricing*; it is
+not true of the *collection*.
+
+Budget real hours for it, or make it the first thing you build after the enforcement work.
+
+### A correction
+
+I earlier said that without enforcing the 4K minute allowance at upload, the Cinema tier "loses
+money on its first wedding". **That was wrong.** If a studio marks everything 4K on a 60 GB plan,
+storage caps them at 4.7 hours and encoding comes to ₹4,006 — contribution falls from ₹7,612 to
+**₹4,466, still 47%**.
+
+So enforcement is about protecting a *margin*, not preventing a *loss*. Worth building, less
+urgent than I implied.
+
+Related good news: the 5%-of-guests-on-4K assumption is robust. Even at **35%** on 4K, Cinema still
+contributes ₹6,923.
+
+---
+
+## 9. Before you quote anyone
 
 1. **Set the default encoding ladder to 360p–720p**, and offer 1080p as a per-film choice. At Full
    HD everywhere, a 15-hour wedding needs 64 GB and fits nothing you sell.
@@ -428,7 +568,8 @@ plan would still be 85% margin.
 | 2 | Corrected: a wedding is 10–15 hours, all functions, both sides. |
 | 3 | Used Bunny's published bitrates instead of the spec's estimate — 4.55 GB/hour at default settings, not 2.64. A 15-hour wedding is 68 GB and does not fit 40 GB. |
 | 4 | Simplified to one sellable axis. Quality up to 1080p is free to encode, so it is not a tier — it only changes how many hours fit. 2K/4K become a per-film add-on. Renewal priced per tier so downgrading is meaningful. No hour counting anywhere. |
-| **5** | **Added the two Cinema tiers. 4K works as a tier once it is a storage tier with a stated 4K minute allowance — "all in 4K" is what fails, not 4K. Bounded by minutes and enforced at upload.** |
+| 5 | Added the two Cinema tiers. 4K works as a tier once it is a storage tier with a stated 4K minute allowance — "all in 4K" is what fails, not 4K. Bounded by minutes and enforced at upload. |
+| **6** | **Added §8: what is wrong with this pricing. GST was missing entirely, the renewal handoff is structurally weak, two of five plans cannot hold a wedding, and the suggested retail is 3-4x Sandeep's stated market price. Corrects an overstatement about the Cinema tier.** |
 
 ## Sources
 

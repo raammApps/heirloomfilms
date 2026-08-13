@@ -205,7 +205,7 @@ through Vercel, stop.**
 4. **Metering delivery** (§4.2). You need it before you can enforce anything.
 5. **Enforce the 4K minute allowance at upload.** Bunny needs resolutions chosen before the file is
    sent, so this is a choice in the upload flow. Without it a studio marks everything 4K and the
-   Cinema tier loses money on its first wedding.
+   Cinema tier's margin falls from 80% to 47% — worse, but not a loss. See `PRICING-MODEL.md` §8.
 
 **Within the year:**
 
