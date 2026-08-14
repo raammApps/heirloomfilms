@@ -14,7 +14,7 @@ import { LocalAuthProvider } from '@/lib/admin/auth-local'
 vi.mock('@/lib/db', () => ({
   getRepository: () => ({
     getOperatorByEmail: async (email: string) =>
-      email === 'operator@mehfil.test'
+      email === 'operator@heirloom.test'
         ? {
             id: 'op-1',
             orgId: 'org-1',
@@ -28,7 +28,7 @@ vi.mock('@/lib/db', () => ({
         : null,
     getOperator: async (id: string) =>
       id === 'op-1'
-        ? { id, orgId: 'org-1', email: 'operator@mehfil.test', name: 'Demo', role: 'admin', passwordHash: hash, createdAt: '' }
+        ? { id, orgId: 'org-1', email: 'operator@heirloom.test', name: 'Demo', role: 'admin', passwordHash: hash, createdAt: '' }
         : null,
   }),
 }))
@@ -39,16 +39,16 @@ const hash = hashSecret('right-password')
 describe('the auth provider contract', () => {
   it('returns only an identity, never an org', async () => {
     const provider = new LocalAuthProvider()
-    const user = await provider.signIn('operator@mehfil.test', 'right-password', new NextResponse())
+    const user = await provider.signIn('operator@heirloom.test', 'right-password', new NextResponse())
 
-    expect(user).toEqual({ id: 'op-1', email: 'operator@mehfil.test' })
+    expect(user).toEqual({ id: 'op-1', email: 'operator@heirloom.test' })
     // If an org ever appears here, authorisation has leaked into authentication.
     expect(user && 'orgId' in user).toBe(false)
   })
 
   it('refuses a wrong password', async () => {
     const provider = new LocalAuthProvider()
-    expect(await provider.signIn('operator@mehfil.test', 'wrong', new NextResponse())).toBeNull()
+    expect(await provider.signIn('operator@heirloom.test', 'wrong', new NextResponse())).toBeNull()
   })
 
   it('refuses an unknown address the same way, so neither is an enumeration oracle', async () => {
@@ -58,7 +58,7 @@ describe('the auth provider contract', () => {
 
   it('sets a session cookie on the response it was handed', async () => {
     const response = new NextResponse()
-    await new LocalAuthProvider().signIn('operator@mehfil.test', 'right-password', response)
+    await new LocalAuthProvider().signIn('operator@heirloom.test', 'right-password', response)
     // The response carries it, rather than the provider writing cookies itself — which is what
     // lets a driver set the several that Supabase issues.
     expect(response.cookies.getAll().length).toBeGreaterThan(0)
@@ -67,6 +67,6 @@ describe('the auth provider contract', () => {
   it('clears it on sign out', async () => {
     const response = new NextResponse()
     await new LocalAuthProvider().signOut(response)
-    expect(response.cookies.get('mehfil_session')?.value).toBe('')
+    expect(response.cookies.get('heirloom_session')?.value).toBe('')
   })
 })

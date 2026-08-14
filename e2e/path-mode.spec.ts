@@ -20,7 +20,7 @@ const CATALOGUE = 'aanya-vikram'
 /** A returning guest, so the profile gate never races an assertion. */
 async function openBrowse(page: import('@playwright/test').Page, path = ''): Promise<void> {
   await page.addInitScript((slug) => {
-    window.localStorage.setItem(`mehfil.profile.${slug}`, 'skipped')
+    window.localStorage.setItem(`heirloom.profile.${slug}`, 'skipped')
   }, CATALOGUE)
   await page.goto(`/c/${CATALOGUE}${path}`)
   await expect(page.getByTestId('profile-gate')).toHaveCount(0)
@@ -89,7 +89,7 @@ test.describe('path mode — the configuration production actually runs', () => 
     browser,
   }) => {
     await page.goto('/admin/login')
-    await page.getByLabel('Email').fill('operator@mehfil.test')
+    await page.getByLabel('Email').fill('operator@heirloom.test')
     await page.getByLabel('Password').fill('e2e-operator-password')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Catalogues' })).toBeVisible()

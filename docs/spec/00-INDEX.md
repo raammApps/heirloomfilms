@@ -1,4 +1,4 @@
-# Mehfil — Documentation Index
+# Heirloom Films — Documentation Index
 
 Read in this order. Each document states its own audience and what depends on it.
 
@@ -32,7 +32,7 @@ described in text in doc 14 §1).
 |---|---|
 | **Org / Partner** | A wedding management company. Owns many catalogues. Our customer. |
 | **Operator** | A person at that company who logs into the admin and builds catalogues. |
-| **Catalogue** | One wedding. Resolved from subdomain (`aanya-vikram.mehfil.app`) or custom domain. |
+| **Catalogue** | One wedding. Resolved from subdomain (`aanya-vikram.heirloom.app`) or custom domain. |
 | **Title** | One video. Has a name, synopsis, category, poster and playback asset. |
 | **Category** | The "genre" a title belongs to — sangeet, highlights, aerial… Fixed vocabulary, doc 06 §2. |
 | **Module** | One section of a catalogue — a row, the billboard, a letter, a photo grid. Doc 14. |
@@ -42,7 +42,7 @@ described in text in doc 14 §1).
 
 ## Naming note
 
-**"Mehfil"** is a working name. Before any public launch, run a trademark search on the
+**"Heirloom Films"** is a working name. Before any public launch, run a trademark search on the
 Indian TM registry (classes 42 and 45) and a domain check. Do not print it on planner
 collateral until that clears. See `docs/12-compliance-and-risk.md §3`.
 

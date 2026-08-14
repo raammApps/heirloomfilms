@@ -52,7 +52,7 @@ Two commercial notes that are not legal risk but are real:
 ### Our own marks
 
 Before public launch: trademark search on the Indian registry (classes 42 and 45) plus a
-domain check for "Mehfil"; it is a common Hindi/Urdu word, so expect crowding and be ready
+domain check for "Heirloom Films"; it is a common Hindi/Urdu word, so expect crowding and be ready
 to change. Do not print the name on planner collateral until this clears.
 
 Fonts: verify licences for commercial embedding. Fraunces and Inter are SIL OFL — fine.

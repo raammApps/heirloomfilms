@@ -44,7 +44,7 @@ the request), and is the one thing in this system that has been tested against a
 
 | Who | Reality today | What changes |
 |---|---|---|
-| **Platform admin** — you | Does not exist. You are `operator@mehfil.test` inside one org. | New `platform_admins` table keyed by `auth.users.id`, deliberately **not** an org. A platform admin has no `org_id`, which is what stops "admin" quietly becoming "member of every org". |
+| **Platform admin** — you | Does not exist. You are `operator@heirloom.test` inside one org. | New `platform_admins` table keyed by `auth.users.id`, deliberately **not** an org. A platform admin has no `org_id`, which is what stops "admin" quietly becoming "member of every org". |
 | **Partner** — studio, planner | `orgs` + `operators`. Already exactly this. | Add `orgs.kind = 'partner'`, self-registration, and an entitlement row. |
 | **Couple** — the client | Does not exist. | A couple gets their **own org** on transfer, with one operator and one catalogue. |
 

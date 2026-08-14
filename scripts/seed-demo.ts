@@ -16,7 +16,7 @@ if (driver === 'supabase') {
   process.exit(1)
 }
 
-const email = process.env.DEV_OPERATOR_EMAIL ?? 'operator@mehfil.test'
+const email = process.env.DEV_OPERATOR_EMAIL ?? 'operator@heirloom.test'
 const password = process.env.DEV_OPERATOR_PASSWORD ?? 'local-demo-password'
 
 const path = resolve(process.cwd(), join(process.env.DATA_DIR ?? '.data', 'store.json'))

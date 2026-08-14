@@ -23,7 +23,7 @@ function repository(): MemoryRepository {
   snapshot.platformAdmins.push(
     platformAdminSchema.parse({
       id: ADMIN,
-      email: 'root@mehfil.test',
+      email: 'root@heirloom.test',
       name: 'Platform Root',
       createdAt: '2026-01-01T00:00:00.000Z',
     }),
@@ -42,7 +42,7 @@ function repository(): MemoryRepository {
     operatorSchema.parse({
       id: OPERATOR,
       orgId: ORG_A,
-      email: 'operator@mehfil.test',
+      email: 'operator@heirloom.test',
       name: 'Demo Operator',
       role: 'admin',
       passwordHash: '',
@@ -79,7 +79,7 @@ describe('getPlatformAdmin', () => {
 
   it('finds a platform admin by the authenticated user id', async () => {
     const admin = await db.getPlatformAdmin(ADMIN)
-    expect(admin?.email).toBe('root@mehfil.test')
+    expect(admin?.email).toBe('root@heirloom.test')
   })
 
   /**

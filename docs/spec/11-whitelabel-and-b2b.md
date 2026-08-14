@@ -127,7 +127,7 @@ See `docs/14 §5`.
 | Favicon, OG image treatment | Yes | |
 | Which sections exist, and in what order | **Yes — this is the differentiator** | Module list per catalogue |
 | Custom domain | Yes (Signature+) | |
-| Mehfil credit anywhere | Off by default | |
+| Heirloom Films credit anywhere | Off by default | |
 | Near-black surface | **No** | The cinematic base is the product identity |
 
 **We do not appear on the guest-facing catalogue by default.** A planner will not resell

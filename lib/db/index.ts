@@ -12,7 +12,7 @@ import { SupabaseRepository } from './supabase-repository'
  * every hot reload and a fresh in-memory store each time would lose the demo catalogue
  * mid-click.
  */
-const KEY = Symbol.for('mehfil.repository')
+const KEY = Symbol.for('heirloom.repository')
 
 type Global = typeof globalThis & { [KEY]?: Repository }
 

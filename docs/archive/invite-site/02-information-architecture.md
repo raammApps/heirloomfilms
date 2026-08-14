@@ -41,10 +41,10 @@ the same content the modal would.
 
 | Incoming host | Resolves to | Mechanism |
 |---|---|---|
-| `aanya-vikram.mehfil.app` | tenant `aanya-vikram` | Middleware reads subdomain, rewrites to `/aanya-vikram/...` |
+| `aanya-vikram.heirloom.app` | tenant `aanya-vikram` | Middleware reads subdomain, rewrites to `/aanya-vikram/...` |
 | `aanyaandvikram.com` | tenant `aanya-vikram` | Middleware looks up custom-domain map |
-| `mehfil.app` | Marketing / partner login | No tenant |
-| `demo.mehfil.app` | tenant `demo` | The pitch demo. Never delete. |
+| `heirloom.app` | Marketing / partner login | No tenant |
+| `demo.heirloom.app` | tenant `demo` | The pitch demo. Never delete. |
 | unknown subdomain | 404 with a branded "this invite may have moved" page | — |
 
 See `05-technical-architecture.md §2` for the middleware implementation.

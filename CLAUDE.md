@@ -1,4 +1,4 @@
-# CLAUDE.md — Mehfil (implementation)
+# CLAUDE.md — Heirloom Films (implementation)
 
 The **specification** lives in `docs/spec/`. Read
 `docs/spec/README.md` first, then `docs/spec/13-agent-runbook.md §2`

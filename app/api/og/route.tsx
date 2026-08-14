@@ -18,7 +18,7 @@ export { OG_MAX_BYTES, OG_SIZE }
  */
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const slug = url.searchParams.get('catalogue') ?? request.headers.get('x-mehfil-catalogue')
+  const slug = url.searchParams.get('catalogue') ?? request.headers.get('x-heirloom-catalogue')
 
   const verdict = slug ? await resolveAccess(slug) : { kind: 'missing' as const }
   if (verdict.kind === 'missing') {

@@ -173,7 +173,7 @@ paying wedding. **P2** = planner-facing scale. **P3** = later.
       whole site with no code edits.
 - [ ] Contrast is validated at build time: if a supplied colour pair fails 4.5:1 for body text,
       the build fails with a clear message naming the failing pair.
-- [ ] No Mehfil branding appears anywhere on the guest-facing site except an optional,
+- [ ] No Heirloom Films branding appears anywhere on the guest-facing site except an optional,
       config-disableable footer credit.
 
 ### US-5 — Family checks the headcount

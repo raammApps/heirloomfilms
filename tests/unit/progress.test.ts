@@ -54,7 +54,7 @@ function setup(options: { otherCatalogue?: boolean } = {}) {
 async function beat(body: Record<string, unknown>): Promise<Response> {
   const { POST } = await import('@/app/api/progress/route')
   return POST(
-    new Request('http://aanya-vikram.mehfil.app/api/progress', {
+    new Request('http://aanya-vikram.heirloom.app/api/progress', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',

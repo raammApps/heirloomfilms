@@ -66,7 +66,7 @@ export function PasscodeGate({
       <form
         onSubmit={submit}
         className="w-full max-w-[320px]"
-        style={shake ? { animation: 'mehfil-shake 320ms' } : undefined}
+        style={shake ? { animation: 'heirloom-shake 320ms' } : undefined}
       >
         <label htmlFor="passcode" className="sr-only">
           {strings.passcode}
@@ -97,7 +97,7 @@ export function PasscodeGate({
         </button>
       </form>
 
-      <style>{`@keyframes mehfil-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}`}</style>
+      <style>{`@keyframes heirloom-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}`}</style>
     </main>
   )
 }

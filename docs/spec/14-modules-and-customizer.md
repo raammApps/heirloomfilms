@@ -43,7 +43,7 @@ Two consequences for our spec:
 Sites like the reference exist today as one-off builds — a developer friend, a Fiverr gig, an
 Etsy template. Each takes hours and cannot be resold.
 
-| | Bespoke build (today) | Mehfil with customizer |
+| | Bespoke build (today) | Heirloom Films with customizer |
 |---|---|---|
 | Time per couple | 6–20 hours of dev | 30 minutes of an operator's time |
 | Who can produce it | A developer | A junior at a wedding company |

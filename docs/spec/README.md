@@ -1,4 +1,4 @@
-# Mehfil — build documentation
+# Heirloom Films — build documentation
 
 A white-label **video streaming platform for wedding films**. An operator at a wedding
 management company logs in, creates a catalogue, uploads the films, arranges sections in a

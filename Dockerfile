@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Mehfil — production image.
+# Heirloom Films — production image.
 #
 # Vercel is the primary target (doc 05 §1: wildcard subdomains and automatic TLS).
 # This image exists so the platform is not a lock-in: the same build runs on any host that

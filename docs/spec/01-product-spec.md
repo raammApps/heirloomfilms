@@ -1,6 +1,6 @@
 # 01 — Product Spec
 
-**Mehfil is a white-label platform for building a curated keepsake — a wedding's best moments,
+**Heirloom Films is a white-label platform for building a curated keepsake — a wedding's best moments,
 presented as a private streaming service.** A wedding management company logs into an admin
 console, creates a catalogue, adds **the six to fifteen pieces worth keeping**, arranges them,
 and publishes a branded site the couple's guests browse like a streaming service.

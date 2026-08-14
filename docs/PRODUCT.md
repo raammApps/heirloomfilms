@@ -19,7 +19,7 @@ Last reviewed: **14 August 2026** — full consistency audit against the code an
 
 **Heirloom Films** — `heirloomfilms.in`, registered 14 August 2026.
 
-Chosen over Mehfil, Trove, Cinea, Aveya and several others. The reasoning is worth keeping,
+Chosen over Heirloom Films, Trove, Cinea, Aveya and several others. The reasoning is worth keeping,
 because it is also the positioning:
 
 - **"Heirloom" is arbitrary for a video platform**, which is what makes it distinctive and

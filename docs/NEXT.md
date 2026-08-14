@@ -46,14 +46,14 @@ somewhere a partner can see:
 
 | | Now | Should be |
 |---|---|---|
-| package | `mehfil` | `heirloom` |
+| package | `heirloom` | `heirloom` |
 | directory | `couple-flix` | `heirloom` — doc 12 §1 rule 2 forbids `-flix` outright |
 | GitHub | `marquee.film` | `heirloom` |
 | Vercel project | `marquee-film-pub` | `heirloom` |
 
-About 50 files reference `mehfil`. The ones needing care:
+About 50 files reference `heirloom`. The ones needing care:
 
-- **19 localStorage and cookie keys** (`mehfil.profile.*`, `mehfil.checklist.*`, `mehfil.wizard.*`).
+- **19 localStorage and cookie keys** (`heirloom.profile.*`, `heirloom.checklist.*`, `heirloom.wizard.*`).
   Renaming them silently loses a returning guest's profile choice and a half-finished wizard. Read
   both prefixes and write the new one for a release, or leave the keys alone.
 - `SESSION_SECRET` and the E2E env in `playwright.config.ts`.
@@ -266,13 +266,13 @@ create and delete zones on the account. Bunny dashboard → Account Settings →
 
 - **Credentials** live in `.env.local` (gitignored, verified). Both services are fully
   configured; `pnpm preflight` is all green.
-- **Supabase**: schema applied, org `kalyanam`, operator `operator@mehfil.test`. The app
+- **Supabase**: schema applied, org `kalyanam`, operator `operator@heirloom.test`. The app
   verifies its own scrypt hash, so the Supabase Auth password on that account is random and
   unused — it exists only to satisfy `operators.id → auth.users.id`. The app login is
-  `operator@mehfil.test` / `mehfil-dev`.
+  `operator@heirloom.test` / `heirloom-dev`.
 - **The real database has no demo catalogue.** The nine-title fixture only exists in the
   `memory`/`file` drivers. Seeding a real one properly is N-6 (it needs real footage).
-- **Bunny**: library `mehfil` id `724076`, pull zone `6300168`, CDN `vz-98fb153e-d39.b-cdn.net`.
+- **Bunny**: library `heirloom` id `724076`, pull zone `6300168`, CDN `vz-98fb153e-d39.b-cdn.net`.
   Token auth **on**, IP pinning **off**, `BlockNoneReferrer` **off** — all three deliberate, see
   PROGRESS.
 - **The account key and the library key are different.** `BUNNY_API_KEY` is the library key
