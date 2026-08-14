@@ -429,3 +429,39 @@ find-and-replace crosses a name that exists in two shapes.
   repo moves to a personal account.
 
 343 unit and component tests, 90 E2E, verify green from the new path.
+
+## N-11 · The name, all the way down to the infrastructure
+
+`heirloomfilms.in` serves the product. Two A records at Hostinger, nameservers left where they
+were, `ROOT_DOMAIN` switched, redeployed. The GitHub integration reconnected the moment the repo
+went public, so push-to-deploy works again and the CLI-deploy workaround above is retired.
+
+**The rename was mostly a false alarm, and finding that out was the point.** Of the three services
+the old name supposedly lived in, two never contained it: the Stream library is
+`vz-98fb153e-d39.b-cdn.net` and the Supabase project is `ijkwhtfggjihjpykxhnh.supabase.co`, both
+machine-assigned. Only a dashboard label said "mehfil". Recreating them to rename them would have
+cost seven re-uploaded films and every stored video GUID, or a new database with new keys and a
+forced password reset for every user — Supabase cannot migrate password hashes between projects —
+and would not have changed one character a guest sees.
+
+The photo storage zone was the real one: `mehfil-photos.b-cdn.net` is the host in every photograph
+URL a guest loads, and Bunny cannot rename a storage zone in place. New zone, new pull zone with
+the old one's settings copied, 22 objects moved, 10 rows rewritten, verified byte-identical from
+both hosts before the switch.
+
+**`photos.url` stores an absolute URL, not a key.** I had assumed the opposite — `urlFor()` looked
+like render-time derivation — but `put()` returns it and the route persists it, so moving the
+objects was only half the job. `scripts/repoint-photo-cdn.ts` copies first and rewrites second, in
+that order, because a rewritten URL pointing at an object that was never copied is a broken
+photograph with no way to tell which half failed.
+
+**Preflight never checked photo storage at all.** The read path and the write path use different
+credentials, so a wrong storage password leaves every existing photograph loading happily from the
+CDN while every new upload fails — the obvious spot-check proves nothing about the half that
+breaks. It now writes, reads back through the CDN, and deletes. Both failures were reintroduced to
+confirm it catches them: a bad password fails the write, and a CDN hostname left on the old pull
+zone fails the read with a 404, which is exactly what a half-finished rename looks like.
+
+The webhook moved to `https://heirloomfilms.in/api/webhooks/bunny` in the same pass. It had not
+broken, because the old alias was still attached and still serving the current build — luck, not
+design, with several `marquee-film-*` aliases already pinned to deployments days old.

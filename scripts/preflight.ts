@@ -23,7 +23,7 @@ if (existsSync('.env.local')) {
   }
 }
 
-type Service = 'supabase' | 'bunny'
+type Service = 'supabase' | 'bunny' | 'photos'
 type Result = { ok: boolean; service: Service; label: string; detail: string; fix?: string }
 
 const results: Result[] = []
@@ -37,6 +37,7 @@ const fail = (label: string, detail: string, fix?: string) =>
 const env = process.env
 const dataDriver = env.DATA_DRIVER ?? 'memory'
 const videoDriver = env.VIDEO_DRIVER ?? 'fake'
+const photoDriver = env.PHOTO_DRIVER ?? 'fake'
 
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
@@ -281,13 +282,80 @@ async function checkLibrary(apiKey: string, libraryId: string): Promise<void> {
 }
 
 // ── Run ───────────────────────────────────────────────────────────────────────
+// ── Photographs: Edge Storage behind its own pull zone ────────────────────────
+/**
+ * Nothing used to check this, and the gap is not theoretical: when the zone moved off
+ * `mehfil-photos`, a wrong storage password would have left every existing photograph loading
+ * happily from the CDN while every *new* upload failed — the read path and the write path use
+ * different credentials, so the obvious spot-check proves nothing about the one that breaks.
+ *
+ * So this writes, reads back through the CDN, and deletes.
+ */
+async function checkPhotos(): Promise<void> {
+  const zone = env.BUNNY_STORAGE_ZONE
+  const password = env.BUNNY_STORAGE_PASSWORD
+  const host = env.BUNNY_PHOTO_CDN_HOSTNAME
+  const region = (env.BUNNY_STORAGE_REGION ?? '').trim().toUpperCase()
+
+  if (!zone || !password || !host) {
+    fail(
+      'Photo storage',
+      'not configured',
+      'set BUNNY_STORAGE_ZONE, BUNNY_STORAGE_PASSWORD and BUNNY_PHOTO_CDN_HOSTNAME',
+    )
+    return
+  }
+
+  const origin = region === 'DE' || region === '' ? 'storage.bunnycdn.com' : `${region.toLowerCase()}.storage.bunnycdn.com`
+  const key = 'probe/preflight.txt'
+  const url = `https://${origin}/${zone}/${key}`
+  const body = `preflight ${Date.now()}`
+
+  const put = await fetch(url, {
+    method: 'PUT',
+    headers: { AccessKey: password, 'content-type': 'text/plain' },
+    body,
+  }).catch(() => null)
+
+  if (!put || !put.ok) {
+    fail(
+      'Photo upload',
+      put ? `storage rejected the write (${put.status})` : `could not reach ${origin}`,
+      put?.status === 401 ? 'BUNNY_STORAGE_PASSWORD does not match this zone' : undefined,
+    )
+    return
+  }
+  pass('Photo upload', `${zone} accepted a write (${origin})`)
+
+  // The CDN is a separate hop with its own cache; a zone can accept writes while the pull zone
+  // points somewhere else entirely, which is precisely what a half-finished rename looks like.
+  const read = await fetch(`https://${host}/${key}`, { cache: 'no-store' }).catch(() => null)
+  if (!read || !read.ok) {
+    fail(
+      'Photo CDN',
+      read ? `pull zone returned ${read.status}` : `could not reach ${host}`,
+      `check that ${host} is the pull zone in front of ${zone}`,
+    )
+  } else if ((await read.text()) !== body) {
+    fail('Photo CDN', `${host} served stale or foreign content`, 'the pull zone may front a different storage zone')
+  } else {
+    pass('Photo CDN', `${host} served it back`)
+  }
+
+  await fetch(url, { method: 'DELETE', headers: { AccessKey: password } }).catch(() => null)
+}
+
 async function main(): Promise<void> {
-  console.log(`\nDrivers: data=${dataDriver} video=${videoDriver}\n`)
+  console.log(`\nDrivers: data=${dataDriver} video=${videoDriver} photos=${photoDriver}\n`)
 
   current = 'supabase'
   await checkSupabase()
   current = 'bunny'
   await checkBunny()
+  if (photoDriver === 'bunny') {
+    current = 'photos'
+    await checkPhotos()
+  }
 
   const width = Math.max(...results.map((r) => r.label.length))
   for (const r of results) {
@@ -302,7 +370,9 @@ async function main(): Promise<void> {
   const blocking = results.filter(
     (r) =>
       !r.ok &&
-      ((r.service === 'supabase' && needsSupabase) || (r.service === 'bunny' && needsBunny)),
+      ((r.service === 'supabase' && needsSupabase) ||
+        (r.service === 'bunny' && needsBunny) ||
+        (r.service === 'photos' && photoDriver === 'bunny')),
   )
   const advisory = results.filter((r) => !r.ok && !blocking.includes(r))
 
