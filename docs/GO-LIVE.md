@@ -83,35 +83,65 @@ You want `216.198.79.1` and `64.29.17.1` back.
 Supabase's built-in sender allows a few messages an hour and is meant for development. Hitting it
 returns `over_email_send_rate_limit`, which is what killed the first live registration attempt.
 
-**Recommended: [Resend](https://resend.com)** — simplest setup, generous free tier, good
+**Recommended: [Resend](https://resend.com)** — simplest setup, free tier covers our volume, good
 deliverability. Amazon SES is cheaper at volume and considerably more work.
 
-1. Create the account, add `heirloomfilms.in` as a domain.
-2. It will give you **DKIM** records (usually CNAMEs, sometimes a TXT) and ask you to extend SPF.
-3. Add the DKIM records at Hostinger exactly as given.
-4. **Edit** the existing SPF record — do not add a new one:
+Free tier: **3,000 emails/month, 100/day, one domain.** Pro is $20/mo for 50,000 and removes the
+daily cap. Registration, password reset and handover traffic sit far inside the free tier; the
+*daily* 100 is the one to watch, because a bulk expiry-warning run (N-24) is bursty by nature.
 
-   ```
-   v=spf1 include:_spf.mail.hostinger.com include:_spf.resend.com ~all
-   ```
+### The SPF merge is **not** needed — correcting the earlier note in this file
 
-   Hostinger's include stays first so your existing mail keeps working.
+Resend puts SPF and MX on a **`send` subdomain**, not on the root. So `heirloomfilms.in`'s existing
+`v=spf1 include:_spf.mail.hostinger.com ~all` is left completely alone, and your Hostinger mail is
+never in the blast radius. The two-SPF-records warning in §1 still holds as a general rule — it
+just does not come up with this provider.
 
-5. Add a DMARC record, which nothing has yet:
+### Steps
+
+1. Create the account at [resend.com](https://resend.com) and add `heirloomfilms.in` as a domain.
+2. Resend shows three records. At **Hostinger → Domains → your domain → DNS / Nameservers**:
+
+   | Type | Name | Value | TTL |
+   |---|---|---|---|
+   | MX | `send` | *(Resend's MX value)* — priority `10` | 3600 |
+   | TXT | `send` | `v=spf1 include:amazonses.com ~all` | 3600 |
+   | TXT | `resend._domainkey` | *(Resend's DKIM value)* | 3600 |
+
+   > **Hostinger appends the domain to the Name field itself.** Enter `send`, never
+   > `send.heirloomfilms.in`, or you end up with `send.heirloomfilms.in.heirloomfilms.in`. Same for
+   > `resend._domainkey`. This is the single most common reason verification never completes.
+   >
+   > Copy the DKIM value whole — it is long, and a truncated paste fails silently.
+   >
+   > Do not reuse priority `10` if an MX record already has it. Your existing mail uses `5` and
+   > `10` on the **root**; these are on `send`, so they do not collide — but check.
+
+3. Add a DMARC record, which nothing has yet:
 
    ```
    Type: TXT   Name: _dmarc   Value: v=DMARC1; p=none; rua=mailto:you@heirloomfilms.in
    ```
 
-   `p=none` **monitors without rejecting** — start here. Tighten to `quarantine` only once you can
-   see in the reports that everything legitimate is passing.
+   `p=none` **monitors without rejecting** — start here. Tighten to `quarantine` only once the
+   reports show everything legitimate is passing.
 
-6. Wait for the provider to show the domain verified.
+4. Click **Verify DNS Records** in Resend. Usually minutes; allow up to 72 hours.
+5. Create an **API key** in Resend — that string is the SMTP password below.
 
 ### Then wire it into Supabase
 
-**Supabase → Project Settings → Authentication → SMTP Settings**, and paste the host, port,
-username and password the provider gives you.
+**Supabase → Project Settings → Authentication → SMTP Settings**, enable custom SMTP, and enter:
+
+| Field | Value |
+|---|---|
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` — literally that word, not your email |
+| Password | your Resend **API key** (`re_…`) |
+
+Port 465 is implicit TLS. If Supabase rejects it, `587` is the STARTTLS alternative; both are
+supported.
 
 Two settings on the same screen that matter:
 

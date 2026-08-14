@@ -52,9 +52,12 @@ Configure a real provider and check the Site URL, or the confirmation link lands
 not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; background in
 `docs/DEPLOYMENT.md` §12.
 
-> Now that `heirloomfilms.in` carries live Hostinger mail, the sending provider's SPF include must
-> be **merged into the existing TXT record**, never added as a second one. Two SPF records on a
-> domain is a `permerror` and mail starts failing silently.
+> Resend puts SPF and MX on a **`send` subdomain**, so the root SPF record that Hostinger mail
+> depends on is never touched — no merge, no risk to existing email. The general rule still holds
+> (one SPF record per domain, ever), it just does not bite with this provider.
+>
+> The real trap is Hostinger's DNS form, which **appends the domain to the Name field**: enter
+> `send`, not `send.heirloomfilms.in`. Getting that wrong is the usual reason verification hangs.
 
 ### N-30 · One way of saving, and an operator who can see it  ·  ~half a session
 
