@@ -64,6 +64,16 @@ export function ClaimForm({
           {coupleName} is now under your control. You can add films and photographs, change how it
           looks, and keep it going for as long as you like.
         </p>
+        <p className="mt-2 text-[15px] text-[var(--color-l-text-mid)]">
+          {/*
+            The same hedge the register screen carries, and for the same reason: whether Supabase
+            requires confirmation is a project setting this component cannot read. Without it,
+            turning confirmation on means a couple taps "Sign in" moments after being handed their
+            wedding, nothing happens, and there is no explanation anywhere on the page.
+          */}
+          If your email needs confirming, the link is on its way to{' '}
+          <strong className="font-semibold">{email}</strong> — sign in once you have clicked it.
+        </p>
         <button
           type="button"
           onClick={async () => {
