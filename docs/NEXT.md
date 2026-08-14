@@ -48,8 +48,13 @@ returns `over_email_send_rate_limit`, which is what the first live registration 
 A partner who never receives their confirmation cannot sign in, and no message the app can write
 will help, because the limit belongs to the project rather than to their address.
 
-Configure a real provider (`docs/DEPLOYMENT.md` §12) and check the Site URL, or the confirmation
-link lands somewhere that is not this deployment.
+Configure a real provider and check the Site URL, or the confirmation link lands somewhere that is
+not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; background in
+`docs/DEPLOYMENT.md` §12.
+
+> Now that `heirloomfilms.in` carries live Hostinger mail, the sending provider's SPF include must
+> be **merged into the existing TXT record**, never added as a second one. Two SPF records on a
+> domain is a `permerror` and mail starts failing silently.
 
 ### N-30 · One way of saving, and an operator who can see it  ·  ~half a session
 
@@ -183,18 +188,22 @@ Card treatment, row edge gradients and billboard scrim are all still unassessed 
 photographs, and that is the largest remaining gap between this and something that reads as a
 streaming product. Nothing else on this list changes that impression as much.
 
-### N-11 · Domain  ·  ~30m + DNS propagation
+### N-11 · Domain  ·  **waiting on two A records at Hostinger** — see [`GO-LIVE.md`](./GO-LIVE.md)
 
-**Deployed, public and fully verified** at `https://marquee-film-pub.vercel.app` — Supabase,
-Bunny, and webhook delivery all confirmed against real traffic. Nothing is unverified any more.
+`heirloomfilms.in` is bought, attached to the Vercel project and **ownership-verified**. The
+GitHub integration is reconnected now the repo is public, so push-to-deploy works again.
 
-What is left is the name. Per [`docs/DEPLOYMENT.md`](./DEPLOYMENT.md) §5, `path` mode
-needs one CNAME. Afterwards, update **two** things or transcodes silently stop:
+What is left is not code. Hostinger must drop the parking record `A @ 2.57.91.91` and add
+`A @ 216.198.79.1` and `A @ 64.29.17.1`. **The MX and SPF records stay** — the domain carries live
+mail, which is also why the nameservers must not be delegated to Vercel, and why `path` mode
+rather than `subdomain` is the right call here.
 
-1. `ROOT_DOMAIN` on the Vercel project.
-2. The Bunny library's `WebhookUrl`.
+Afterwards, update **two** things in the same sitting or transcodes silently stop:
 
-> The webhook must always point at the **stable alias**, never at a `marquee-film-<hash>` URL.
+1. `ROOT_DOMAIN` on the Vercel project → `heirloomfilms.in`, then redeploy.
+2. The Bunny library's `WebhookUrl` → `https://heirloomfilms.in/api/webhooks/bunny`.
+
+> The webhook must always point at the **stable domain**, never at a `heirloomfilms-<hash>` URL.
 > A per-deployment URL keeps answering after the next deploy — from the *old* build — so the
 > failure is a webhook that appears healthy while running superseded code.
 
