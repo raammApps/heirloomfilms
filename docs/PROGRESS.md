@@ -695,3 +695,31 @@ The second is unresolved and is now **N-33**: the N-32 wizard test fails ~2 runs
 full suite and never in isolation. Latency, rendering scale, server-cache invalidation and a
 store reset were each tested and ruled out. The behaviour it guards is proven correct. It is
 recorded rather than deleted, because it guards a bug that reached production.
+
+## N-17 · Email, verified by reading the delivered message
+
+Confirmation is on (`mailer_autoconfirm: false`), Resend delivers from
+`"Heirloom Films" <hello@heirloomfilms.in>`, and the whole loop now runs: register → email
+arrives → click → confirmed → sign in.
+
+**The interesting part is how the last bug was found.** The confirmation link's destination comes
+from Supabase's Site URL, which nothing in this repo can read — every check available here passed
+while it pointed at `heirloomfilms-sandeep-bh5-7354s-projects.vercel.app`, which serves `200` and
+therefore looks entirely fine. Every new partner would have registered, clicked confirm, and
+landed on a Vercel URL with the product on it and none of the brand in the address bar.
+
+It was found by reading the **delivered message through Resend's API** rather than asking anyone
+to check an inbox: list `/emails`, fetch by id, pull `redirect_to` out of the body. That turns "go
+and look at your email" into a repeatable check, and it is how the fix was verified afterwards —
+including following the link and watching `email_confirmed_at` fill in.
+
+Turning confirmation on is also what made this urgent rather than cosmetic. With it off, a wrong
+Site URL only affected password resets. With it on, it sits on the path of every registration.
+
+Two ordering lessons, both cheap and both nearly missed:
+
+- **Rotate the key after the work that needs it.** Deleting the old photo zone needed the Bunny
+  account key; rotating first would have revoked the credential mid-task.
+- **Fix the claim screen before flipping the switch.** Registration already hedged about
+  confirmation; the claim screen did not, and it calls `signUp` identically — so a couple would
+  have been handed their wedding, told to sign in, and found they could not.

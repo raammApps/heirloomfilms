@@ -39,40 +39,6 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
-### N-17 · SMTP  ·  **working** — two follow-ups below
-
-Resend is wired into Supabase Auth and `POST /auth/v1/recover` returns `200`. The domain is
-verified with DKIM, SPF on a `send` subdomain, and a single DMARC record; the existing Hostinger
-mailbox was never touched.
-
-Two things this did **not** settle:
-
-1. **The confirmation link host is unverified.** It is built from Supabase's Site URL, which no
-   test here can read. If it is wrong, every other check still passes and partners land on the
-   old deployment.
-2. **Confirm email is switched off**, so registration still sends nothing — `signUp` auto-confirms
-   in ~50ms. Anyone can register with an address they do not own. See `GO-LIVE.md` §3.
-
-The original problem, for the record:
-
-Supabase Auth sends a confirmation on sign-up and a link on password reset, and by default both
-go through Supabase's built-in SMTP — a few messages per hour, meant for development. Hitting it
-returns `over_email_send_rate_limit`, which is what the first live registration attempt did.
-
-A partner who never receives their confirmation cannot sign in, and no message the app can write
-will help, because the limit belongs to the project rather than to their address.
-
-Configure a real provider and check the Site URL, or the confirmation link lands somewhere that is
-not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; background in
-`docs/DEPLOYMENT.md` §12.
-
-> Resend puts SPF and MX on a **`send` subdomain**, so the root SPF record that Hostinger mail
-> depends on is never touched — no merge, no risk to existing email. The general rule still holds
-> (one SPF record per domain, ever), it just does not bite with this provider.
->
-> The real trap is Hostinger's DNS form, which **appends the domain to the Name field**: enter
-> `send`, not `send.heirloomfilms.in`. Getting that wrong is the usual reason verification hangs.
-
 ### N-33 · One flaky E2E test, unsolved  ·  **fails ~2 runs in 3 under the full suite**
 
 `admin.spec.ts › a catalogue made in the wizard is in the list without a reload` (N-32 §1). Passes
