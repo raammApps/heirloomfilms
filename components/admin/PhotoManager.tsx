@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
+import { SaveState, type SaveStatus } from './SaveState'
+import { resolveLocalised } from '@/lib/i18n'
 import type { Photo } from '@/lib/schema'
 
 /**
@@ -128,6 +130,7 @@ export function PhotoManager({
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [pending, setPending] = useState<Pending[]>([])
   const [dragging, setDragging] = useState(false)
+  const [saveState, setSaveState] = useState<SaveStatus>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const upload = useCallback(
@@ -204,6 +207,36 @@ export function PhotoManager({
     [catalogueId, router],
   )
 
+  /**
+   * The caption, which until now could be rendered on the guest page but never written (N-30).
+   *
+   * On blur like the film list, and reporting through the same indicator — the console had four
+   * different answers to "did that save?" and this is the shared one.
+   */
+  const saveCaption = useCallback(
+    async (photo: Photo, text: string) => {
+      const next = text.trim()
+      if ((resolveLocalised(photo.caption, 'en') ?? '') === next) return
+
+      setSaveState('saving')
+      setPhotos((current) =>
+        current.map((p) => (p.id === photo.id ? { ...p, caption: next ? { en: next } : undefined } : p)),
+      )
+      try {
+        const response = await fetch(`/api/admin/photos/${photo.id}`, {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ caption: next ? { en: next } : null }),
+        })
+        setSaveState(response.ok ? 'saved' : 'error')
+        if (response.ok) router.refresh()
+      } catch {
+        setSaveState('error')
+      }
+    },
+    [router],
+  )
+
   const remove = useCallback(async (photo: Photo) => {
     setPhotos((current) => current.filter((p) => p.id !== photo.id))
     await fetch(`/api/admin/photos/${photo.id}`, { method: 'DELETE' }).catch(() => {})
@@ -212,6 +245,7 @@ export function PhotoManager({
 
   return (
     <div className="flex flex-col gap-6">
+      <SaveState status={saveState} className="min-h-[18px]" />
       <div
         onDragOver={(event) => {
           event.preventDefault()
@@ -278,6 +312,16 @@ export function PhotoManager({
               >
                 Remove
               </button>
+              <label className="mt-1.5 block">
+                <span className="sr-only">Caption for this photograph</span>
+                <input
+                  defaultValue={resolveLocalised(photo.caption, 'en') ?? ''}
+                  onBlur={(event) => void saveCaption(photo, event.target.value)}
+                  placeholder="Add a caption"
+                  maxLength={140}
+                  className="w-full rounded-[var(--radius-input)] border border-[var(--color-l-line)] px-2 py-1.5 text-[13px] outline-none focus-visible:border-accent"
+                />
+              </label>
             </li>
           ))}
 

@@ -6,6 +6,7 @@ import { formatClock } from '@/lib/format'
 import { CATEGORIES, type Category, type Title } from '@/lib/schema'
 import { categoryEyebrow } from '@/lib/poster'
 import { UploadManager } from './UploadManager'
+import { SaveState, type SaveStatus } from './SaveState'
 
 const CATEGORY_OPTIONS = CATEGORIES.map((value) => ({ value, label: categoryEyebrow(value) }))
 
@@ -27,16 +28,35 @@ export function TitleList({
 }) {
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [saveState, setSaveState] = useState<SaveStatus>('idle')
 
+  /**
+   * Writes on blur, and now says whether it worked (N-30).
+   *
+   * The response was previously awaited and discarded, so a refused save was indistinguishable
+   * from a successful one — the operator renamed a film, saw nothing either way, and could lose
+   * the edit without ever being told.
+   */
   const update = async (id: string, patch: Record<string, unknown>) => {
     setBusyId(id)
-    await fetch(`/api/admin/titles/${id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(patch),
-    })
-    setBusyId(null)
-    router.refresh()
+    setSaveState('saving')
+    try {
+      const response = await fetch(`/api/admin/titles/${id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+      setSaveState(response.ok ? 'saved' : 'error')
+      // Only re-read the server's copy when it actually changed. Refreshing after a failure
+      // would repaint the input with the old value and quietly discard what they typed.
+      if (response.ok) router.refresh()
+    } catch {
+      // An offline blur is the commonest way this fails, and it is not an exception the
+      // operator should meet as a blank screen.
+      setSaveState('error')
+    } finally {
+      setBusyId(null)
+    }
   }
 
   const retry = async (id: string) => {
@@ -80,6 +100,10 @@ export function TitleList({
         which is a better place to learn it than a banner above an empty form.
       */}
       <UploadManager catalogueId={catalogueId} />
+
+      {/* Above the list rather than per row: blur has already moved focus by the time this
+          appears, so one region that is always in the same place beats a badge that is not. */}
+      <SaveState status={saveState} className="mb-3 min-h-[18px]" />
 
       {titles.length === 0 ? (
         <p className="text-[15px] text-[var(--color-l-text-mid)]">

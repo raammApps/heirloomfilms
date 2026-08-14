@@ -165,3 +165,102 @@ test.describe('E2E-5: upload resilience', () => {
     await expect(row).not.toContainText('Failed')
   })
 })
+
+/**
+ * N-30 — the film list saved on blur and said nothing, ever.
+ *
+ * Renaming a film, rewriting its synopsis or changing its category wrote on blur with no
+ * spinner, no confirmation and — the part that matters — **no error**. `update()` awaited the
+ * PATCH and never looked at `response.ok`, so a rejected save and a successful one were
+ * identical from the operator's chair. This is the surface the complaint was about: the console
+ * has four other places that save, and every one of them says so.
+ */
+test.describe('N-30: the film list says whether it saved', () => {
+  test.skip(({ isMobile }) => Boolean(isMobile), 'the admin console is a desktop tool')
+
+  let catalogue: CreatedCatalogue
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page)
+    catalogue = await createCatalogue(page, 'savestate')
+    await openFilms(page, catalogue.id)
+    await page.setInputFiles('input[type="file"]', {
+      name: 'the_sangeet.mp4',
+      mimeType: 'video/mp4',
+      buffer: Buffer.alloc(64 * 1024, 3),
+    })
+    await expect(page.locator('input[value="The Sangeet"]')).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('confirms a rename instead of leaving the operator guessing', async ({ page }) => {
+    const name = page.locator('input[value="The Sangeet"]')
+    await name.fill('The Sangeet — full ceremony')
+    await name.blur()
+
+    await expect(page.getByRole('status')).toContainText(/saved/i)
+  })
+
+  /**
+   * The one that actually bit: a rejected save looked exactly like a successful one, so an
+   * operator renamed a film, saw nothing, navigated away, and lost the edit without ever being
+   * told. Silence is the worst possible answer here.
+   */
+  test('says so when a save is refused, rather than swallowing it', async ({ page }) => {
+    await page.route('**/api/admin/titles/*', async (route) => {
+      if (route.request().method() === 'PATCH') {
+        await route.fulfill({ status: 500, body: '{"error":{"message":"nope"}}' })
+        return
+      }
+      await route.continue()
+    })
+
+    const name = page.locator('input[value="The Sangeet"]')
+    await name.fill('This edit will be refused')
+    await name.blur()
+
+    await expect(page.getByRole('status')).toContainText(/not saved|could not save/i)
+  })
+})
+
+/**
+ * N-30 — captions, which the schema has always carried and nothing could ever write.
+ *
+ * `photoSchema.caption` exists, the guest lightbox renders it, and the manager could only upload
+ * and delete. A field that is visible to guests and uneditable by the operator is the most
+ * confusing shape of gap: it reads as a save that is broken rather than a feature that was never
+ * built. There was also no E2E coverage of the photographs surface at all.
+ */
+test.describe('N-30: photograph captions', () => {
+  test.skip(({ isMobile }) => Boolean(isMobile), 'the admin console is a desktop tool')
+
+  /** The smallest valid PNG, so the upload route has something real to accept. */
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  )
+
+  test('a caption can be written, is confirmed, and survives a reload', async ({ page }) => {
+    await signIn(page)
+    const catalogue = await createCatalogue(page, 'caption')
+    await page.goto(`/admin/c/${catalogue.id}/photos`)
+
+    await page.setInputFiles('input[type="file"]', {
+      name: 'the-first-look.png',
+      mimeType: 'image/png',
+      buffer: PNG,
+    })
+
+    const caption = page.getByPlaceholder('Add a caption').first()
+    await expect(caption).toBeVisible({ timeout: 15_000 })
+
+    await caption.fill('Her father seeing the lehenga for the first time')
+    await caption.blur()
+    await expect(page.getByRole('status')).toContainText(/saved/i)
+
+    // The round trip is the assertion that matters — an optimistic update would pass without it.
+    await page.reload()
+    await expect(page.getByPlaceholder('Add a caption').first()).toHaveValue(
+      'Her father seeing the lehenga for the first time',
+    )
+  })
+})

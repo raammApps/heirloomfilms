@@ -73,29 +73,6 @@ not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; backgroun
 > The real trap is Hostinger's DNS form, which **appends the domain to the Name field**: enter
 > `send`, not `send.heirloomfilms.in`. Getting that wrong is the usual reason verification hangs.
 
-### N-30 · One way of saving, and an operator who can see it  ·  ~half a session
-
-**Audited, and the complaint is right.** There are three save models in one console:
-
-| | Model | Does the operator know? |
-|---|---|---|
-| Customizer | autosave, debounced | **Yes** — "Saved as draft" |
-| Theme picker | autosave | Yes |
-| Settings | explicit **Save** button | Yes — a status line |
-| Create wizard | explicit **Continue** | Yes |
-| **Film list** | **autosave on blur** | **No. Nothing at all.** |
-
-Renaming a film, editing its synopsis or changing its category writes on blur and gives no
-confirmation, no spinner and no error if the request fails. From the operator's side that is
-indistinguishable from a form that does not save.
-
-Also **photograph captions cannot be edited at all** — `photoSchema` has the field, there is no
-PATCH route, and the manager only uploads and deletes.
-
-Pick one model per kind of surface and make it visible. Autosave is right for the customizer and
-the film list; what is missing is the *saying so*. The customizer's indicator is the pattern —
-reuse it rather than inventing a second.
-
 ### N-31 · Like, share and copy link — on photographs too  ·  ~half a session
 
 Films have this: `ShareButton` uses `navigator.share`, which on a phone is the WhatsApp sheet, and

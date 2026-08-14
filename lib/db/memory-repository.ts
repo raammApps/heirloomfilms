@@ -374,6 +374,15 @@ export class MemoryRepository implements Repository {
     return this.clone(next)
   }
 
+  async updatePhoto(id: string, patch: Pick<Photo, 'caption'>): Promise<Photo> {
+    const index = this.data.photos.findIndex((p) => p.id === id)
+    if (index === -1) throw new ApiError('NOT_FOUND', 'Photograph not found')
+    const next = { ...this.data.photos[index]!, ...this.clone(patch) }
+    this.data.photos[index] = next
+    this.touched()
+    return this.clone(next)
+  }
+
   async deleteTitle(id: string): Promise<void> {
     this.data.titles = this.data.titles.filter((t) => t.id !== id)
     this.data.progress = this.data.progress.filter((p) => p.titleId !== id)

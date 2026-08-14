@@ -639,6 +639,16 @@ export class SupabaseRepository implements Repository {
     return SupabaseRepository.toTitle(SupabaseRepository.unwrap(result))
   }
 
+  async updatePhoto(id: string, patch: Pick<Photo, 'caption'>): Promise<Photo> {
+    const result = await this.db
+      .from('photos')
+      .update({ caption: patch.caption ?? null })
+      .eq('id', id)
+      .select()
+      .single()
+    return SupabaseRepository.toPhoto(SupabaseRepository.unwrap(result))
+  }
+
   async deleteTitle(id: string): Promise<void> {
     const { error } = await this.db.from('titles').delete().eq('id', id)
     if (error) throw new ApiError('INTERNAL', error.message)

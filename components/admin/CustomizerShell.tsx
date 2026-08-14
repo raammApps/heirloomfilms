@@ -28,6 +28,7 @@ import { SectionInspector } from './SectionInspector'
 import { resolveLocalised } from '@/lib/i18n'
 import { BRANDING_SELECTION, PreviewPane } from './PreviewPane'
 import { ThemePicker } from './ThemePicker'
+import { SaveState, type SaveStatus } from './SaveState'
 
 const AUTOSAVE_DEBOUNCE_MS = 800
 const UNDO_DEPTH = 20
@@ -50,7 +51,7 @@ type Props = {
 export function CustomizerShell({ catalogue, titles, albums, photos, initialModules }: Props) {
   const [modules, setModules] = useState<ModuleInstance[]>(initialModules)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveState, setSaveState] = useState<SaveStatus>('idle')
   const router = useRouter()
   const [publishing, setPublishing] = useState(false)
   const [branding, setBranding] = useState(catalogue.branding)
@@ -271,15 +272,7 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
 
       <section aria-label="Preview" className="min-w-0">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p aria-live="polite" className="text-[13px] text-[var(--color-l-text-mid)]">
-            {saveState === 'saving'
-              ? 'Saving…'
-              : saveState === 'saved'
-                ? 'Saved as draft'
-                : saveState === 'error'
-                  ? 'Could not save — your changes are still here, retrying on the next edit'
-                  : ''}
-          </p>
+          <SaveState status={saveState} savedLabel="Saved as draft" />
 
           <button
             type="button"

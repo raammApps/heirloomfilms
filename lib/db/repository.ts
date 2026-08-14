@@ -140,6 +140,8 @@ export interface Repository {
   getTitleByProviderId(providerId: string): Promise<Title | null>
   createTitle(title: CreateTitleInput): Promise<Title>
   updateTitle(id: string, patch: Partial<Omit<Title, 'id' | 'catalogueId'>>): Promise<Title>
+  /** Captions only, today — the rest of a photograph is decided by the upload (N-30). */
+  updatePhoto(id: string, patch: Pick<Photo, 'caption'>): Promise<Photo>
   deleteTitle(id: string): Promise<void>
   reorderTitles(catalogueId: string, order: { id: string; sortOrder: number }[]): Promise<void>
 

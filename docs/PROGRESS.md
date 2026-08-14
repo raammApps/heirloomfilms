@@ -593,3 +593,38 @@ environment testing it is not.
 
 Both halves proven separately: removing the sign-out puts the couple back in the studio's console,
 and removing the prefill leaves the address field empty.
+
+## N-30 · One answer to "did that save?"
+
+The console had five surfaces that write and five different answers. The customizer and theme
+picker said so, settings had a status line, the wizard had an explicit button — and the film list,
+which writes on blur, said nothing at all.
+
+Worse than nothing. `update()` awaited the PATCH and never looked at `response.ok`, so a **refused
+save and a successful one were identical from the operator's chair**. Rename a film, see no
+reaction either way, navigate off, lose it. That is the complaint that started this — "double
+check forms for save option, many doesn't" — and it was right.
+
+`components/admin/SaveState.tsx` is now the single answer, shared by the film list, the customizer
+and the photographs. A component rather than a copy of the customizer's markup, on the reasoning
+this repo already applies to the guest tree: two implementations of one idea drift, and the one
+that drifts is the one nobody is looking at. `role="status"` carries an implicit polite live
+region, which matters here because blur has already moved focus by the time the outcome appears.
+
+**Captions could never be written at all.** `photoSchema.caption` has existed since the beginning
+and the guest lightbox renders it, but there was no PATCH route and the manager could only upload
+and delete. A field that guests can see and operators cannot edit reads as a broken save rather
+than a missing feature. Added `updatePhoto` to the interface and both drivers, a PATCH route
+scoped through the album's catalogue exactly as deletion is, and an on-blur caption field.
+
+**Two things the gates caught that tests would not have.** Deleting the film list's indicator
+fails `pnpm verify` outright — `saveState` becomes an unused variable — so the guard is lint
+rather than a spec that could be skipped. And the caption test asserts *after a reload*: with the
+route accepting the request but never persisting, an optimistic update passed everything up to
+that line.
+
+The photographs surface also had **no E2E coverage whatsoever** before this.
+
+One flake seen once, not reproduced in five subsequent runs (three isolated, two full): the N-32
+wizard test failed under full parallel load. Recorded rather than dismissed — if it recurs, the
+cause is likelier machine saturation than the fix it guards.
