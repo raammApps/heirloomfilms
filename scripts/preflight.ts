@@ -307,7 +307,17 @@ async function checkPhotos(): Promise<void> {
   }
 
   const origin = region === 'DE' || region === '' ? 'storage.bunnycdn.com' : `${region.toLowerCase()}.storage.bunnycdn.com`
-  const key = 'probe/preflight.txt'
+
+  /**
+   * A **fresh key every run**, which matters more than it looks.
+   *
+   * The first version of this check wrote to a fixed `probe/preflight.txt`. The pull zone sets
+   * `CacheControlMaxAgeOverride` to 30 days, so Bunny's edge kept serving the *first* run's body
+   * and every later run reported "stale or foreign content" — a false failure on a correctly
+   * configured zone. `cache: 'no-store'` does not help: it governs this process's fetch cache,
+   * not the CDN's. A key that has never been requested cannot be served from cache.
+   */
+  const key = `probe/preflight-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.txt`
   const url = `https://${origin}/${zone}/${key}`
   const body = `preflight ${Date.now()}`
 

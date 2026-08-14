@@ -465,3 +465,35 @@ zone fails the read with a 404, which is exactly what a half-finished rename loo
 The webhook moved to `https://heirloomfilms.in/api/webhooks/bunny` in the same pass. It had not
 broken, because the old alias was still attached and still serving the current build — luck, not
 design, with several `marquee-film-*` aliases already pinned to deployments days old.
+
+## N-32 §1 · The list that said the work was gone
+
+Create a catalogue in the wizard, click "Catalogues", and the console said *"No weddings here
+yet"*. The row was in Postgres the whole time; the router was replaying the `/admin` render it
+had cached before the catalogue existed. One `router.refresh()` after a successful create.
+
+**Why no test caught it, which is the part worth keeping.** `e2e/helpers.ts` creates catalogues by
+`page.evaluate` + `fetch` — deliberately, so content tests do not fight over the demo fixture. But
+it means *no test has ever walked the wizard*, so a line missing from the wizard was invisible to
+a suite of 91 E2E specs. The new test clicks through the four steps like an operator, and visits
+the list first: without that visit there is nothing cached to serve and the test passes either way.
+
+**I nearly shipped a second fix for a bug that does not exist.** Reading the code, `CustomizerShell`
+publishes without refreshing, so the list should show a published wedding as still a draft. I wrote
+the fix and a test, watched the test go red, and took that as proof. It was not: the assertion was
+`getByText('DRAFT')` across the whole page, and it failed because *other specs* leave drafts in the
+shared store. With the assertion scoped to the right card, the test passed with the fix disabled —
+publish staleness never reproduced. `page.goto` in the first draft was the giveaway: a hard load
+rebuilds the router cache, so there was nothing stale left to find.
+
+The test came out; the `router.refresh()` stayed, because invalidating after publish is correct
+regardless. But the entry now says what was observed rather than what was inferred. A green test
+that has never been red for the *right reason* is worse than no test — it is a false guarantee, and
+this one had me convinced for two runs.
+
+**Preflight was failing before any of this started**, on the photo check added a few commits ago.
+It wrote to a fixed key, and the pull zone overrides cache-control to 30 days, so Bunny's edge kept
+serving the first run's body and every later run reported "stale or foreign content" on a perfectly
+healthy zone. `cache: 'no-store'` governs this process's fetch cache, not the CDN's. Fixed with a
+fresh key per run — a key that has never been requested cannot be served from cache — and verified
+by running it twice, which is the only way this particular bug shows itself.

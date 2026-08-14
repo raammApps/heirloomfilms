@@ -125,6 +125,40 @@ test.describe('the admin console', () => {
     await expect(page.getByText(/nikita-and-rohan/).first()).toBeVisible()
   })
 
+  /**
+   * N-32. Found by clicking through production, not here — and the reason it was never found
+   * here is that `createCatalogue` posts to the API directly. Every existing test skips the
+   * wizard, so the one line missing from the wizard could not show up.
+   *
+   * The failure is worse than it sounds: the operator finishes their first catalogue, clicks the
+   * only navigation link in the rail, and is told "No weddings here yet". The row is in the
+   * database the whole time — the router is serving the `/admin` render it cached *before* the
+   * catalogue existed. It reads exactly like the work was thrown away.
+   */
+  test('a catalogue made in the wizard is in the list without a reload', async ({ page }) => {
+    // Visiting the list first is what plants the stale entry in the router cache. Without this
+    // the test passes whether or not the bug is fixed, because there is nothing cached to serve.
+    await expect(page.getByRole('heading', { name: 'Catalogues' })).toBeVisible()
+
+    const couple = `Wizard & Cache ${Date.now().toString(36)}`
+    const slug = `e2e-wizard-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+
+    await page.getByRole('link', { name: 'New catalogue' }).first().click()
+    await page.getByLabel('Couple').fill(couple)
+    await page.getByLabel('Wedding date').fill('2026-12-01')
+    await page.getByLabel('Web address').fill(slug)
+    await expect(page.getByText('Available')).toBeVisible()
+    await page.getByRole('button', { name: 'Continue' }).click()
+
+    await page.getByRole('button', { name: 'Create and start uploading' }).click()
+    await expect(page.getByText(new RegExp(slug))).toBeVisible()
+
+    // A client navigation, exactly as the rail does it — no reload, which is the whole point.
+    await page.getByRole('link', { name: 'Catalogues' }).first().click()
+    await expect(page.getByRole('heading', { name: 'Catalogues' })).toBeVisible()
+    await expect(page.getByText(couple)).toBeVisible()
+  })
+
   test('a taken address is refused before anything is created', async ({ page }) => {
     await page.getByRole('link', { name: 'New catalogue' }).first().click()
 

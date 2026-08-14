@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Eye, EyeOff, GripVertical, Plus, Settings2, Trash2, Undo2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Album, Catalogue, ModuleInstance, Photo, Title } from '@/lib/schema'
 import { getModule, listModules, instantiate } from '@/modules/registry'
@@ -50,6 +51,7 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
   const [modules, setModules] = useState<ModuleInstance[]>(initialModules)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const router = useRouter()
   const [publishing, setPublishing] = useState(false)
   const [branding, setBranding] = useState(catalogue.branding)
   const [dirty, setDirty] = useState(false)
@@ -171,6 +173,14 @@ export function CustomizerShell({ catalogue, titles, albums, photos, initialModu
       })
       await fetch(`/api/admin/catalogues/${catalogue.id}/publish`, { method: 'POST' })
       setSaveState('saved')
+
+      /**
+       * Publishing flips the catalogue draft → live, and the list renders that as a badge and two
+       * counters. Without this the operator publishes, walks back to the list, and is told the
+       * wedding is still a draft — so they publish again, and start looking for the fault in the
+       * wrong place. Same cache as the wizard's (N-32); the customizer just reaches it later.
+       */
+      router.refresh()
     } finally {
       setPublishing(false)
     }

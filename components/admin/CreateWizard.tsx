@@ -132,6 +132,18 @@ export function CreateWizard({
 
     const body = (await response.json()) as { catalogue: { id: string } }
     window.localStorage.removeItem(DRAFT_KEY)
+
+    /**
+     * The list is a server component the router has already cached — from *before* this
+     * catalogue existed, because the operator was looking at it a moment ago. Without this,
+     * clicking "Catalogues" replays that render and says "No weddings here yet" about a wedding
+     * that is sitting in the database, which reads as the work having been thrown away.
+     *
+     * `refresh()` rather than a hard navigation: the operator stays on step 3 and keeps the
+     * upload they may already have started.
+     */
+    router.refresh()
+
     setCatalogueId(body.catalogue.id)
     setStep(3)
     setBusy(false)
