@@ -42,9 +42,52 @@ export function slugify(input: string): string {
 }
 
 /** "Aanya & Vikram" → "aanya-vikram". Falls back to a stable suffix when nothing survives. */
-export function suggestSlug(coupleName: LocalisedString | string): string {
+/**
+ * The couple's names plus the year of the wedding — `aanya-and-vikram-2026`.
+ *
+ * **The year is not decoration; it is what keeps the namespace usable.** Addresses live in one
+ * global space, so before this the second studio to photograph a Priya & Arjun wedding was
+ * refused an address by a catalogue they are not permitted to see, with an error that could only
+ * read as a fault in the product. Indian couple names repeat often enough that this was going to
+ * bite within a few hundred weddings.
+ *
+ * The **wedding** year rather than today's: a wedding booked in December and delivered in January
+ * belongs to the year the couple will always call theirs.
+ *
+ * The year narrows collisions; it cannot remove them, since one studio may shoot two weddings
+ * with the same names in a year. `disambiguate` is what closes that, and the two are meant to be
+ * read together.
+ */
+export function suggestSlug(
+  coupleName: LocalisedString | string,
+  weddingDate?: string | null,
+): string {
   const base = slugify(resolveLocalised(coupleName, 'en'))
-  return base.length >= 3 ? base : `wedding-${Math.random().toString(36).slice(2, 6)}`
+  if (base.length < 3) return `wedding-${Math.random().toString(36).slice(2, 6)}`
+
+  // Matched rather than parsed: `new Date('2026')` is a valid date, and a half-typed field would
+  // otherwise produce a confident, wrong year while the operator is still typing.
+  const year = /^(\d{4})-\d{2}-\d{2}$/.exec((weddingDate ?? '').trim())?.[1]
+  return year ? `${base}-${year}` : base
+}
+
+/** A taken address's suffix, kept short enough to read aloud and stay memorable. */
+const SUFFIX_PATTERN = /-[a-z0-9]{3}$/
+
+/**
+ * The free neighbour of an address that is already taken.
+ *
+ * Guarantees the partner never meets a refusal they cannot resolve: whatever they typed, there is
+ * always an address one click away. Three base-36 characters is ~46,000 alternatives for a given
+ * name and year, against a collision space of "one studio, two identical couples, one year".
+ *
+ * Replaces an existing suffix rather than appending one. Stacking would give `…-2026-k3f-p1x` on
+ * the second attempt and something unreadable on the third, and the whole point of this scheme is
+ * that the common case stays clean.
+ */
+export function disambiguate(slug: string): string {
+  const base = slug.replace(SUFFIX_PATTERN, '')
+  return `${base}-${Math.random().toString(36).slice(2, 5)}`
 }
 
 /** Strip an extension and de-noise a videographer's filename into a first-draft title. */

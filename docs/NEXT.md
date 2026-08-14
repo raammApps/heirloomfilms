@@ -73,49 +73,13 @@ not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; backgroun
 > The real trap is Hostinger's DNS form, which **appends the domain to the Name field**: enter
 > `send`, not `send.heirloomfilms.in`. Getting that wrong is the usual reason verification hangs.
 
-### N-32 · Two things a live walkthrough found  ·  **both verified in code, not just seen**
+### N-32 · One thing left from the live walkthrough
 
 Registering `testStudio`, creating a catalogue, handing it to a couple and signing in as them.
 Five things looked wrong; the stale catalogue list is fixed, and **two of the five were my own
 misreadings** — see PROGRESS for what they were and why they fooled me. These two are real.
 
-**1. Catalogue slugs are globally unique across every tenant.**  ·  **half built on
-`n32-address-per-studio`** — decided, started, not finished. Do not restart it from scratch.
-
-`swarit-and-smriti` was refused because *another studio's* catalogue held it. `catalogues.slug` is
-`text unique` with no org in it. Names repeat; the second studio to shoot a Priya & Arjun wedding
-is refused by a catalogue they may not see, with an error that can only read as our bug.
-
-**Decided: the address becomes `/c/<studio>/<couple>`.** Two decisions inside that are
-load-bearing and were not obvious:
-
-- **The prefix is the *origin* org, not the current owner.** `origin_org_id` is set at creation
-  and `transferCatalogue` never touches it. Scoping to `org_id` would rewrite the public address
-  at the moment a wedding is handed to the couple — every link already in a guest's phone — which
-  is the one thing the wizard promises cannot happen.
-- **Subdomain mode becomes `<studio>.<root>/<couple>`**, so the subdomain is the tenant rather
-  than the catalogue. That is what `TENANCY_MODE` should always have meant, and it avoids
-  `<couple>.<studio>.<root>`, which needs a two-level wildcard certificate.
-
-**On the branch:** `lib/tenant.ts`, `middleware.ts`, the route move to `app/c/[org]/[slug]`, both
-repository drivers, `catalogue-access` / `catalogue-cache`, and migration `0008`.
-
-**Left, and the order it wants doing in:**
-
-1. The four guest pages under `app/c/[org]/[slug]` — take `org` from params, pass it to
-   `resolveAccess` and `cataloguePath`.
-2. The four guest APIs (`progress`, `playback/token`, `profiles`, `qoe`). Each takes a bare slug
-   as `body.catalogue`; they need both segments, and so does every client that calls them.
-3. Every admin surface that prints an address. **This is the awkward one** — `app/admin/page.tsx`
-   and friends call `catalogueUrl(catalogue.slug, …)` and none of them load the origin org, so
-   the list needs the org slug joined in rather than fetched per row.
-4. `tests/unit/tenant.test.ts` — the whole addressing contract, and the reason the two earlier
-   renames were caught.
-5. The `path-mode` E2E project, plus every spec using `?__catalogue=<slug>`, which is now
-   `?__catalogue=<studio>/<couple>`.
-6. Apply `0008` to Supabase, then re-run `pnpm preflight`.
-
-**2. "Sign in with `<email>`" after a claim does not switch accounts.** It navigates to `/admin`,
+**1. "Sign in with `<email>`" after a claim does not switch accounts.** It navigates to `/admin`,
 so if a session already exists the couple lands in *that* console instead — observed landing in
 the studio's. On a shared or family device that shows one account's data to someone who asked for
 another's. Sign the existing session out first, or route through the login screen with the

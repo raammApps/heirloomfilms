@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { slugSchema } from '@/lib/schema'
 import {
   formatClock,
   formatDurationBadge,
   slugify,
   suggestSlug,
+  disambiguate,
   titleFromFilename,
 } from '@/lib/format'
 
@@ -33,8 +35,24 @@ describe('formatDurationBadge', () => {
 })
 
 describe('slugify and suggestSlug', () => {
-  it('turns a couple name into an address', () => {
+  /**
+   * N-32. Addresses used to be the couple's names alone, in one global namespace, so the second
+   * studio to photograph a Priya & Arjun wedding was refused an address by a catalogue they are
+   * not allowed to see — an error that could only read as a fault in the product.
+   *
+   * The **wedding** year, not the current one: a wedding booked in December and delivered in
+   * January belongs to the year the couple will always call theirs.
+   */
+  it('puts the wedding year in the address', () => {
+    expect(suggestSlug({ en: 'Aanya & Vikram' }, '2026-12-05')).toBe('aanya-and-vikram-2026')
+  })
+
+  it('leaves the year off when the date is not known yet', () => {
+    // The wizard suggests an address while the operator is still typing, and a half-entered date
+    // must not produce `aanya-and-vikram-NaN`.
     expect(suggestSlug({ en: 'Aanya & Vikram' })).toBe('aanya-and-vikram')
+    expect(suggestSlug({ en: 'Aanya & Vikram' }, '')).toBe('aanya-and-vikram')
+    expect(suggestSlug({ en: 'Aanya & Vikram' }, 'not-a-date')).toBe('aanya-and-vikram')
   })
 
   it('strips punctuation and collapses separators', () => {
@@ -43,6 +61,30 @@ describe('slugify and suggestSlug', () => {
 
   it('falls back to something usable when nothing survives', () => {
     expect(suggestSlug({ en: '???' })).toMatch(/^wedding-[a-z0-9]{4}$/)
+  })
+})
+
+describe('disambiguate', () => {
+  /**
+   * The year makes collisions rare; it does not make them impossible. One studio can photograph
+   * two different Priya & Arjun weddings in the same year, so an address scheme that merely made
+   * collisions unlikely would still hand a partner a refusal it could not resolve.
+   */
+  it('adds a short suffix so a taken address always has a free neighbour', () => {
+    const next = disambiguate('priya-and-arjun-2026')
+    expect(next).toMatch(/^priya-and-arjun-2026-[a-z0-9]{3}$/)
+  })
+
+  it('does not stack suffixes when asked repeatedly', () => {
+    // Otherwise a third attempt reads `…-2026-k3f-p1x`, and a fourth is worse.
+    const once = disambiguate('priya-and-arjun-2026')
+    const twice = disambiguate(once)
+    expect(twice).toMatch(/^priya-and-arjun-2026-[a-z0-9]{3}$/)
+    expect(twice).not.toBe(once)
+  })
+
+  it('stays inside the slug schema', () => {
+    expect(slugSchema.safeParse(disambiguate('priya-and-arjun-2026')).success).toBe(true)
   })
 })
 

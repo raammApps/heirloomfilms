@@ -53,7 +53,11 @@ export function CreateWizard({
   const [city, setCity] = useState('')
   const [slug, setSlug] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
-  const [slugState, setSlugState] = useState<{ available: boolean; reason?: string } | null>(null)
+  const [slugState, setSlugState] = useState<{
+    available: boolean
+    reason?: string
+    suggestion?: string
+  } | null>(null)
   const [template, setTemplate] = useState(TEMPLATES[0]!.id)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -82,11 +86,12 @@ export function CreateWizard({
     )
   }, [coupleName, appName, weddingDate, city, slug, catalogueId])
 
-  // Slug is suggested from the couple's names until the operator edits it themselves.
+  // Suggested from the couple's names and the wedding year until the operator edits it
+  // themselves. The year is what keeps one global namespace usable (N-32).
   useEffect(() => {
     if (slugTouched || !coupleName) return
-    setSlug(suggestSlug({ en: coupleName }))
-  }, [coupleName, slugTouched])
+    setSlug(suggestSlug({ en: coupleName }, weddingDate))
+  }, [coupleName, weddingDate, slugTouched])
 
   // Live availability check, debounced.
   useEffect(() => {
@@ -96,7 +101,11 @@ export function CreateWizard({
     }
     const timer = window.setTimeout(async () => {
       const response = await fetch(`/api/admin/slug-check?slug=${encodeURIComponent(slug)}`)
-      if (response.ok) setSlugState((await response.json()) as { available: boolean; reason?: string })
+      if (response.ok) {
+        setSlugState(
+          (await response.json()) as { available: boolean; reason?: string; suggestion?: string },
+        )
+      }
     }, 350)
     return () => window.clearTimeout(timer)
   }, [slug])
@@ -224,6 +233,24 @@ export function CreateWizard({
                 >
                   {slugState.available ? 'Available' : (slugState.reason ?? 'Taken')}
                 </span>
+              ) : null}
+              {/*
+                A refusal the operator cannot resolve is the actual complaint behind N-32. The
+                address may be held by a catalogue belonging to a studio they are not allowed to
+                see, so "taken" is the whole truth we can tell them — but a free one is always a
+                click away.
+              */}
+              {slugState && !slugState.available && slugState.suggestion ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSlugTouched(true)
+                    setSlug(slugState.suggestion!)
+                  }}
+                  className="rounded-full border border-[var(--color-l-line)] px-2.5 py-1 text-[12px] font-medium underline-offset-4 hover:underline"
+                >
+                  Use {slugState.suggestion}
+                </button>
               ) : null}
             </p>
 

@@ -169,6 +169,47 @@ test.describe('the admin console', () => {
   })
 
   /**
+   * N-32. Refusing was never the complaint — refusing with no way out was.
+   *
+   * The address may belong to a studio this operator is not allowed to see, so "taken" is the
+   * whole truth we can tell them about it. What we can always do is hand them a free one, which
+   * is what turns a dead end into a click.
+   */
+  test('a taken address offers a free one, and taking it unblocks the wizard', async ({ page }) => {
+    await page.getByRole('link', { name: 'New catalogue' }).first().click()
+
+    await page.getByLabel('Couple').fill('Someone Else')
+    await page.getByLabel('Wedding date').fill('2026-12-01')
+    await page.getByLabel('Web address').fill('aanya-vikram')
+
+    const offer = page.getByRole('button', { name: /^Use aanya-vikram-/ })
+    await expect(offer).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
+
+    await offer.click()
+
+    await expect(page.getByLabel('Web address')).toHaveValue(/^aanya-vikram-[a-z0-9]{3}$/)
+    await expect(page.getByText('Available')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
+  })
+
+  /**
+   * The year is the part that makes one global namespace survive contact with Indian couple
+   * names, so it is asserted where an operator actually meets it rather than only in the unit
+   * test for `suggestSlug`.
+   */
+  test('the suggested address carries the wedding year', async ({ page }) => {
+    await page.getByRole('link', { name: 'New catalogue' }).first().click()
+
+    await page.getByLabel('Couple').fill('Meera & Kabir')
+    await expect(page.getByLabel('Web address')).toHaveValue('meera-and-kabir')
+
+    // The year appears when the date does, and follows it if the operator corrects it.
+    await page.getByLabel('Wedding date').fill('2027-02-14')
+    await expect(page.getByLabel('Web address')).toHaveValue('meera-and-kabir-2027')
+  })
+
+  /**
    * N-18. The transfer API and the claim page were verified on production months before a
    * partner had any way to reach them.
    */

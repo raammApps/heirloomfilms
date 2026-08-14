@@ -527,3 +527,39 @@ regression rather than a fix.
 
 The two findings that held up are in NEXT: the global slug namespace (`catalogues.slug` is
 `text unique` with no org in it) and the post-claim sign-in that does not switch accounts.
+
+## N-32 · Addresses that cannot run out
+
+`swarit-and-smriti` was refused because *another studio's* catalogue held it — a namespace
+collision presented to a partner as a flat refusal, about a catalogue they are not permitted to
+see. Indian couple names repeat; this was going to bite within a few hundred weddings.
+
+Addresses now carry the **wedding year** — `aanya-and-vikram-2026` — and a taken address always
+offers a free neighbour, `aanya-and-vikram-2026-k3f`, as one click.
+
+**The design we did not ship is the more useful record.** The first answer was
+`/c/<studio>/<couple>`, the GitHub `org/repo` pattern, and half of it was built: routing,
+middleware, both repository drivers, a constraint migration. Two things killed it.
+
+The first is that GitHub's namespace *means something to the reader*, and ours does not. A guest
+sees a vendor they have no relationship with, and after handover the couple's permanent address
+carries the studio that filmed it — permanent precisely because we had frozen it to `origin_org_id`
+so links would survive the transfer. The URL was modelling who built the wedding when guests only
+care whose wedding it is.
+
+Replacing the studio's name with an opaque studio id looked like the fix, and is worse: it still
+groups two links as the same studio to anyone comparing them, it means nothing to any reader, and
+— decisively — **it does not remove the need for collision handling anyway.** One studio can shoot
+two Priya & Arjun weddings in one year. Once the suffix exists, the id buys rarity, not safety,
+while taxing every other address with a token nobody can read.
+
+So: the year for the common case, a suffix for the rare one, and studio ownership stays in
+`origin_org_id` where it was already correct and already invisible to guests. Custom domains
+remain the real white-label answer for anyone who wants their own address.
+
+It also cost about an hour instead of a day. No route change, no middleware change, no migration,
+no repository signature change — `catalogues.slug` stays globally unique, which is exactly what
+the suffix guarantees.
+
+Both halves were proven by reintroducing them separately: dropping `suggestion` from the API kills
+the offer, and dropping the date argument to `suggestSlug` takes the year off the suggestion.
