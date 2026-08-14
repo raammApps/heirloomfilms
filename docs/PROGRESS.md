@@ -497,3 +497,33 @@ serving the first run's body and every later run reported "stale or foreign cont
 healthy zone. `cache: 'no-store'` governs this process's fetch cache, not the CDN's. Fixed with a
 fresh key per run — a key that has never been requested cannot be served from cache — and verified
 by running it twice, which is the only way this particular bug shows itself.
+
+## N-32 · The wizard joins the accessibility gate, and two findings evaporate
+
+Two of the five things the live walkthrough turned up were **my own misreadings**, and both
+survived being written into the backlog as facts. Worth recording, because the same two mistakes
+are easy to repeat.
+
+**"The template radios have no accessible name."** The browser tool printed `radio "on"` three
+times and I read that as three unlabelled controls. `"on"` is a radio's default *value* when no
+`value` attribute is set — the tool was showing value, not accessible name. The inputs sit inside
+their own `<label>`, so the name comes from the label's text. Axe finds no violation and
+`getByRole('radio', { name: /The Keepsake/ })` resolves. Both assertions are now in the suite.
+
+**"The web address field keeps its error border after becoming valid."** It is
+`focus-visible:border-accent`, and the accent in this palette is red. The field was focused
+because I had just typed in it. A red focus ring on a brand whose accent is red looks exactly like
+an error state in a screenshot — worth remembering the next time a screenshot is the evidence.
+
+The lesson is the same one the publish fix taught an hour earlier: *seen* is not *verified*.
+Reading the tree, the code, or the constraint takes a minute and would have kept both out of
+NEXT.md.
+
+**The gate gained something real.** `/admin/new` had never been audited — the axe gate covered the
+catalogue list on either side of it but not the four steps in between, which is where a partner's
+first half hour actually goes. Both wizard steps are now audited, as separate states, because step
+2 is only reachable once step 1 validates. Zero violations on both, so this is a gate against
+regression rather than a fix.
+
+The two findings that held up are in NEXT: the global slug namespace (`catalogues.slug` is
+`text unique` with no org in it) and the post-claim sign-in that does not switch accounts.

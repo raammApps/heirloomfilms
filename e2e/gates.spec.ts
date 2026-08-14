@@ -133,6 +133,43 @@ test.describe('doc 10 §4 — accessibility, zero violations', () => {
     expect(describeViolations(results)).toBe('')
   })
 
+  /**
+   * N-32. The wizard is where a partner's first half hour goes and it had never been audited —
+   * the gate covered the list either side of it but not the four steps in between.
+   *
+   * Both steps, because they are different forms: step 1 is text inputs, step 2 is the template
+   * choice, and only step 2 is reachable once step 1 validates.
+   */
+  test('the create wizard, both steps', async ({ page }) => {
+    test.skip(Boolean(test.info().project.use.isMobile), 'the admin is a desktop tool')
+    await signIn(page)
+    await page.getByRole('link', { name: 'New catalogue' }).first().click()
+    await expect(page.getByRole('heading', { name: 'New catalogue' })).toBeVisible()
+
+    expect(describeViolations(await audit(page))).toBe('')
+
+    await page.getByLabel('Couple').fill('Axe & Gate')
+    await page.getByLabel('Wedding date').fill('2026-12-01')
+    await page.getByLabel('Web address').fill(`e2e-axe-${Date.now().toString(36)}`)
+    await expect(page.getByText('Available')).toBeVisible()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByRole('button', { name: 'Create and start uploading' })).toBeVisible()
+
+    expect(describeViolations(await audit(page))).toBe('')
+
+    /**
+     * Named explicitly, because I recorded the opposite in N-32 and was wrong.
+     *
+     * The browser tool's tree printed `radio "on"` three times, which I read as three unlabelled
+     * controls. "on" is a radio's default *value* when no `value` attribute is set — the tool was
+     * showing value, not accessible name. The inputs sit inside their `<label>`, so the name
+     * comes from the label's own text, and both axe and this assertion agree.
+     */
+    await expect(page.getByRole('radio', { name: /The Keepsake/ })).toHaveCount(1)
+    await expect(page.getByRole('radio', { name: /Films Only/ })).toHaveCount(1)
+    await expect(page.getByRole('radio', { name: /Anniversary/ })).toHaveCount(1)
+  })
+
   test('the customizer', async ({ page }) => {
     test.skip(Boolean(test.info().project.use.isMobile), 'the admin is a desktop tool')
     await signIn(page)

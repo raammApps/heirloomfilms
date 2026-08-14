@@ -73,30 +73,24 @@ not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; backgroun
 > The real trap is Hostinger's DNS form, which **appends the domain to the Name field**: enter
 > `send`, not `send.heirloomfilms.in`. Getting that wrong is the usual reason verification hangs.
 
-### N-32 · Four things a live walkthrough found  ·  **all reproduced on production**
+### N-32 · Two things a live walkthrough found  ·  **both verified in code, not just seen**
 
-Registering `testStudio`, creating a catalogue, handing it to a couple and signing in as them —
-clicking every step rather than calling the API. The flow works. These did not. *(The stale
-catalogue list, which was the worst of them, is fixed — see PROGRESS.)*
+Registering `testStudio`, creating a catalogue, handing it to a couple and signing in as them.
+Five things looked wrong; the stale catalogue list is fixed, and **two of the five were my own
+misreadings** — see PROGRESS for what they were and why they fooled me. These two are real.
 
-**1. Template radios have no accessible name.** All three announce as `radio "on"`, so a screen
-reader user picking a starting layout hears "on, on, on". The visible name is in a sibling, not a
-`<label>` or `aria-label`.
+**1. Catalogue slugs are globally unique across every tenant.** `swarit-and-smriti` was refused
+because *another studio's* catalogue already held it. `catalogues.slug` is `text unique` with no
+org in the constraint, and `slugAvailable(slug)` takes no org either. Structural in `path` mode —
+one `/c/<slug>` namespace — but popular couple names will collide between unrelated studios, and
+the error explains none of it. Either scope the address per tenant, or say "taken by another
+studio, try adding the year".
 
-**2. The web address field keeps its error border after becoming valid.** It goes red on "That
-address is already in use" and stays red once the hint reads "Available". Red-plus-Available is a
-contradiction the operator has to ignore.
-
-**3. Catalogue slugs are globally unique across every tenant.** `swarit-and-smriti` was refused
-because *another studio's* catalogue already held it. In `path` mode that is structural — one
-`/c/<slug>` namespace — but it means popular couple names collide between unrelated studios, and
-the error does not explain why. Either scope the address per tenant, or say "taken by another
-studio, add a year".
-
-**4. "Sign in with `<email>`" after a claim does not switch accounts.** It navigates to `/admin`,
-so if a session already exists the couple lands in *that* console instead — here, the studio's.
-On a shared or family device that shows one account's data to someone who asked for another's.
-Sign the existing session out first, or route through the login screen with the address prefilled.
+**2. "Sign in with `<email>`" after a claim does not switch accounts.** It navigates to `/admin`,
+so if a session already exists the couple lands in *that* console instead — observed landing in
+the studio's. On a shared or family device that shows one account's data to someone who asked for
+another's. Sign the existing session out first, or route through the login screen with the
+address prefilled.
 
 ### N-30 · One way of saving, and an operator who can see it  ·  ~half a session
 
