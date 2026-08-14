@@ -23,7 +23,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ENV_FILE=".env.vercel.local"
-PROJECT="${VERCEL_PROJECT:-marquee-film-pub}"
+PROJECT="${VERCEL_PROJECT:-heirloomfilms}"
 TARGET="${VERCEL_TARGET:-production}"
 
 command -v vercel >/dev/null 2>&1 || {
