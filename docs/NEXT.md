@@ -162,7 +162,7 @@ plan or quota, suspend, and any view of users. Today all of it is SQL.
 
 Keep read-only as the default stance; add writes one at a time, with an audit trail.
 
-### N-20 · Razorpay  ·  doc 15 §4  ·  **needs `0006_entitlements.sql` run first**
+### N-20 · Razorpay  ·  doc 15 §4
 
 Two flows that should not share a code path: partners buy catalogue credits in advance, couples
 pay renewal and storage after the included months. The subscription state machine already exists
@@ -228,7 +228,13 @@ insert into platform_admins (id, email, name)
 values ('<your auth.users id>', 'you@example.com', 'Sandeep');
 ```
 
-**Run `supabase/migrations/0006_entitlements.sql`.** Creates `plans` and `entitlements`. Until it
+**Run `supabase/migrations/0008_likes.sql`.** Likes shipped in N-31 and the table does not exist
+in production — `/api/likes` 500s until it is applied, on every film and photograph. This is the
+one migration currently outstanding; `0006_entitlements.sql` is already applied (verified against
+the live database, not assumed).
+
+<!-- Historic, kept because the reasoning still applies to any unapplied migration: -->
+**`0006_entitlements.sql`** creates `plans` and `entitlements`. Until it
 is applied the Supabase driver logs a warning and resolves every catalogue to the default caps —
 deliberately the *low* answer, so nothing is over-granted while the table is missing, but also
 means no upgrade can take effect.
