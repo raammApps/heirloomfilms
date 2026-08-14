@@ -303,7 +303,7 @@ export type SeedOperator = { email: string; password: string }
  * server-only configuration module to write a JSON file.
  */
 export function demoSnapshot(
-  operator: SeedOperator = { email: 'operator@heirloom.test', password: 'heirloom-dev' },
+  operator: SeedOperator = { email: 'operator@heirloomfilms.test', password: 'heirloomfilms-dev' },
 ): Snapshot {
   const album: Album = {
     id: ALBUM_ID,

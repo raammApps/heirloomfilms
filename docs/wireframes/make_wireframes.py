@@ -245,7 +245,7 @@ for i, lb in enumerate(["Catalogues", "Billing", "Settings"]):
     s.text(X + 16, Y + 44 + i * 26, lb, size=9, weight=(700 if i == 0 else 400))
 s.line(X + 130, Y, X + 130, Y + H, stroke=LINE)
 s.text(X + 150, Y + 34, "Aanya & Vikram", size=14, weight=700)
-s.text(X + 150, Y + 50, "aanya-vikram.heirloom.app  ·  Draft", size=8, fill="#6b7280")
+s.text(X + 150, Y + 50, "aanya-vikram.heirloomfilms.app  ·  Draft", size=8, fill="#6b7280")
 for i, lb in enumerate(["Overview", "Titles", "Customizer", "Branding", "Settings"]):
     s.text(X + 150 + i * 74, Y + 78, lb, size=8.5, weight=(700 if i == 1 else 400), fill=(ACC if i == 1 else "#4b5563"))
 s.line(X + 150, Y + 88, X + W - 20, Y + 88, stroke=MUTE)

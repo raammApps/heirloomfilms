@@ -26,7 +26,7 @@ async function openFresh(page: Page, query = ''): Promise<void> {
  */
 async function openBrowse(page: Page, query = ''): Promise<void> {
   await page.addInitScript((slug) => {
-    window.localStorage.setItem(`heirloom.profile.${slug}`, 'skipped')
+    window.localStorage.setItem(`heirloomfilms.profile.${slug}`, 'skipped')
   }, CATALOGUE)
   await page.goto(`/?__catalogue=${CATALOGUE}${query}`)
   await expect(page.getByTestId('profile-gate')).toHaveCount(0)

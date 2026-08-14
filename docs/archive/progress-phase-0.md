@@ -157,7 +157,7 @@ wants updating, or the requirement rereading as "assert they are absent".
 
 ## Bunny is live — done 2026-08-09
 
-Built: Stream library `heirloom` (id 724076, pull zone 6300168, Singapore replication, CDN
+Built: Stream library `heirloomfilms` (id 724076, pull zone 6300168, Singapore replication, CDN
 `vz-98fb153e-d39.b-cdn.net`), token authentication enforced, IP pinning off per doc 05 §4.
 `VIDEO_DRIVER=bunny` locally, four integration tests running against the live service, and
 `pnpm verify:playback` proving the whole playback path end to end.

@@ -402,17 +402,17 @@ The product is **Heirloom Films**, and four names became one:
 
 | | Was | Now |
 |---|---|---|
-| package | `mehfil` | `heirloom` |
-| directory | `couple-flix` | `heirloom` |
-| GitHub | `raammApps/marquee.film` | `raammApps/heirloom` |
-| Vercel project | `marquee-film-pub` | `heirloom` |
+| package | `mehfil` | `heirloomfilms` |
+| directory | `couple-flix` | `heirloomfilms` |
+| GitHub | `raammApps/marquee.film` | `raammApps/heirloomfilms` |
+| Vercel project | `marquee-film-pub` | `heirloomfilms` |
 
 Seventy files. A clean rename rather than the dual-read migration the item originally described,
 because the two live catalogues are trial data — localStorage and cookie keys moved straight from
-`mehfil.*` to `heirloom.*`, and a returning guest simply picks a profile again.
+`mehfil.*` to `heirloomfilms.*`, and a returning guest simply picks a profile again.
 
 **One thing the blanket replace broke, and the suite caught it:** a test hostname became
-`aanya-vikram.heirloom films.app` — with a space — because "Mehfil" was being replaced by the
+`aanya-vikram.heirloomfilms films.app` — with a space — because "Mehfil" was being replaced by the
 two-word brand *everywhere*, including inside domains. Hosts, keys and emails take the single-word
 form; only prose and page titles take "Heirloom Films". Worth remembering the next time a
 find-and-replace crosses a name that exists in two shapes.
@@ -423,7 +423,7 @@ find-and-replace crosses a name that exists in two shapes.
   `marquee-film-pub.vercel.app` kept serving the previous commit, silently — the health endpoint
   is what caught it. Re-aliased by hand. Worth knowing that `vercel project rename` does not carry
   aliases forward.
-- **The GitHub integration cannot reconnect.** `raammApps/heirloom` is an org-owned private repo,
+- **The GitHub integration cannot reconnect.** `raammApps/heirloomfilms` is an org-owned private repo,
   which Vercel's Hobby plan refuses. CLI deploys are unaffected — `scripts/deploy-vercel.sh` pushes
   from local rather than from Git — but there is no push-to-deploy until the plan changes or the
   repo moves to a personal account.

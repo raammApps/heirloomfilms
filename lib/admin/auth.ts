@@ -4,7 +4,7 @@ import { LocalAuthProvider } from './auth-local'
 import { SupabaseAuthProvider } from './auth-supabase'
 import type { AuthProvider } from './auth-provider'
 
-const KEY = Symbol.for('heirloom.authProvider')
+const KEY = Symbol.for('heirloomfilms.authProvider')
 type Global = typeof globalThis & { [KEY]?: AuthProvider }
 
 /** The one switch on authentication in the codebase. */

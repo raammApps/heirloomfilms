@@ -244,13 +244,13 @@ create and delete zones on the account. Bunny dashboard → Account Settings →
 
 - **Credentials** live in `.env.local` (gitignored, verified). Both services are fully
   configured; `pnpm preflight` is all green.
-- **Supabase**: schema applied, org `kalyanam`, operator `operator@heirloom.test`. The app
+- **Supabase**: schema applied, org `kalyanam`, operator `operator@heirloomfilms.test`. The app
   verifies its own scrypt hash, so the Supabase Auth password on that account is random and
   unused — it exists only to satisfy `operators.id → auth.users.id`. The app login is
-  `operator@heirloom.test` / `heirloom-dev`.
+  `operator@heirloomfilms.test` / `heirloomfilms-dev`.
 - **The real database has no demo catalogue.** The nine-title fixture only exists in the
   `memory`/`file` drivers. Seeding a real one properly is N-6 (it needs real footage).
-- **Bunny**: library `heirloom` id `724076`, pull zone `6300168`, CDN `vz-98fb153e-d39.b-cdn.net`.
+- **Bunny**: library `heirloomfilms` id `724076`, pull zone `6300168`, CDN `vz-98fb153e-d39.b-cdn.net`.
   Token auth **on**, IP pinning **off**, `BlockNoneReferrer` **off** — all three deliberate, see
   PROGRESS.
 - **The account key and the library key are different.** `BUNNY_API_KEY` is the library key

@@ -23,7 +23,7 @@ const files = readdirSync(migrationsDir)
   .sort()
 
 const orgId = randomUUID()
-const operatorEmail = process.env.SEED_OPERATOR_EMAIL ?? 'operator@heirloom.test'
+const operatorEmail = process.env.SEED_OPERATOR_EMAIL ?? 'operator@heirloomfilms.test'
 const operatorPassword = process.env.SEED_OPERATOR_PASSWORD ?? 'local-demo-password'
 const orgName = process.env.SEED_ORG_NAME ?? 'Kalyanam Weddings'
 

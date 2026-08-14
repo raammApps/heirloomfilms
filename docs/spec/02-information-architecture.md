@@ -6,7 +6,7 @@ Two applications sharing one codebase: the **catalogue** (guests, unauthenticate
 ## 1. Sitemap
 
 ```
-CATALOGUE — <slug>.heirloom.app   (guests, no login)
+CATALOGUE — <slug>.heirloomfilms.app   (guests, no login)
 ├── /                       Browse: profile gate → billboard → rows
 │   ├── ?title=<slug>       Title detail modal (deep-linkable)
 │   └── ?profile=<id>       Active profile
@@ -15,7 +15,7 @@ CATALOGUE — <slug>.heirloom.app   (guests, no login)
 ├── /renew                  Subscription lapsed — renewal screen. NEVER a 404.
 └── /api/og                 Dynamic link preview image
 
-ADMIN — admin.heirloom.app    (operators, login required)
+ADMIN — admin.heirloomfilms.app    (operators, login required)
 ├── /login
 ├── /                       Catalogue list — all weddings for this org
 ├── /new                    Create catalogue (4-step wizard)
@@ -118,7 +118,7 @@ have less of than money.
 
 | URL | Opens |
 |---|---|
-| `<slug>.heirloom.app` | Browse, profile gate on first visit |
+| `<slug>.heirloomfilms.app` | Browse, profile gate on first visit |
 | `?title=sangeet-film` | Browse with that title's modal open |
 | `/watch/sangeet-film` | Straight into the player |
 | `/watch/sangeet-film?t=428` | Player seeked to 7:08 — "watch the varmala" |

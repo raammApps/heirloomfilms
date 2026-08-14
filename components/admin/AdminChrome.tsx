@@ -43,7 +43,7 @@ export function AdminChrome({
         className="sticky top-0 hidden h-svh w-[228px] shrink-0 flex-col border-e border-[var(--color-l-line)] bg-[var(--color-l-surface-1)] px-4 py-5 md:flex"
       >
         <Link href="/admin" className="mb-7 block px-1">
-          <span className="block text-[19px] font-bold tracking-[-0.01em]">Heirloom</span>
+          <span className="block text-[19px] font-bold tracking-[-0.01em]">Heirloom Films</span>
           <span className="mt-0.5 block truncate text-[12px] text-[var(--color-l-text-mid)]">
             {orgName ?? 'Operator console'}
           </span>

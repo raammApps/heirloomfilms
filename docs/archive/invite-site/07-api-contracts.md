@@ -148,7 +148,7 @@ Returns `text/calendar`. One `VEVENT` per accepted event.
 
 `VEVENT` fields: `SUMMARY` = `<Event> — <Couple display name>`, `DTSTART`/`DTEND` with
 `TZID=Asia/Kolkata`, `LOCATION` = venue name + address, `DESCRIPTION` includes dress code
-and the site URL, `UID` = `<tenant>-<eventSlug>-<guestId|all>@heirloom.app`.
+and the site URL, `UID` = `<tenant>-<eventSlug>-<guestId|all>@heirloomfilms.app`.
 
 Stable `UID`s matter: they let a re-download update the existing calendar entry rather than
 duplicating it when a guest changes their RSVP.

@@ -33,7 +33,7 @@ type Item = {
 }
 
 const PARALLELISM = 2
-const RESUME_KEY = 'heirloom.uploads.'
+const RESUME_KEY = 'heirloomfilms.uploads.'
 
 /**
  * Backoff for a transient wobble. Deliberately short: a long tail here does nothing for the

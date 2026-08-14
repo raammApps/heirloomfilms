@@ -19,9 +19,9 @@ One codebase, two surfaces (doc 02 §1):
 
 | Surface | Host | Who | What |
 |---|---|---|---|
-| **Guest catalogue** | `<slug>.heirloom.app` | Guests, no login | Profile gate, billboard, poster rows, title modal, player |
-| **Admin console** | `admin.heirloom.app` | Operators, login | Create catalogue, upload, title, customizer, publish |
-| Root | `heirloom.app` | — | A signpost with a sign-in link. There is no marketing site; doc 03 leaves it out on purpose. |
+| **Guest catalogue** | `<slug>.heirloomfilms.app` | Guests, no login | Profile gate, billboard, poster rows, title modal, player |
+| **Admin console** | `admin.heirloomfilms.app` | Operators, login | Create catalogue, upload, title, customizer, publish |
+| Root | `heirloomfilms.app` | — | A signpost with a sign-in link. There is no marketing site; doc 03 leaves it out on purpose. |
 
 Both are served by the same Next.js app. `middleware.ts` decides which one you get from the
 `Host` header, and `resolveTenant` is a pure function with exhaustive unit tests, so routing
@@ -34,7 +34,7 @@ behaviour is knowable without deploying.
 | Vercel | Hosting, wildcard TLS, cron | Or any container host — see §10 |
 | Supabase | Postgres + RLS | Free tier is fine for Phase 0 |
 | Bunny.net | Stream library | **Requires a balance.** A zero-balance account refuses to create zones with `user.insufficient_balance`, which reads like a permissions error and is not one. |
-| A domain | `heirloom.app` or yours | Needs wildcard DNS, so the registrar must support a `*` CNAME |
+| A domain | `heirloomfilms.app` or yours | Needs wildcard DNS, so the registrar must support a `*` CNAME |
 
 > Doc 12 §3: run a trademark search on the Indian registry (classes 42 and 45) before printing
 > "Heirloom Films" on planner collateral. It is a common word; expect crowding.
@@ -292,8 +292,8 @@ code never meets the new schema mid-request.
 ## 10. Container, if not Vercel
 
 ```bash
-docker build -t heirloom .
-docker run -p 3000:3000 --env-file .env.production heirloom
+docker build -t heirloomfilms .
+docker run -p 3000:3000 --env-file .env.production heirloomfilms
 ```
 
 Standalone output, non-root user, health check on `/api/health`. No secret is baked in — the

@@ -14,7 +14,7 @@ env:
   # pipeline hermetic: no Supabase project, no Bunny key, no flake from someone else's uptime.
   DATA_DRIVER: memory
   VIDEO_DRIVER: fake
-  ROOT_DOMAIN: heirloom.localhost:3000
+  ROOT_DOMAIN: heirloomfilms.localhost:3000
   SESSION_SECRET: ci-session-secret-0123456789abcdefghijklmnopqrst
 
 jobs:

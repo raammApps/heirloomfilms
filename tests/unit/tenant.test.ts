@@ -15,20 +15,20 @@ import {
  * This function decides which of two applications a request reaches, on every request, so it
  * gets exhaustive coverage rather than representative coverage.
  */
-const ROOT = 'heirloom.app'
+const ROOT = 'heirloomfilms.app'
 
 describe('resolveTenant', () => {
   it('treats the root domain and www as marketing', () => {
-    expect(resolveTenant('heirloom.app', ROOT)).toEqual({ kind: 'marketing' })
-    expect(resolveTenant('www.heirloom.app', ROOT)).toEqual({ kind: 'marketing' })
+    expect(resolveTenant('heirloomfilms.app', ROOT)).toEqual({ kind: 'marketing' })
+    expect(resolveTenant('www.heirloomfilms.app', ROOT)).toEqual({ kind: 'marketing' })
   })
 
   it('routes the admin subdomain to the admin app', () => {
-    expect(resolveTenant('admin.heirloom.app', ROOT)).toEqual({ kind: 'admin' })
+    expect(resolveTenant('admin.heirloomfilms.app', ROOT)).toEqual({ kind: 'admin' })
   })
 
   it('resolves a catalogue from a single subdomain label', () => {
-    expect(resolveTenant('aanya-vikram.heirloom.app', ROOT)).toEqual({
+    expect(resolveTenant('aanya-vikram.heirloomfilms.app', ROOT)).toEqual({
       kind: 'catalogue',
       slug: 'aanya-vikram',
       source: 'subdomain',
@@ -36,7 +36,7 @@ describe('resolveTenant', () => {
   })
 
   it('is case-insensitive and ignores the port', () => {
-    expect(resolveTenant('Aanya-Vikram.Heirloom.App:3000', ROOT)).toEqual({
+    expect(resolveTenant('Aanya-Vikram.Heirloomfilms.App:3000', ROOT)).toEqual({
       kind: 'catalogue',
       slug: 'aanya-vikram',
       source: 'subdomain',
@@ -44,23 +44,23 @@ describe('resolveTenant', () => {
   })
 
   it('ignores a trailing dot in the Host header', () => {
-    expect(resolveTenant('aanya-vikram.heirloom.app.', ROOT)).toMatchObject({ kind: 'catalogue' })
+    expect(resolveTenant('aanya-vikram.heirloomfilms.app.', ROOT)).toMatchObject({ kind: 'catalogue' })
   })
 
   it.each(['api', 'cdn', 'static', 'assets', 'demo', 'staging', 'help', 'status', 'blog', 'docs', 'app'])(
     'refuses the reserved subdomain %s',
     (label) => {
-      expect(resolveTenant(`${label}.heirloom.app`, ROOT).kind).toBe('unknown')
+      expect(resolveTenant(`${label}.heirloomfilms.app`, ROOT).kind).toBe('unknown')
     },
   )
 
   it('refuses a multi-label subdomain rather than guessing', () => {
-    expect(resolveTenant('a.b.heirloom.app', ROOT)).toEqual({ kind: 'unknown', host: 'a.b.heirloom.app' })
+    expect(resolveTenant('a.b.heirloomfilms.app', ROOT)).toEqual({ kind: 'unknown', host: 'a.b.heirloomfilms.app' })
   })
 
   it('refuses a label that is not slug-shaped', () => {
-    expect(resolveTenant('not_a_slug.heirloom.app', ROOT).kind).toBe('unknown')
-    expect(resolveTenant('-leading.heirloom.app', ROOT).kind).toBe('unknown')
+    expect(resolveTenant('not_a_slug.heirloomfilms.app', ROOT).kind).toBe('unknown')
+    expect(resolveTenant('-leading.heirloomfilms.app', ROOT).kind).toBe('unknown')
   })
 
   it('treats an unrelated host as a candidate custom domain', () => {
@@ -71,12 +71,12 @@ describe('resolveTenant', () => {
   })
 
   it('treats bare localhost as marketing so `pnpm dev` lands somewhere', () => {
-    expect(resolveTenant('localhost:3000', 'heirloom.localhost:3000')).toEqual({ kind: 'marketing' })
-    expect(resolveTenant('127.0.0.1:3000', 'heirloom.localhost:3000')).toEqual({ kind: 'marketing' })
+    expect(resolveTenant('localhost:3000', 'heirloomfilms.localhost:3000')).toEqual({ kind: 'marketing' })
+    expect(resolveTenant('127.0.0.1:3000', 'heirloomfilms.localhost:3000')).toEqual({ kind: 'marketing' })
   })
 
   it('resolves a catalogue under a localhost root domain', () => {
-    expect(resolveTenant('aanya-vikram.heirloom.localhost:3000', 'heirloom.localhost:3000')).toEqual({
+    expect(resolveTenant('aanya-vikram.heirloomfilms.localhost:3000', 'heirloomfilms.localhost:3000')).toEqual({
       kind: 'catalogue',
       slug: 'aanya-vikram',
       source: 'subdomain',
@@ -97,9 +97,9 @@ describe('normaliseHost', () => {
 
 describe('catalogueUrl', () => {
   it('uses https in production and http for a localhost root', () => {
-    expect(catalogueUrl('aanya-vikram', 'heirloom.app')).toBe('https://aanya-vikram.heirloom.app/')
-    expect(catalogueUrl('aanya-vikram', 'heirloom.localhost:3000')).toBe(
-      'http://aanya-vikram.heirloom.localhost:3000/',
+    expect(catalogueUrl('aanya-vikram', 'heirloomfilms.app')).toBe('https://aanya-vikram.heirloomfilms.app/')
+    expect(catalogueUrl('aanya-vikram', 'heirloomfilms.localhost:3000')).toBe(
+      'http://aanya-vikram.heirloomfilms.localhost:3000/',
     )
   })
 
@@ -123,7 +123,7 @@ describe('catalogueUrl', () => {
   })
 
   it('works for any domain, which is the whole point', () => {
-    for (const domain of ['heirloom.app', 'raammcorp.in', 'marquee.film', 'example.co.uk']) {
+    for (const domain of ['heirloomfilms.app', 'raammcorp.in', 'marquee.film', 'example.co.uk']) {
       expect(catalogueUrl('couple', domain)).toBe(`https://couple.${domain}/`)
       expect(catalogueUrl('couple', domain, '/', 'path')).toBe(`https://${domain}/c/couple`)
     }
@@ -162,7 +162,7 @@ describe('isLocalDomain', () => {
     },
   )
 
-  it.each(['raammcorp.in', 'marquee.film', 'heirloom.app'])(
+  it.each(['raammcorp.in', 'marquee.film', 'heirloomfilms.app'])(
     'treats %s as public, so links use https',
     (domain) => {
       expect(isLocalDomain(domain)).toBe(false)
@@ -186,8 +186,8 @@ describe('adminUrl', () => {
 describe('rootUrl', () => {
   it('is the root host in both modes, because that is the point of it', () => {
     expect(rootUrl('raammcorp.in', '/claim/abc')).toBe('https://raammcorp.in/claim/abc')
-    expect(rootUrl('heirloom.localhost:3000', '/claim/abc')).toBe(
-      'http://heirloom.localhost:3000/claim/abc',
+    expect(rootUrl('heirloomfilms.localhost:3000', '/claim/abc')).toBe(
+      'http://heirloomfilms.localhost:3000/claim/abc',
     )
   })
 

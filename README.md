@@ -35,7 +35,7 @@ Then open:
 | What | Where |
 |---|---|
 | Demo catalogue | http://localhost:3000/?__catalogue=aanya-vikram |
-| Admin console | http://localhost:3000/admin — `operator@heirloom.test` / `heirloom-dev` |
+| Admin console | http://localhost:3000/admin — `operator@heirloomfilms.test` / `heirloomfilms-dev` |
 | Health probe | http://localhost:3000/api/health |
 
 No Supabase project and no Bunny account are needed. The default drivers are in-process and
@@ -163,15 +163,15 @@ and what to alert on. The summary below is orientation; that document is the pro
 
 ### Vercel (primary)
 
-Wildcard `*.heirloom.app` plus `admin.heirloom.app` pointed at the project. `vercel.json` pins the
+Wildcard `*.heirloomfilms.app` plus `admin.heirloomfilms.app` pointed at the project. `vercel.json` pins the
 Mumbai region — the audience is in India and the CDN edge matters more than anything else in the
 config. The nightly reconciliation cron is declared there too.
 
 ### Container (portable)
 
 ```bash
-docker build -t heirloom .
-docker run -p 3000:3000 --env-file .env.production heirloom
+docker build -t heirloomfilms .
+docker run -p 3000:3000 --env-file .env.production heirloomfilms
 ```
 
 Standalone output, non-root user, health check on `/api/health`. No secret is baked into the

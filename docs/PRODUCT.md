@@ -23,9 +23,9 @@ Chosen over Heirloom Films, Trove, Cinea, Aveya and several others. The reasonin
 because it is also the positioning:
 
 - **"Heirloom" is arbitrary for a video platform**, which is what makes it distinctive and
-  registrable. A trove is a collection and a stream is a stream; an heirloom is *a thing a family
+  registrable. A trove is a collection and a stream is a stream; an heirloomfilms is *a thing a family
   passes down*, which is the argument against Google Drive compressed into one word.
-- **It is honest about permanence** in a way "Now and Forever" was not. An heirloom is something
+- **It is honest about permanence** in a way "Now and Forever" was not. An heirloomfilms is something
   you keep and hand on — it does not promise a server runs indefinitely, so it does not fight the
   30-day deletion policy.
 - **Trove and Cinea died on trademarks**, not domains: Trove is occupied in both class 41 and 42

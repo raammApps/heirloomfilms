@@ -32,7 +32,7 @@ described in text in doc 14 §1).
 |---|---|
 | **Org / Partner** | A wedding management company. Owns many catalogues. Our customer. |
 | **Operator** | A person at that company who logs into the admin and builds catalogues. |
-| **Catalogue** | One wedding. Resolved from subdomain (`aanya-vikram.heirloom.app`) or custom domain. |
+| **Catalogue** | One wedding. Resolved from subdomain (`aanya-vikram.heirloomfilms.app`) or custom domain. |
 | **Title** | One video. Has a name, synopsis, category, poster and playback asset. |
 | **Category** | The "genre" a title belongs to — sangeet, highlights, aerial… Fixed vocabulary, doc 06 §2. |
 | **Module** | One section of a catalogue — a row, the billboard, a letter, a photo grid. Doc 14. |
