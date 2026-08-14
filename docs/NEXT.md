@@ -39,6 +39,28 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
+### N-9 · Collapse four names into one  ·  ~2h  ·  supersedes the old N-9
+
+The product is **Heirloom Films** (`heirloomfilms.in`). Four names are in play and each is wrong
+somewhere a partner can see:
+
+| | Now | Should be |
+|---|---|---|
+| package | `mehfil` | `heirloom` |
+| directory | `couple-flix` | `heirloom` — doc 12 §1 rule 2 forbids `-flix` outright |
+| GitHub | `marquee.film` | `heirloom` |
+| Vercel project | `marquee-film-pub` | `heirloom` |
+
+About 50 files reference `mehfil`. The ones needing care:
+
+- **19 localStorage and cookie keys** (`mehfil.profile.*`, `mehfil.checklist.*`, `mehfil.wizard.*`).
+  Renaming them silently loses a returning guest's profile choice and a half-finished wizard. Read
+  both prefixes and write the new one for a release, or leave the keys alone.
+- `SESSION_SECRET` and the E2E env in `playwright.config.ts`.
+- User-visible strings in the admin chrome.
+
+Cheapest now; every catalogue makes it dearer.
+
 ### N-17 · SMTP, before registration is opened to anyone  ·  ~30m  ·  **blocks partner sign-up**
 
 Supabase Auth sends a confirmation on sign-up and a link on password reset, and by default both
@@ -207,12 +229,6 @@ permission-granted material. Sandeep's, per doc 13 §8.
 ---
 
 ## Tier 3 — debt, in the order it will start hurting
-
-### N-9 · The repo directory is named `couple-flix`  ·  ~5min
-
-Doc 12 §1 rule 2 forbids `-flix` in "product, package, repo, domain, class, comment". The
-package is `mehfil` and no code carries the suffix, but the directory does. Renaming to `mehfil`
-makes the rule hold end to end.
 
 ## Held by Sandeep, not by an agent (doc 13 §8)
 

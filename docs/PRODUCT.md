@@ -15,6 +15,31 @@ missing here, and `PRICING.md` prices what is built.
 
 Last reviewed: **14 August 2026** — full consistency audit against the code and the spec.
 
+## The name
+
+**Heirloom Films** — `heirloomfilms.in`, registered 14 August 2026.
+
+Chosen over Mehfil, Trove, Cinea, Aveya and several others. The reasoning is worth keeping,
+because it is also the positioning:
+
+- **"Heirloom" is arbitrary for a video platform**, which is what makes it distinctive and
+  registrable. A trove is a collection and a stream is a stream; an heirloom is *a thing a family
+  passes down*, which is the argument against Google Drive compressed into one word.
+- **It is honest about permanence** in a way "Now and Forever" was not. An heirloom is something
+  you keep and hand on — it does not promise a server runs indefinitely, so it does not fight the
+  30-day deletion policy.
+- **Trove and Cinea died on trademarks**, not domains: Trove is occupied in both class 41 and 42
+  and its `.com` belongs to an operating platform; Cinea is a registered mark of a **Dolby
+  Laboratories subsidiary** in video technology. Free domains are not the signal — free domains
+  *plus no trademark holder* is.
+
+The brand can present as **Heirloom** or **Heirloom Films**; the domain carries both.
+
+> **Still outstanding: a trademark search in classes 41 and 42.** A search engine finds brands, not
+> registry records — Cinea is exactly the case that proves the difference. Budget ₹3,000–8,000 with
+> an agent, and ask specifically about "Heirloom Digital Productions", a small US wedding
+> videography business.
+
 ---
 
 ## 1. Front end
