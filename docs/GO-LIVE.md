@@ -120,14 +120,38 @@ just does not come up with this provider.
 3. Add a DMARC record, which nothing has yet:
 
    ```
-   Type: TXT   Name: _dmarc   Value: v=DMARC1; p=none; rua=mailto:you@heirloomfilms.in
+   Type: TXT   Name: _dmarc   Value: v=DMARC1; p=none
    ```
 
    `p=none` **monitors without rejecting** — start here. Tighten to `quarantine` only once the
    reports show everything legitimate is passing.
 
+   > **Exactly one `_dmarc` record, and no placeholder address.** Two DMARC records make resolvers
+   > ignore the policy altogether — the same failure as two SPF records. This bit us on the first
+   > pass: a second record went in carrying a literal `rua=mailto:you@heirloomfilms.in` copied from
+   > this file, which is both a duplicate *and* a mailbox that does not exist, so the aggregate
+   > reports it asks for would bounce.
+   >
+   > Add `rua=mailto:<a real mailbox on this domain>` later, as a single combined record. A `rua`
+   > pointing at another domain (a Yahoo or Gmail address) is ignored unless that domain publishes
+   > an authorisation record for us, so it must be an address here.
+
 4. Click **Verify DNS Records** in Resend. Usually minutes; allow up to 72 hours.
 5. Create an **API key** in Resend — that string is the SMTP password below.
+
+### Checking it from outside, which is the only check that counts
+
+Resend reporting "Verified" says its own three records resolve. It says nothing about whether the
+existing mail survived, and that is the part with consequences:
+
+```bash
+dig +short MX heirloomfilms.in          # must still be mx1/mx2.hostinger.com
+dig +short TXT heirloomfilms.in         # must still be the Hostinger SPF, unchanged
+dig +short TXT _dmarc.heirloomfilms.in  # must return exactly ONE record
+```
+
+The DMARC line is worth running twice: the duplicate that broke it the first time was invisible in
+both dashboards, and only showed up in `dig`.
 
 ### Then wire it into Supabase
 
