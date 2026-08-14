@@ -5,12 +5,15 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { photoSrcSet } from '@/lib/photos/srcset'
 import { ShareButton } from './ShareButton'
+import { LikeButton } from './LikeButton'
 import { photoShareUrl } from './usePhotoDeepLink'
 import { resolveLocalised, type Translator } from '@/lib/i18n'
 import type { Locale, Photo } from '@/lib/schema'
 import { useFocusTrap } from './useFocusTrap'
 
 type Props = {
+  /** Needed by the like button, which has to name the catalogue it is counting within. */
+  catalogueSlug: string
   photos: Photo[]
   index: number
   locale: Locale
@@ -20,7 +23,7 @@ type Props = {
 }
 
 /** Full-screen photo viewer: swipe on touch, ←/→ and Esc on keyboard, pinch-zoom left to the OS. */
-export function Lightbox({ photos, index, locale, t, onIndexChange, onClose }: Props) {
+export function Lightbox({ catalogueSlug, photos, index, locale, t, onIndexChange, onClose }: Props) {
   const panel = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number | null>(null)
   useFocusTrap(panel, onClose)
@@ -73,6 +76,13 @@ export function Lightbox({ photos, index, locale, t, onIndexChange, onClose }: P
               The same button, so a shared photograph and a shared film behave identically.
             */}
             <ShareButton url={photoShareUrl(photo)} text={caption || t('photo.open')} t={t} compact />
+            <LikeButton
+              catalogueSlug={catalogueSlug}
+              subject="photo"
+              subjectId={photo.id}
+              t={t}
+              compact
+            />
           <button
             type="button"
             onClick={onClose}

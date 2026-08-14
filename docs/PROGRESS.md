@@ -662,3 +662,36 @@ guest surface went unchecked for the life of the suite. Zero violations on both 
 Suite stability, recorded rather than smoothed over: one run reported `1 did not run` (a worker
 that never started) and an earlier run flaked on the N-32 wizard test. Neither reproduced. Both
 look like saturation under full parallel load rather than the code they cover.
+
+## N-31 §2 · Likes, counted and shown
+
+A heart on films and photographs, with a count everyone can see. The product question was put
+before it was built — private keepsake or public tally — and the answer was public.
+
+**Keyed on a device-local `guest_key`, not on a profile.** The gate can be skipped and most guests
+do, so keying on `profiles.id` would mean creating a profile behind their back on first tap or
+refusing the tap. A key the browser holds is no less trustworthy: a profile id is a client-held
+string too. The number is a count of devices that tapped, which for a wedding gallery is the
+honest and sufficient thing.
+
+The button loads its own state, because only one film or photograph is open at a time — seeding
+every card would mean carrying a counts map through the module contract for numbers nobody can
+see until they open something. Optimistic on tap and **reverted on failure**: a heart that stays
+filled after a refused request is a lie the guest discovers only when their like has vanished on
+reload.
+
+**The test that matters is the second guest.** A per-device tally passes every single-browser
+assertion, so the spec opens a second browser context with its own guest key and requires it to
+see a total it did not contribute to. Proved by making counts per-device in the memory driver:
+the second guest then sees nothing, exactly as it should fail.
+
+**Two test-isolation lessons, both learned the expensive way.** The like assertions first used
+exact numbers — but mobile and desktop run `guest.spec.ts` against one server and one demo
+fixture, so another worker's tap lands between the read and the click. They failed about one run
+in three while the counts were entirely correct. Thresholds say the only thing true under
+concurrency and still fail if likes are not shared.
+
+The second is unresolved and is now **N-33**: the N-32 wizard test fails ~2 runs in 3 under the
+full suite and never in isolation. Latency, rendering scale, server-cache invalidation and a
+store reset were each tested and ruled out. The behaviour it guards is proven correct. It is
+recorded rather than deleted, because it guards a bug that reached production.

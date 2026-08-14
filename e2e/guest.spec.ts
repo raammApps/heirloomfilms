@@ -218,3 +218,85 @@ test.describe('sharing a photograph', () => {
     await expect(page.getByRole('dialog').getByRole('button', { name: /share/i })).toBeVisible()
   })
 })
+
+/**
+ * N-31 — likes, counted across guests and shown to all of them.
+ *
+ * What is asserted is the count crossing a boundary: a *second* guest, with their own guest key,
+ * sees a total they did not contribute to. A per-device tally would pass a single-browser test
+ * and be worthless, so that assertion is the point of this file.
+ *
+ * **Thresholds, not equalities.** The demo catalogue is one fixture and the mobile and desktop
+ * projects run against the same server, so another worker's tap can land between this test's
+ * read and its click. The first version asserted `before + 1` and failed roughly one run in
+ * three — the count was right, the arithmetic was racing. `toBeGreaterThanOrEqual` says the only
+ * thing that is actually true under concurrency, and still fails if likes are not shared.
+ */
+test.describe('liking a photograph and a film', () => {
+  /** The heart shows no number at zero, so absent reads as 0. */
+  async function likeCount(button: import('@playwright/test').Locator): Promise<number> {
+    const text = (await button.innerText()).replace(/[^0-9]/g, '')
+    return text ? Number(text) : 0
+  }
+
+  test('a like is counted, survives a reload, and is visible to another guest', async ({
+    page,
+    browser,
+  }) => {
+    await openBrowse(page)
+    await page.getByTestId('photo-grid-module').getByRole('button').first().click()
+
+    const like = page.getByRole('dialog').getByRole('button', { name: /^Like$/ })
+    await expect(like).toBeVisible()
+    await like.click()
+
+    // Filled, and the label flips — the pressed state is what a screen reader reads.
+    const liked = page.getByRole('dialog').getByRole('button', { name: 'Liked' })
+    await expect(liked).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(() => likeCount(liked)).toBeGreaterThanOrEqual(1)
+
+    const shared = page.url()
+
+    await page.reload()
+    const afterReload = page.getByRole('dialog').getByRole('button', { name: 'Liked' })
+    await expect(afterReload).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(() => likeCount(afterReload)).toBeGreaterThanOrEqual(1)
+
+    /**
+     * A second guest, in a context of their own so they carry a different guest key. They must
+     * see the count and must *not* see it as theirs — the one assertion that separates "counted
+     * and shown" from a number stored on one device.
+     */
+    const otherContext = await browser.newContext()
+    const other = await otherContext.newPage()
+    await other.addInitScript((slug) => {
+      window.localStorage.setItem(`heirloomfilms.profile.${slug}`, 'skipped')
+    }, CATALOGUE)
+    await other.goto(shared)
+
+    const theirs = other.getByRole('dialog').getByRole('button', { name: /^Like$/ })
+    await expect(theirs).toHaveAttribute('aria-pressed', 'false')
+    await expect.poll(() => likeCount(theirs)).toBeGreaterThanOrEqual(1)
+
+    // And their tap adds to the same total rather than starting one of their own.
+    const seen = await likeCount(theirs)
+    await theirs.click()
+    const mine = other.getByRole('dialog').getByRole('button', { name: 'Liked' })
+    await expect.poll(() => likeCount(mine)).toBeGreaterThan(seen)
+    await otherContext.close()
+  })
+
+  test('a film can be liked too, from the title modal', async ({ page }) => {
+    await openBrowse(page, '&title=the-ceremony')
+    const modal = page.getByTestId('title-modal')
+    await expect(modal).toBeVisible()
+
+    const like = modal.getByRole('button', { name: /^Like$/ })
+    await expect(like).toBeVisible()
+    await like.click()
+
+    const liked = modal.getByRole('button', { name: 'Liked' })
+    await expect(liked).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(() => likeCount(liked)).toBeGreaterThanOrEqual(1)
+  })
+})

@@ -2,6 +2,8 @@ import type { Entitlement } from '@/lib/entitlements'
 import type {
   Album,
   Catalogue,
+  LikeCounts,
+  LikeSubject,
   ModuleInstance,
   ModuleState,
   Operator,
@@ -142,6 +144,25 @@ export interface Repository {
   updateTitle(id: string, patch: Partial<Omit<Title, 'id' | 'catalogueId'>>): Promise<Title>
   /** Captions only, today — the rest of a photograph is decided by the upload (N-30). */
   updatePhoto(id: string, patch: Pick<Photo, 'caption'>): Promise<Photo>
+
+  /**
+   * Toggle one guest's like and report the new total (N-31).
+   *
+   * Returns the count so the caller never has to ask twice — a separate read would race another
+   * guest's tap and show a number that was true a moment ago.
+   */
+  toggleLike(
+    catalogueId: string,
+    guestKey: string,
+    subject: LikeSubject,
+    subjectId: string,
+  ): Promise<{ liked: boolean; count: number }>
+
+  /** Every count for a catalogue, plus which of them this guest owns. */
+  listLikes(
+    catalogueId: string,
+    guestKey: string | null,
+  ): Promise<{ counts: LikeCounts; mine: string[] }>
   deleteTitle(id: string): Promise<void>
   reorderTitles(catalogueId: string, order: { id: string; sortOrder: number }[]): Promise<void>
 

@@ -73,16 +73,29 @@ not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; backgroun
 > The real trap is Hostinger's DNS form, which **appends the domain to the Name field**: enter
 > `send`, not `send.heirloomfilms.in`. Getting that wrong is the usual reason verification hangs.
 
-### N-31 · Like — the half that needs a product decision first  ·  ~half a session
+### N-33 · One flaky E2E test, unsolved  ·  **fails ~2 runs in 3 under the full suite**
 
-Share and copy-link now work on photographs as well as films (see PROGRESS). **Like exists
-nowhere**, and the plumbing is already there: the profile gate gives an identity and
-`module_state` persists per profile.
+`admin.spec.ts › a catalogue made in the wizard is in the list without a reload` (N-32 §1). Passes
+every time in isolation and under `--project=desktop` alone; fails only in a full parallel run.
 
-Decide the product question before writing any of it: is a like **private** — a keepsake, the way
-the checklist is — or **counted and shown**? The second is a different product with moderation
-questions attached, and a wedding is a bad place to introduce a popularity contest between the
-bride's family and the groom's.
+**The behaviour it guards is correct** — removing `router.refresh()` from `CreateWizard` makes it
+fail reliably, and restoring it makes it pass, so the fix is real and proven.
+
+Ruled out, each by testing it:
+
+- **Latency.** Raising the timeout to 20s did not help; it waits the full budget and the catalogue
+  never arrives.
+- **Rendering scale.** Filtering the list to the one slug before asserting did not help either.
+- **A stale server cache.** `revalidatePath('/admin')` in the create route changed nothing, and
+  correlated with a *previously stable* caption test starting to fail, so it was reverted.
+- **The store being reset between tests.** There is no reset endpoint; nothing clears it.
+
+What is left to try: whether concurrent workers sharing one in-memory store and one operator
+session interfere — three projects write catalogues into the same org throughout the run. Worth
+an hour with `--workers=1` to confirm, then either isolating the org per worker or quarantining
+this spec into its own project.
+
+**Do not delete the test to make the suite green.** It guards a real bug that reached production.
 
 ### N-29 · Language chosen at account creation  ·  ~half a session
 

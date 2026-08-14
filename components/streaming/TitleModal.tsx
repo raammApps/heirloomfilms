@@ -9,6 +9,7 @@ import { eyebrowFor, posterDataUri } from '@/lib/poster'
 import type { Catalogue, Locale, Title } from '@/lib/schema'
 import { useCatalogue } from './CatalogueProvider'
 import { ShareButton } from './ShareButton'
+import { LikeButton } from './LikeButton'
 import { useFocusTrap } from './useFocusTrap'
 
 type Props = {
@@ -160,6 +161,12 @@ export function TitleModal({ catalogue, titles, locale, t, shareBaseUrl }: Props
             )}
 
             <ShareButton url={shareUrl} text={shareText} t={t} />
+            <LikeButton
+              catalogueSlug={catalogue.slug}
+              subject="title"
+              subjectId={title.id}
+              t={t}
+            />
           </div>
 
           {synopsis ? <p className="type-body-lg mt-6 text-text-mid">{synopsis}</p> : null}

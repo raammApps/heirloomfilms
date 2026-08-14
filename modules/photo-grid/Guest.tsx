@@ -63,6 +63,7 @@ export default function Guest({ config, ctx }: GuestProps<PhotoGridConfig>) {
 
       {openIndex !== null ? (
         <Lightbox
+          catalogueSlug={ctx.catalogue.slug}
           photos={photos}
           index={openIndex}
           locale={ctx.locale}

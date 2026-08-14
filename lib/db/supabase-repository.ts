@@ -5,6 +5,8 @@ import { ApiError } from '@/lib/http/errors'
 import { log } from '@/lib/log'
 import type {
   Album,
+  LikeCounts,
+  LikeSubject,
   Transfer,
   Catalogue,
   ModuleState,
@@ -637,6 +639,76 @@ export class SupabaseRepository implements Repository {
       .select()
       .single()
     return SupabaseRepository.toTitle(SupabaseRepository.unwrap(result))
+  }
+
+  async toggleLike(
+    catalogueId: string,
+    guestKey: string,
+    subject: LikeSubject,
+    subjectId: string,
+  ): Promise<{ liked: boolean; count: number }> {
+    const match = this.db
+      .from('likes')
+      .select('guest_key', { count: 'exact', head: true })
+      .eq('catalogue_id', catalogueId)
+      .eq('guest_key', guestKey)
+      .eq('subject_type', subject)
+      .eq('subject_id', subjectId)
+
+    const { count: alreadyLiked } = await match
+    const liked = (alreadyLiked ?? 0) === 0
+
+    if (liked) {
+      // Upsert rather than insert: a double-tap on a flaky connection sends the same row twice,
+      // and a primary-key violation is not something a guest should ever be shown.
+      const { error } = await this.db.from('likes').upsert(
+        {
+          catalogue_id: catalogueId,
+          guest_key: guestKey,
+          subject_type: subject,
+          subject_id: subjectId,
+        },
+        { onConflict: 'catalogue_id,guest_key,subject_type,subject_id' },
+      )
+      if (error) throw new ApiError('INTERNAL', error.message)
+    } else {
+      const { error } = await this.db
+        .from('likes')
+        .delete()
+        .eq('catalogue_id', catalogueId)
+        .eq('guest_key', guestKey)
+        .eq('subject_type', subject)
+        .eq('subject_id', subjectId)
+      if (error) throw new ApiError('INTERNAL', error.message)
+    }
+
+    const { count } = await this.db
+      .from('likes')
+      .select('guest_key', { count: 'exact', head: true })
+      .eq('catalogue_id', catalogueId)
+      .eq('subject_type', subject)
+      .eq('subject_id', subjectId)
+
+    return { liked, count: count ?? 0 }
+  }
+
+  async listLikes(
+    catalogueId: string,
+    guestKey: string | null,
+  ): Promise<{ counts: LikeCounts; mine: string[] }> {
+    const { data } = await this.db
+      .from('likes')
+      .select('guest_key, subject_type, subject_id')
+      .eq('catalogue_id', catalogueId)
+
+    const counts: LikeCounts = {}
+    const mine: string[] = []
+    for (const row of data ?? []) {
+      const key = `${row.subject_type}:${row.subject_id}`
+      counts[key] = (counts[key] ?? 0) + 1
+      if (guestKey && row.guest_key === guestKey) mine.push(key)
+    }
+    return { counts, mine }
   }
 
   async updatePhoto(id: string, patch: Pick<Photo, 'caption'>): Promise<Photo> {

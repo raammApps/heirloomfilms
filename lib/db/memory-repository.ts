@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { ApiError } from '@/lib/http/errors'
 import type {
   Album,
+  LikeCounts,
+  LikeSubject,
   Transfer,
   Catalogue,
   ModuleState,
@@ -35,6 +37,7 @@ export type Snapshot = {
   profiles: Profile[]
   progress: PlaybackProgress[]
   moduleStates: ModuleState[]
+  likes: { catalogueId: string; guestKey: string; subject: LikeSubject; subjectId: string }[]
   playEvents: PlayEvent[]
   usage: { catalogueId: string; month: string; storedGb: number; deliveredGb: number }[]
 }
@@ -53,6 +56,7 @@ export function emptySnapshot(): Snapshot {
     profiles: [],
     progress: [],
     moduleStates: [],
+    likes: [],
     playEvents: [],
     usage: [],
   }
@@ -372,6 +376,50 @@ export class MemoryRepository implements Repository {
     this.data.titles[index] = next
     this.touched()
     return this.clone(next)
+  }
+
+  /** `${subject}:${id}` so films and photographs share one map without colliding. */
+  private static likeKey(subject: LikeSubject, subjectId: string): string {
+    return `${subject}:${subjectId}`
+  }
+
+  async toggleLike(
+    catalogueId: string,
+    guestKey: string,
+    subject: LikeSubject,
+    subjectId: string,
+  ): Promise<{ liked: boolean; count: number }> {
+    const mine = (row: Snapshot['likes'][number]) =>
+      row.catalogueId === catalogueId &&
+      row.guestKey === guestKey &&
+      row.subject === subject &&
+      row.subjectId === subjectId
+
+    const existing = this.data.likes.findIndex(mine)
+    if (existing === -1) this.data.likes.push({ catalogueId, guestKey, subject, subjectId })
+    else this.data.likes.splice(existing, 1)
+    this.touched()
+
+    const count = this.data.likes.filter(
+      (row) =>
+        row.catalogueId === catalogueId && row.subject === subject && row.subjectId === subjectId,
+    ).length
+    return { liked: existing === -1, count }
+  }
+
+  async listLikes(
+    catalogueId: string,
+    guestKey: string | null,
+  ): Promise<{ counts: LikeCounts; mine: string[] }> {
+    const counts: LikeCounts = {}
+    const mine: string[] = []
+    for (const row of this.data.likes) {
+      if (row.catalogueId !== catalogueId) continue
+      const key = MemoryRepository.likeKey(row.subject, row.subjectId)
+      counts[key] = (counts[key] ?? 0) + 1
+      if (guestKey && row.guestKey === guestKey) mine.push(key)
+    }
+    return { counts, mine }
   }
 
   async updatePhoto(id: string, patch: Pick<Photo, 'caption'>): Promise<Photo> {

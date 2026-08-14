@@ -358,6 +358,13 @@ export const progressSchema = z.object({
 })
 export type PlaybackProgress = z.infer<typeof progressSchema>
 
+/** What a like can be attached to. Films and photographs, and nothing else yet (N-31). */
+export const likeSubjectSchema = z.enum(['title', 'photo'])
+export type LikeSubject = z.infer<typeof likeSubjectSchema>
+
+/** `subjectId` keyed by type, so one map carries both films and photographs. */
+export type LikeCounts = Record<string, number>
+
 export const moduleStateSchema = z.object({
   profileId: z.string().uuid(),
   moduleId: z.string(),

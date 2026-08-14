@@ -63,6 +63,10 @@ export const dictionary = {
     'photo.previous': 'Previous photo',
     'photo.next': 'Next photo',
     'photo.close': 'Close photo',
+    // N-31. "Like"/"Liked" rather than a count in the label: the number is already announced by
+    // the live region beside it, and a screen reader hearing it twice is noise.
+    'like.add': 'Like',
+    'like.remove': 'Liked',
     'photo.counter': '{index} of {total}',
 
     'letter.signature': 'With love,',
@@ -155,6 +159,8 @@ export const dictionary = {
     'photo.previous': 'पिछली फ़ोटो',
     'photo.next': 'अगली फ़ोटो',
     'photo.close': 'फ़ोटो बंद करें',
+    'like.add': 'पसंद करें',
+    'like.remove': 'पसंद किया',
     'photo.counter': '{total} में से {index}',
 
     'letter.signature': 'प्यार के साथ,',
