@@ -73,6 +73,36 @@ not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; backgroun
 > The real trap is Hostinger's DNS form, which **appends the domain to the Name field**: enter
 > `send`, not `send.heirloomfilms.in`. Getting that wrong is the usual reason verification hangs.
 
+### N-32 · Five things a live walkthrough found  ·  **all reproduced on production**
+
+Registering `testStudio`, creating a catalogue, handing it to a couple and signing in as them —
+clicking every step rather than calling the API. The flow works. These did not.
+
+**1. The catalogue list is stale straight after creating one.** Create a catalogue, click
+"Catalogues", and the page says *"No weddings here yet"*. A forced reload shows it. So the first
+thing a new partner sees after their first success is a screen telling them it did not happen.
+The router cache is serving the pre-creation render; the create path needs a `router.refresh()` or
+a `revalidatePath` on `/admin`. **Worst of the five** — it looks like data loss.
+
+**2. Template radios have no accessible name.** All three announce as `radio "on"`, so a screen
+reader user picking a starting layout hears "on, on, on". The visible name is in a sibling, not a
+`<label>` or `aria-label`.
+
+**3. The web address field keeps its error border after becoming valid.** It goes red on "That
+address is already in use" and stays red once the hint reads "Available". Red-plus-Available is a
+contradiction the operator has to ignore.
+
+**4. Catalogue slugs are globally unique across every tenant.** `swarit-and-smriti` was refused
+because *another studio's* catalogue already held it. In `path` mode that is structural — one
+`/c/<slug>` namespace — but it means popular couple names collide between unrelated studios, and
+the error does not explain why. Either scope the address per tenant, or say "taken by another
+studio, add a year".
+
+**5. "Sign in with `<email>`" after a claim does not switch accounts.** It navigates to `/admin`,
+so if a session already exists the couple lands in *that* console instead — here, the studio's.
+On a shared or family device that shows one account's data to someone who asked for another's.
+Sign the existing session out first, or route through the login screen with the address prefilled.
+
 ### N-30 · One way of saving, and an operator who can see it  ·  ~half a session
 
 **Audited, and the complaint is right.** There are three save models in one console:
