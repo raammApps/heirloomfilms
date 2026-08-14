@@ -66,7 +66,21 @@ export function ClaimForm({
         </p>
         <button
           type="button"
-          onClick={() => router.push('/admin/login')}
+          onClick={async () => {
+            /**
+             * Sign out whoever is already here first (N-32 §2).
+             *
+             * The studio hands the couple its own phone, or a family shares a laptop — and
+             * `/admin/login` sends anyone with a session straight to `/admin`. So a button
+             * promising "Sign in with priya@…" delivered the couple into the *studio's* console,
+             * showing one account's weddings to somebody who asked for another's.
+             *
+             * Only reproducible on one host, which is why the subdomain-mode suite never saw it:
+             * there the operator signs in on a different host and the cookie is never sent.
+             */
+            await fetch('/api/admin/session', { method: 'DELETE' }).catch(() => {})
+            router.push(`/admin/login?email=${encodeURIComponent(email)}`)
+          }}
           className="mt-6 h-11 rounded-[var(--radius-pill)] bg-accent px-5 text-[14px] font-semibold text-accent-ink"
         >
           Sign in with {email}

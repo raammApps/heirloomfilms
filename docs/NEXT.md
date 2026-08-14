@@ -73,18 +73,6 @@ not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; backgroun
 > The real trap is Hostinger's DNS form, which **appends the domain to the Name field**: enter
 > `send`, not `send.heirloomfilms.in`. Getting that wrong is the usual reason verification hangs.
 
-### N-32 · One thing left from the live walkthrough
-
-Registering `testStudio`, creating a catalogue, handing it to a couple and signing in as them.
-Five things looked wrong; the stale catalogue list is fixed, and **two of the five were my own
-misreadings** — see PROGRESS for what they were and why they fooled me. These two are real.
-
-**1. "Sign in with `<email>`" after a claim does not switch accounts.** It navigates to `/admin`,
-so if a session already exists the couple lands in *that* console instead — observed landing in
-the studio's. On a shared or family device that shows one account's data to someone who asked for
-another's. Sign the existing session out first, or route through the login screen with the
-address prefilled.
-
 ### N-30 · One way of saving, and an operator who can see it  ·  ~half a session
 
 **Audited, and the complaint is right.** There are three save models in one console:

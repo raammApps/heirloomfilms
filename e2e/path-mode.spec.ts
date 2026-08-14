@@ -109,3 +109,63 @@ test.describe('path mode — the configuration production actually runs', () => 
     await anonymous.close()
   })
 })
+
+/**
+ * N-32 §2 — the handover, on the one host production actually serves.
+ *
+ * `admin.spec.ts` covers the claim already, but it cannot cover *this*, and the reason is
+ * configuration rather than thoroughness — the same shape of gap this whole file exists for.
+ *
+ * That suite runs in subdomain mode, where the operator signs in on `localhost` and the claim is
+ * served from `heirloomfilms.localhost`. Different hosts, so the session cookie is never sent and
+ * the couple always arrives signed out. The bug needs one host to appear, which is precisely what
+ * production runs.
+ */
+test.describe('path mode — the handover on a shared device', () => {
+  test('a couple claiming on a signed-in device does not land in the studio console', async ({
+    page,
+  }) => {
+    await page.goto('/admin/login')
+    await page.getByLabel('Email').fill('operator@heirloomfilms.test')
+    await page.getByLabel('Password').fill('e2e-operator-password')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page.getByRole('heading', { name: 'Catalogues' })).toBeVisible()
+
+    const slug = `e2e-handover-${Date.now().toString(36)}`
+    const created = await page.evaluate(async (catalogueSlug) => {
+      const response = await fetch('/api/admin/catalogues', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          coupleName: { en: 'Handover & Device' },
+          appName: { en: 'Handover Originals' },
+          weddingDate: '2026-12-01',
+          slug: catalogueSlug,
+          template: 'films-only',
+        }),
+      })
+      if (!response.ok) throw new Error(`create failed: ${response.status}`)
+      return (await response.json()) as { catalogue: { id: string } }
+    }, slug)
+
+    const coupleEmail = `couple-${Date.now().toString(36)}@example.com`
+    await page.goto(`/admin/c/${created.catalogue.id}`)
+    await page.getByLabel(/couple.s email/i).fill(coupleEmail)
+    await page.getByRole('button', { name: 'Create handover link' }).click()
+    const claimUrl = (await page.getByText(/\/claim\//).textContent())!.trim()
+
+    // The studio hands over its own phone or laptop — so the operator's session is still here.
+    await page.goto(claimUrl)
+    await page.getByLabel('Choose a password').fill('couple-password-1234')
+    await page.getByRole('button', { name: 'Take ownership' }).click()
+    await expect(page.getByRole('heading', { name: 'It is yours' })).toBeVisible()
+
+    await page.getByRole('button', { name: new RegExp(`Sign in with ${coupleEmail}`) }).click()
+
+    // The login screen, with their own address ready — never somebody else's weddings.
+    await expect(page).toHaveURL(/\/admin\/login/)
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Catalogues' })).toHaveCount(0)
+    await expect(page.getByLabel('Email')).toHaveValue(coupleEmail)
+  })
+})

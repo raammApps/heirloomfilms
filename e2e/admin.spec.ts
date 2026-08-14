@@ -254,4 +254,5 @@ test.describe('the admin console', () => {
     await expect(couple.getByRole('button', { name: 'Take ownership' })).toBeVisible()
     await anonymous.close()
   })
+
 })

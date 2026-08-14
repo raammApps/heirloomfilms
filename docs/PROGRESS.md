@@ -563,3 +563,33 @@ the suffix guarantees.
 
 Both halves were proven by reintroducing them separately: dropping `suggestion` from the API kills
 the offer, and dropping the date argument to `suggestSlug` takes the year off the suggestion.
+
+## N-32 §2 · The handover that signed the couple into the studio's account
+
+A couple clicking "Sign in with priya@…" after accepting their wedding landed in the **studio's**
+console. `/admin/login` redirects anyone with a session straight to `/admin`, and the studio hands
+the couple its own phone — so the button delivered one account's weddings to somebody who had just
+asked for another's.
+
+Fixed by signing the existing session out before navigating, and carrying the address through so
+the login form is addressed to the person the button named.
+
+**The interesting part is why the suite could not have caught it.** `admin.spec.ts` already covers
+the claim, but it opens the link in a fresh browser context — sensible, and fatal here, because the
+bug only exists when a session is present. Worse, moving the test into that suite would not have
+helped: the desktop project runs **subdomain mode**, where the operator signs in on `localhost` and
+the claim is served from `heirloomfilms.localhost`. Different hosts, so the cookie is never sent
+and the couple always arrives signed out.
+
+The first version of the test passed for exactly that reason, and I nearly took the pass at face
+value — the second time in one session that a green test meant nothing. What settled it was
+probing the premise directly: sign in, visit `/admin/login`, print the URL. It said `/admin`, so
+the redirect was real and the test was lying.
+
+So the test lives in `path-mode.spec.ts`, on the one host production actually serves. That file was
+created because path mode had no coverage at all; this is the second bug found by the same gap —
+not a gap in thoroughness but in *configuration*, where the thing being tested is real and the
+environment testing it is not.
+
+Both halves proven separately: removing the sign-out puts the couple back in the studio's console,
+and removing the prefill leaves the address field empty.
