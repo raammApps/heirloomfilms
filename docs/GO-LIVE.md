@@ -46,7 +46,9 @@ NS         helios.dns-parking.com / aster.dns-parking.com
 
 ---
 
-## 2. Point the domain at Vercel
+## 2. Point the domain at Vercel — ✅ done
+
+`dig +short heirloomfilms.in` now returns both Vercel addresses. Kept for the record:
 
 In **Hostinger → Domains → DNS / Nameservers**:
 
@@ -121,26 +123,45 @@ Two settings on the same screen that matter:
 
 ---
 
-## 4. Then tell me, and I will do the rest
+## 4. The switchover — ✅ done, except the webhook
 
-Once `dig +short heirloomfilms.in A` returns the Vercel addresses, **two things must change
-together** or films silently stop appearing:
+DNS resolved to both Vercel addresses, the certificate issued, and:
 
-1. **`ROOT_DOMAIN` on Vercel** → `heirloomfilms.in`, then redeploy. Until this changes, every link
-   the app generates — the public catalogue address, the handover link, share links, the OG card —
-   still points at `marquee-film-pub.vercel.app`.
-2. **The Bunny library's `WebhookUrl`** → `https://heirloomfilms.in/api/webhooks/bunny`.
+| | |
+|---|---|
+| `ROOT_DOMAIN` on Vercel | ✅ `heirloomfilms.in`, redeployed |
+| Certificate | ✅ issued, valid to 12 Nov 2026 |
+| `heirloomfilms.in/api/health` | ✅ `supabase` + `bunny` |
+| `heirloomfilms.in/admin` | ✅ 200 |
+| Bunny `WebhookUrl` | ⬜ **still on the old URL** |
 
-> **The webhook is the one that fails quietly.** If it keeps pointing at the old URL, uploads still
-> succeed, transcoding still finishes, and titles simply never leave `processing` — because the
-> notification arrives somewhere that is no longer serving. The nightly reconcile job would
-> eventually settle them, hours late. Change it in the same sitting.
->
-> It must point at the **stable domain**, never at a `heirloomfilms-<hash>.vercel.app` URL. A
-> per-deployment URL keeps answering after the next deploy, from the *old* build, so the failure is
-> a webhook that looks healthy while running superseded code.
+### The webhook is still yours to move
 
-I will also re-run `pnpm preflight` and check a real playback end to end once it is switched.
+Changing a library's `WebhookUrl` needs Bunny's **account** API key. This repo only holds the
+Stream key (`BUNNY_API_KEY`), by design — so it cannot be done from here.
+
+**Bunny dashboard → Stream → library `724076` → API / Webhook →** set:
+
+```
+https://heirloomfilms.in/api/webhooks/bunny
+```
+
+> **Nothing is broken right now, and that is the trap.** `marquee-film-pub.vercel.app` is still
+> attached to the project and still serving the *current* build, so transcode notifications keep
+> arriving. That is luck, not design: the alias list already holds several `marquee-film-*` names
+> pinned to deployments hours and days old. The day the old alias lands on a stale deployment, the
+> webhook starts answering `200` from superseded code — uploads succeed, transcoding finishes, and
+> titles simply never leave `processing`. A webhook that looks healthy is the hardest kind to
+> debug, so move it while it is still working.
+
+It must point at the **stable domain**, never at a `heirloomfilms-<hash>.vercel.app` URL, for the
+same reason.
+
+### Still unverified from here
+
+`pnpm preflight` and a real end-to-end playback check have **not** been run against the new domain
+— both were blocked in the session that made the switch. Run `pnpm preflight` once the webhook
+moves; that plus §5 step 3 is the actual proof.
 
 ---
 

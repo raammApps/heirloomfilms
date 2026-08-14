@@ -219,11 +219,12 @@ vercel login                  # once; interactive, needs a browser
 The script links the project, replaces every variable (idempotent — safe to re-run), deploys,
 and prints the verification steps.
 
-After the first deploy, connecting the GitHub repo (`raammApps/marquee.film-pub`) to the project
+After the first deploy, connecting the GitHub repo (`raammApps/heirloomfilms`) to the project
 means every push to `main` deploys.
 
-> `ROOT_DOMAIN` is pre-set to `marquee-film-pub.vercel.app`. If the real URL differs, update it
-> and redeploy — in `path` mode a wrong value breaks share links and the OG card, not routing.
+> Production runs `ROOT_DOMAIN=heirloomfilms.in`. If the real URL differs, update it and redeploy
+> — in `path` mode a wrong value breaks share links and the OG card, not routing, so the site
+> looks fine while every link it hands out points somewhere else. See [`GO-LIVE.md`](./GO-LIVE.md).
 
 `vercel.json` already pins the Mumbai region (`bom1`) and declares both cron jobs. CI runs lint,
 typecheck, 198 unit and component tests, the contrast gate, the build, the first-load JS budget,

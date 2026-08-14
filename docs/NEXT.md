@@ -188,24 +188,25 @@ Card treatment, row edge gradients and billboard scrim are all still unassessed 
 photographs, and that is the largest remaining gap between this and something that reads as a
 streaming product. Nothing else on this list changes that impression as much.
 
-### N-11 · Domain  ·  **waiting on two A records at Hostinger** — see [`GO-LIVE.md`](./GO-LIVE.md)
+### N-11 · Domain  ·  **live** — one item left, see [`GO-LIVE.md`](./GO-LIVE.md) §4
 
-`heirloomfilms.in` is bought, attached to the Vercel project and **ownership-verified**. The
-GitHub integration is reconnected now the repo is public, so push-to-deploy works again.
+`https://heirloomfilms.in` serves the product: DNS points at both Vercel addresses, the
+certificate issued, `ROOT_DOMAIN` is switched and redeployed, health reports `supabase` + `bunny`,
+and push-to-deploy works again now the repo is public.
 
-What is left is not code. Hostinger must drop the parking record `A @ 2.57.91.91` and add
-`A @ 216.198.79.1` and `A @ 64.29.17.1`. **The MX and SPF records stay** — the domain carries live
-mail, which is also why the nameservers must not be delegated to Vercel, and why `path` mode
-rather than `subdomain` is the right call here.
+Nameservers stayed with Hostinger and the MX records are untouched, so existing mail is intact —
+that is why `path` mode rather than `subdomain` is the right call for this domain.
 
-Afterwards, update **two** things in the same sitting or transcodes silently stop:
+**Left:** the Bunny library's `WebhookUrl` still points at the old URL. It needs Bunny's *account*
+API key, which this repo deliberately does not hold, so it is a dashboard change.
 
-1. `ROOT_DOMAIN` on the Vercel project → `heirloomfilms.in`, then redeploy.
-2. The Bunny library's `WebhookUrl` → `https://heirloomfilms.in/api/webhooks/bunny`.
+> It has not broken, because `marquee-film-pub.vercel.app` is still attached and still serving the
+> current build — luck rather than design. The alias list already holds several `marquee-film-*`
+> names pinned to deployments days old. The webhook must point at the **stable domain**, never at
+> a per-deployment URL, precisely because such a URL keeps answering after the next deploy from
+> the *old* build: a webhook that appears healthy while running superseded code.
 
-> The webhook must always point at the **stable domain**, never at a `heirloomfilms-<hash>` URL.
-> A per-deployment URL keeps answering after the next deploy — from the *old* build — so the
-> failure is a webhook that appears healthy while running superseded code.
+`pnpm preflight` and an end-to-end playback check against the new domain are **not yet run**.
 
 ### N-6 · The demo catalogue needs real footage  ·  doc 13 §8 — **not to be delegated**
 
