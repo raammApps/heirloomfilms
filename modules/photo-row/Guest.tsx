@@ -1,18 +1,20 @@
 'use client'
 
-import { useState } from 'react'
 import { Lightbox } from '@/components/streaming/Lightbox'
+import { usePhotoDeepLink } from '@/components/streaming/usePhotoDeepLink'
 import { PosterRow } from '@/components/streaming/PosterRow'
 import { resolveLocalised } from '@/lib/i18n'
 import type { GuestProps } from '../contract'
 import type { PhotoRowConfig } from './schema'
 
 export default function Guest({ config, ctx }: GuestProps<PhotoRowConfig>) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
-
   const photos = ctx.photos
     .filter((photo) => (config.albumId ? photo.albumId === config.albumId : true))
     .slice(0, config.limit)
+
+  // Shared with the other photo module so a shared link behaves identically whichever
+  // section it came from (N-31).
+  const [openIndex, setOpenIndex] = usePhotoDeepLink(photos)
 
   if (photos.length === 0) return null
 

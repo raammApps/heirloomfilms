@@ -73,24 +73,16 @@ not this deployment. Step-by-step in [`GO-LIVE.md`](./GO-LIVE.md) §3; backgroun
 > The real trap is Hostinger's DNS form, which **appends the domain to the Name field**: enter
 > `send`, not `send.heirloomfilms.in`. Getting that wrong is the usual reason verification hangs.
 
-### N-31 · Like, share and copy link — on photographs too  ·  ~half a session
+### N-31 · Like — the half that needs a product decision first  ·  ~half a session
 
-Films have this: `ShareButton` uses `navigator.share`, which on a phone is the WhatsApp sheet, and
-falls back to copying. It carries a `?t=` deep link so "watch from 7:08, that is my dad crying"
-works (doc 02 §6).
+Share and copy-link now work on photographs as well as films (see PROGRESS). **Like exists
+nowhere**, and the plumbing is already there: the profile gate gives an identity and
+`module_state` persists per profile.
 
-**Photographs have none of it.** The lightbox has no actions, and a single photograph has no
-address of its own — so the one thing a guest most wants to send their sister is the one thing
-they cannot.
-
-- **Copy link / share a photograph** — needs a per-photo route so there is something to share.
-- **Like** — exists nowhere. Per-guest, and the plumbing is already there: the profile gate gives
-  an identity and `module_state` persists per profile. Decide first whether a like is *private*
-  (a keepsake, like the checklist) or *counted and shown* — the second is a different product with
-  moderation questions attached, and a wedding is a bad place to introduce a popularity contest.
-
-Do the sharing first. It is the mechanic that spreads the link, which is the whole distribution
-model.
+Decide the product question before writing any of it: is a like **private** — a keepsake, the way
+the checklist is — or **counted and shown**? The second is a different product with moderation
+questions attached, and a wedding is a bad place to introduce a popularity contest between the
+bride's family and the groom's.
 
 ### N-29 · Language chosen at account creation  ·  ~half a session
 

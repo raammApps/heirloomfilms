@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { photoSrcSet } from '@/lib/photos/srcset'
+import { ShareButton } from './ShareButton'
+import { photoShareUrl } from './usePhotoDeepLink'
 import { resolveLocalised, type Translator } from '@/lib/i18n'
 import type { Locale, Photo } from '@/lib/schema'
 import { useFocusTrap } from './useFocusTrap'
@@ -64,6 +66,13 @@ export function Lightbox({ photos, index, locale, t, onIndexChange, onClose }: P
           <span className="type-meta" aria-live="polite">
             {t('photo.counter', { index: index + 1, total: photos.length })}
           </span>
+          <div className="flex items-center gap-1">
+            {/*
+              N-31. The one thing a guest most wants to send their sister was the one thing they
+              could not — films have had this since VE-6 and photographs had no actions at all.
+              The same button, so a shared photograph and a shared film behave identically.
+            */}
+            <ShareButton url={photoShareUrl(photo)} text={caption || t('photo.open')} t={t} compact />
           <button
             type="button"
             onClick={onClose}
@@ -72,6 +81,7 @@ export function Lightbox({ photos, index, locale, t, onIndexChange, onClose }: P
           >
             <X size={22} strokeWidth={1.5} aria-hidden />
           </button>
+          </div>
         </div>
 
         <div className="relative flex min-h-0 flex-1 items-center justify-center px-2">

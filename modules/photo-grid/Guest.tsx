@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { Lightbox } from '@/components/streaming/Lightbox'
+import { usePhotoDeepLink } from '@/components/streaming/usePhotoDeepLink'
 import { resolveLocalised } from '@/lib/i18n'
 import { photoSrcSet } from '@/lib/photos/srcset'
 import type { GuestProps } from '../contract'
@@ -11,11 +11,13 @@ import type { PhotoGridConfig } from './schema'
 const EAGER_COUNT = 12
 
 export default function Guest({ config, ctx }: GuestProps<PhotoGridConfig>) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
-
   const photos = ctx.photos.filter((photo) =>
     config.albumId ? photo.albumId === config.albumId : true,
   )
+
+  // Shared with the other photo module so a shared link behaves identically whichever
+  // section it came from (N-31).
+  const [openIndex, setOpenIndex] = usePhotoDeepLink(photos)
 
   if (photos.length === 0) return null
 

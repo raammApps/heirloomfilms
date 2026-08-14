@@ -173,3 +173,48 @@ test.describe('E2E-6: access control', () => {
     expect((await response.json()).error.code).toBe('CATALOGUE_NOT_FOUND')
   })
 })
+
+/**
+ * N-31 — a photograph you can send someone.
+ *
+ * Films have had this since VE-6, and it is the distribution model rather than a nicety: the
+ * link spreads through WhatsApp because a guest sends it, not because anyone markets it. The
+ * photographs surface had no actions at all, so the one thing a guest most wants to send their
+ * sister — "look at Dad's face here" — was the one thing they could not.
+ *
+ * There was also no guest-side coverage of photographs whatsoever before this.
+ */
+test.describe('sharing a photograph', () => {
+  test('a photograph has its own address, and that address reopens it', async ({ page }) => {
+    await openBrowse(page)
+
+    await page.getByTestId('photo-grid-module').getByRole('button').first().click()
+    const lightbox = page.getByRole('dialog')
+    await expect(lightbox).toBeVisible()
+
+    // The address bar follows the guest, so what they copy from it is what they are looking at.
+    await expect(page).toHaveURL(/[?&]photo=/)
+    const shared = page.url()
+
+    await page.keyboard.press('Escape')
+    await expect(lightbox).toHaveCount(0)
+    // And leaves cleanly, rather than stranding a query that would reopen on the next visit.
+    await expect(page).not.toHaveURL(/[?&]photo=/)
+
+    // What a recipient does: a cold arrival on the forwarded link, no prior visit to this page.
+    const recipient = await page.context().newPage()
+    await recipient.addInitScript((slug) => {
+      window.localStorage.setItem(`heirloomfilms.profile.${slug}`, 'skipped')
+    }, CATALOGUE)
+    await recipient.goto(shared)
+    await expect(recipient.getByRole('dialog')).toBeVisible()
+    await recipient.close()
+  })
+
+  test('the share control is offered on a photograph, as it is on a film', async ({ page }) => {
+    await openBrowse(page)
+
+    await page.getByTestId('photo-grid-module').getByRole('button').first().click()
+    await expect(page.getByRole('dialog').getByRole('button', { name: /share/i })).toBeVisible()
+  })
+})

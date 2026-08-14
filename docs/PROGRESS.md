@@ -628,3 +628,37 @@ The photographs surface also had **no E2E coverage whatsoever** before this.
 One flake seen once, not reproduced in five subsequent runs (three isolated, two full): the N-32
 wizard test failed under full parallel load. Recorded rather than dismissed — if it recurs, the
 cause is likelier machine saturation than the fix it guards.
+
+## N-31 · A photograph you can send someone
+
+Films have had sharing since VE-6, and it is the distribution model rather than a nicety — the
+link spreads because a guest forwards it, not because anyone markets it. Photographs had no
+actions at all, so the thing a guest most wants to send their sister was the one thing they could
+not.
+
+**A photograph's address is the page it is already on, plus `?photo=<id>`.** No route of its own:
+`/c/<slug>/photo/<id>` would be a second page that re-resolves access, re-renders the gallery
+behind it and handles a missing photograph — for a link whose whole job is to reopen a lightbox
+that already exists. Built from `window.location` rather than from a `shareBaseUrl` threaded
+through the module contract, so it stays correct in both tenancy modes, on a custom domain and in
+the customizer's preview without knowing about any of them.
+
+`usePhotoDeepLink` is shared by both photo modules, so a link behaves the same whichever section
+it came from — and the URL follows the guest as they swipe, via `replaceState` rather than a
+router push. Thirty photographs must not leave thirty history entries, or Back stops meaning
+"leave the gallery", which is the only thing a guest ever wants it to mean.
+
+The share control is the **same `ShareButton` films use** — already generic over `url` and `text`,
+so a shared photograph and a shared film behave identically, and no new i18n keys were needed.
+
+**Both halves proven separately**: without the URL sync there is nothing to copy, and without the
+read a forwarded link opens the gallery closed. The test also checks the query is *removed* on
+close, so a guest does not carry a stale `?photo=` into their next visit.
+
+**Two surfaces had no coverage at all before this** — guest-side photographs, and the lightbox in
+the axe gate. The gate audited the title modal and stopped, so the other full-screen dialog on the
+guest surface went unchecked for the life of the suite. Zero violations on both viewports.
+
+Suite stability, recorded rather than smoothed over: one run reported `1 did not run` (a worker
+that never started) and an earlier run flaked on the N-32 wizard test. Neither reproduced. Both
+look like saturation under full parallel load rather than the code they cover.

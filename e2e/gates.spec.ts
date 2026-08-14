@@ -100,6 +100,20 @@ test.describe('doc 10 §4 — accessibility, zero violations', () => {
     expect(describeViolations(results)).toBe('')
   })
 
+  /**
+   * The lightbox, which gained a share control in N-31 and had never been audited — the gate
+   * covered the title modal and stopped there, so the *other* full-screen dialog on the guest
+   * surface went unchecked for the life of the suite.
+   */
+  test('the photo lightbox', async ({ page }) => {
+    await openAsReturningGuest(page, DEMO_CATALOGUE)
+    await page.getByTestId('photo-grid-module').getByRole('button').first().click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    const results = await audit(page)
+    expect(describeViolations(results)).toBe('')
+  })
+
   test('the browse page in Hindi', async ({ page }) => {
     await openAsReturningGuest(page)
     await page.getByRole('button', { name: 'हिं' }).click()
