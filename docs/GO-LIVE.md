@@ -164,11 +164,22 @@ both dashboards, and only showed up in `dig`.
 | Username | `resend` — literally that word, not your email |
 | Password | your Resend **API key** (`re_…`) |
 
-> **Use 587, not 465.** Resend accepts both, but Supabase's SMTP client frequently fails the
-> implicit-TLS handshake on 465 and reports it as a bare
-> `500 unexpected_failure / Error sending recovery email` — no mention of TLS, no mention of the
-> port. 587 with STARTTLS is the reliable pairing. This cost us a debugging round: 465 was tried
-> first and every dashboard looked correctly configured while nothing could send.
+> **Use 587.** Resend accepts 465 too, but 587/STARTTLS is the pairing Supabase is happiest with.
+>
+> **When it fails, do not guess — read `Logs → Auth`.** Supabase reports every SMTP failure as the
+> same opaque `500 unexpected_failure / Error sending recovery email`, whatever actually went
+> wrong. The auth log holds the real SMTP code, and it is the difference between a five-minute fix
+> and an afternoon:
+>
+> | Code | Means |
+> |---|---|
+> | `535 Authentication credentials invalid` | Username or API key wrong. Nothing else — 535 happens at `AUTH`, before the message is offered, so the sender address and the key's domain scope cannot be the cause. |
+> | `403` / `422` at send | Auth was fine; the **From** address is not on a verified domain, or the key is scoped to a different one. |
+> | timeout | Host or port unreachable. |
+>
+> We lost a round trip here by treating a `500` as a port problem and switching 465→587. The log
+> said `535` both times: the credential was wrong from the start, and the port was never involved.
+> Resend reveals an API key's value **once**, at creation — copy it then, or create a new one.
 
 Two settings on the same screen that matter:
 
