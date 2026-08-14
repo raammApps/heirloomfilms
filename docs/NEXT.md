@@ -39,7 +39,21 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
-### N-17 · SMTP, before registration is opened to anyone  ·  ~30m  ·  **blocks partner sign-up**
+### N-17 · SMTP  ·  **working** — two follow-ups below
+
+Resend is wired into Supabase Auth and `POST /auth/v1/recover` returns `200`. The domain is
+verified with DKIM, SPF on a `send` subdomain, and a single DMARC record; the existing Hostinger
+mailbox was never touched.
+
+Two things this did **not** settle:
+
+1. **The confirmation link host is unverified.** It is built from Supabase's Site URL, which no
+   test here can read. If it is wrong, every other check still passes and partners land on the
+   old deployment.
+2. **Confirm email is switched off**, so registration still sends nothing — `signUp` auto-confirms
+   in ~50ms. Anyone can register with an address they do not own. See `GO-LIVE.md` §3.
+
+The original problem, for the record:
 
 Supabase Auth sends a confirmation on sign-up and a link on password reset, and by default both
 go through Supabase's built-in SMTP — a few messages per hour, meant for development. Hitting it
