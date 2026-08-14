@@ -160,12 +160,15 @@ both dashboards, and only showed up in `dig`.
 | Field | Value |
 |---|---|
 | Host | `smtp.resend.com` |
-| Port | `465` |
+| Port | **`587`** |
 | Username | `resend` — literally that word, not your email |
 | Password | your Resend **API key** (`re_…`) |
 
-Port 465 is implicit TLS. If Supabase rejects it, `587` is the STARTTLS alternative; both are
-supported.
+> **Use 587, not 465.** Resend accepts both, but Supabase's SMTP client frequently fails the
+> implicit-TLS handshake on 465 and reports it as a bare
+> `500 unexpected_failure / Error sending recovery email` — no mention of TLS, no mention of the
+> port. 587 with STARTTLS is the reliable pairing. This cost us a debugging round: 465 was tried
+> first and every dashboard looked correctly configured while nothing could send.
 
 Two settings on the same screen that matter:
 
@@ -239,6 +242,32 @@ Then, in order, because each catches something different:
    sender, not in spam.
 
 Step 4 is the one that proves N-17. Everything else can pass with email still broken.
+
+> **Registering a partner does not test email, and this misled us once already.** The project has
+> **Confirm email switched off**, so `signUp` auto-confirms the account in about 50ms and sends
+> nothing at all. The API returns `201`, the console works, and the provider's log stays empty —
+> which reads like a delivery problem when in fact nothing was ever sent.
+>
+> To test SMTP without changing any setting, trigger a **password reset**, which sends regardless
+> of that toggle:
+>
+> ```bash
+> curl -s -X POST "$NEXT_PUBLIC_SUPABASE_URL/auth/v1/recover" \
+>   -H "apikey: $NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" -H 'content-type: application/json' \
+>   -d '{"email":"you@heirloomfilms.in"}'
+> ```
+>
+> An empty `200` means it sent. A `500` with `Error sending recovery email` means SMTP is
+> misconfigured — check the port first.
+
+### Decide: should confirmation be on?
+
+With it off, anyone can register a partner account using an email address they do not own, and
+they are signed in immediately. That is convenient for a demo and wrong for a product that emails
+couples on a studio's behalf. Turning it on (**Authentication → Sign In / Providers → Email →
+Confirm email**) does not break registration — `signUp` only reads `data.user`, never the session,
+so the org and operator are still created — but the partner then cannot sign in until they click
+the link, and the register screen currently does not say so. Worth pairing with a copy change.
 
 ---
 
