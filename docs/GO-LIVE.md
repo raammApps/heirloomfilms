@@ -181,6 +181,25 @@ both dashboards, and only showed up in `dig`.
 > said `535` both times: the credential was wrong from the start, and the port was never involved.
 > Resend reveals an API key's value **once**, at creation — copy it then, or create a new one.
 
+#### Test the credential outside Supabase before touching Supabase again
+
+Two round trips were spent adjusting settings on the strength of a `500` that says nothing. The
+way out is to prove the credential independently — `scripts/` has no home for it, so it lives in
+the scratchpad, but the technique is worth keeping:
+
+```python
+import smtplib
+s = smtplib.SMTP("smtp.resend.com", 587, timeout=20)
+s.ehlo(); s.starttls(); s.ehlo()
+s.login("resend", "<the API key>")      # 535 here → the key is wrong, full stop
+s.sendmail("hello@heirloomfilms.in", ["you@…"], "Subject: test\n\nbody")
+```
+
+Splitting connect / STARTTLS / AUTH / send apart turns one opaque failure into a specific one.
+When AUTH and send both succeed with a key while Supabase still returns `500` with the "same" key,
+the conclusion is forced and needs no further guessing: **the value stored in Supabase is not that
+key**. Re-paste it and check for a truncated copy or a trailing space.
+
 Two settings on the same screen that matter:
 
 - **Sender address** — use something a couple will trust, e.g. `hello@heirloomfilms.in`. Not
