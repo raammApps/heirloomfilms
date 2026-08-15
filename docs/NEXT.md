@@ -144,18 +144,32 @@ The entitlement tables and the resolver now exist (N-19); what is missing is the
 *writes* a row. `plans` is empty on purpose — the price list is a business decision, not a
 migration.
 
-### N-14 · Real footage  ·  operator task
+### N-14 · Real footage  ·  operator task  ·  **half answered**
 
-**Partly done.** A first real catalogue is live (`swarit-and-smriti`) and the verdict was "it
-looks good" — which is the signal this item exists to get. But it holds two WhatsApp-compressed
-clips and ten photographs, so it does not yet answer the two questions that need real material:
-how many GB a finished hour actually costs, and whether the card treatment, row gradients and
-billboard scrim hold up against 300 DSLR frames.
+Two real catalogues exist. `sample-swarit-and-smriti-2026` was reviewed on a 375px viewport
+against real material, and **the first question is now answered: it reads as a streaming product.**
+The billboard photograph carries the scrim, text stays legible over it, and a row of real frames
+looks like a service rather than a template. That was the largest unknown and it is closed.
 
-The guest surface has otherwise been judged against generated gradients and flat test images.
-Card treatment, row edge gradients and billboard scrim are all still unassessed against real
-photographs, and that is the largest remaining gap between this and something that reads as a
-streaming product. Nothing else on this list changes that impression as much.
+**Still open, and it needs different material:** what a finished hour actually costs in storage,
+and whether the card treatment and row gradients hold against 200–300 DSLR frames. The catalogue
+holds two ~40-second vertical clips and 11 photographs, which cannot answer either.
+
+Found during the review, worth fixing before more footage lands:
+
+1. **`titles.size_bytes` is `None` on both films**, so the catalogue reports 0 GB used and the
+   20 GB cap cannot see it. `pnpm backfill:sizes --write` repairs existing rows — but **whether
+   new uploads record it at all is unverified**, and if they do not, storage metering is fiction
+   for every catalogue and the cost-per-hour question stays unanswerable however much is
+   uploaded. Check this before the next upload, not after.
+2. **A row showed one film while two were `ready`** — the second is the billboard. Featuring a
+   film should probably not remove it from the row a guest scans.
+3. **The footer read "Presented by san-test-studio"** — the org slug, not a studio name. Harmless
+   in a test org, wrong in front of a partner.
+
+Two things that looked like bugs and were not, recorded so they are not re-investigated: the `1m`
+badge on a 35-second clip is deliberate (`formatDurationBadge` rounds to whole minutes so `4:07`
+does not imply precision), and a letter module that appeared to be an empty card was its sign-off.
 
 ### N-11 · Domain  ·  **live** — one item left, see [`GO-LIVE.md`](./GO-LIVE.md) §4
 
