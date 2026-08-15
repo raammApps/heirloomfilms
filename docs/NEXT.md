@@ -97,7 +97,11 @@ Do not ship deletion without this.
 
 Nothing shows what a plan holds. `PRICING.md` §6 requires "this plan holds about 9 hours" at
 purchase and a warning at 80% used — otherwise a partner buys the wrong tier and hits the cap at
-80% uploaded. Storage is also **not enforced at upload**; the cap is advisory today.
+80% uploaded.
+
+The cap **is** enforced: `app/api/admin/uploads` runs `storageCheck` and refuses with the figure
+(this file previously claimed otherwise, which was wrong). What is missing is telling a partner
+what the plan holds *before* they fill it, and warning them on the way up.
 
 ### N-24 · Lifecycle: renewal, lapse, deletion  ·  doc 15
 
