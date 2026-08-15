@@ -7,6 +7,9 @@ This describes **what the software does today**, not what is planned. Where a fl
 or needs a person with a password, it says so rather than reading around it. `docs/NEXT.md` holds
 what is left.
 
+The product lives at **`heirloomfilms.in`** — the console at `/admin`, a wedding at
+`/c/<address>`. Email goes out through Resend from `hello@heirloomfilms.in`.
+
 - **Who does what** — [Roles](#1-roles)
 - **Getting an account** — [Registration](#2-partner-registration) · [Signing in](#3-signing-in-and-out)
 - **Building a wedding** — [Create](#4-creating-a-catalogue) · [Films](#5-films) · [Photographs](#6-photographs) · [Customizer](#7-the-customizer) · [Publish](#8-publishing)
@@ -50,12 +53,19 @@ Three things are created in order: the credential, the org, and your operator re
 businesses may share a name but not an address — a taken address gets a numeric suffix
 automatically rather than an error.
 
-> **This flow needs SMTP configured, and today it is not (N-17).** Supabase sends a confirmation
-> email on sign-up through its built-in sender, which allows a few messages an hour and is meant
-> for development. A partner who never receives their confirmation cannot sign in, and nothing
-> the app can say will help, because the limit belongs to the project rather than to their
-> address. **Until that is configured, create partners yourself** rather than sending people to
-> this page.
+> **Only the person who owns the inbox can complete a registration.** That is the point of the
+> confirmation step: before it, anyone could sign up using an address they did not own.
+
+**The email address must be confirmed before the partner can sign in.** Registration finishes and
+the org exists, but the credential is inert until they click the link — so a partner who registers
+in front of you cannot demonstrate anything until they open their inbox. The confirmation screen
+says so.
+
+The message comes from `hello@heirloomfilms.in` through Resend, and its link returns to
+`heirloomfilms.in`. If a partner reports the link is dead, it is almost always because it was
+already used: the token is **single-use**, so a preview pane that fetches links, a security
+scanner, or a second click all spend it. The remedy is to register again or use
+`/admin/login` → password reset, not to retry the same link.
 
 Rate-limited to 3 attempts per IP per hour.
 
@@ -94,11 +104,16 @@ browser until the catalogue exists.
 | Couple | `Aanya & Vikram`. Shown to guests and used to list the wedding for you. |
 | Wedding date | Also sets what guests see, and drives "in 12 days" on your list. |
 | City | Optional. |
-| **Web address** | Suggested from the couple's names, editable until you touch it. Checked for availability as you type, and the **real address is shown underneath as you type it**. |
+| **Web address** | Suggested from the couple's names **and the wedding year** — `aanya-and-vikram-2026`. Editable until you touch it, checked for availability as you type, and the real address is shown underneath. |
 | App name | The wordmark on the guest's profile screen. Blank uses `<Couple> Originals`. |
 
 > **The address is the one thing you cannot casually change later.** It goes into every guest's
 > WhatsApp. Changing it after the link is out breaks every copy already sent.
+
+> **If the address is taken, you are offered a free one to click.** Addresses are unique across
+> the whole platform, so a common pair of names can be held by a wedding belonging to a studio you
+> cannot see — which is why the message says "already taken" rather than naming who has it. The
+> year makes that rare; the offered alternative (`…-2026-k3f`) means it never blocks you.
 
 > Names ending in `-flix` are refused, deliberately. Try `…Originals`, `…Stream` or `The … Files`.
 
@@ -161,7 +176,12 @@ actually happened and settles the row. You do not need to do anything.
 ### Naming and choosing what guests see
 
 Names are guessed from filenames — correct them. Each film has a **name**, an optional
-**synopsis**, a **category**, **credits**, and a **poster**. Every change saves as you make it.
+**synopsis**, a **category**, **credits**, and a **poster**.
+
+**Every change saves when you click away, and the line above the list says so** — `Saving…`, then
+`Saved`. If it says **`Not saved`**, the change is still in the box and will be retried on your
+next edit; it has not been silently lost. Worth knowing because the list used to save in complete
+silence, which was indistinguishable from not saving at all.
 
 > **A film is not visible to guests until you mark it ready**, even on a published page. This is
 > the single most common reason a live catalogue looks empty. The overview's checklist calls it
@@ -179,6 +199,15 @@ Names are guessed from filenames — correct them. Each film has a **name**, an 
   suits their screen.
 - Unlike films, photographs **do** pass through the app. The storage credential can delete every
   catalogue's images, so it must never reach a browser.
+
+### Captions
+
+Each photograph has a caption box under its thumbnail. Type and click away — it saves on blur, and
+the line above the grid says `Saving…` then `Saved`, or `Not saved` if it failed.
+
+Captions are what a guest reads in the lightbox, and they are the difference between an album and
+a story: *"Her father seeing the lehenga for the first time"* is worth more than the photograph
+beside it.
 
 ---
 
@@ -321,6 +350,17 @@ has nobody to hand their own wedding to.
 - Links expire after **14 days**. Missing, expired and already-claimed all look identical to
   whoever opens one — a link that says which would tell a stranger something about a wedding.
 
+### What the couple does
+
+They set a password and the wedding is theirs. Two things then happen that are worth knowing when
+you hand a couple your own phone or laptop to do it on:
+
+- **Signing in signs you out.** The button on the confirmation screen ends whatever session is
+  already on that device before going to the login page, with their address filled in. Otherwise
+  they would land in *your* console and see *your* weddings.
+- **They may have to confirm their email first**, exactly as a partner does. The screen tells them
+  so. Until they click that link they cannot sign in, even though the wedding is already theirs.
+
 ### After it is claimed
 
 - You **lose access entirely** — it is gone from your list, and 404 by direct link.
@@ -343,6 +383,25 @@ Other behaviour worth knowing:
 - **Resume works.** Position is remembered; "Start over" abandons it rather than arguing.
 - **`?t=` deep links** start at that moment — the share mechanic.
 - English and Hindi, switchable.
+
+### Sharing and liking
+
+Both work on **films and photographs**, and both matter commercially: the link spreads because a
+guest forwards it, not because anyone markets it.
+
+| | What it does |
+|---|---|
+| **Share** | `navigator.share` — on a phone this is the WhatsApp sheet. Falls back to a WhatsApp link and copy-link on desktop. |
+| **Copy link** | A film's link carries `?t=` so it opens at the moment being talked about. A photograph's carries `?photo=<id>` and reopens that exact photograph in the lightbox. |
+| **Like** ♥ | Tap the heart. **Counted across every guest and shown to all of them**, so the number beside a photograph is what everyone sees, not a private bookmark. Tap again to remove it. |
+
+A photograph's address is the catalogue page plus `?photo=…`, and the address bar follows the
+guest as they swipe — so whatever they copy is whatever they are looking at. Closing the lightbox
+clears it, so nobody carries a stale photo link into their next visit.
+
+Likes are per **device**, not per person: a guest who opens the link on a phone and a laptop can
+like the same photograph twice. That is deliberate — the alternative is making guests sign in, and
+this is a wedding gallery rather than a ballot.
 - Playback URLs are **signed and expire within the hour**, so a copied `.m3u8` dies. The database
   never stores a signed URL.
 
