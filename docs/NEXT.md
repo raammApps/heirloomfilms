@@ -131,19 +131,18 @@ looks like a service rather than a template. That was the largest unknown and it
 and whether the card treatment and row gradients hold against 200–300 DSLR frames. The catalogue
 holds two ~40-second vertical clips and 11 photographs, which cannot answer either.
 
-Found during the review, worth fixing before more footage lands:
+Both things the review turned up are fixed (see PROGRESS): the storage column the driver never
+wrote, and the row that held a single film. Existing rows still need `pnpm backfill:sizes --write`;
+new uploads record their size.
+Three things that looked like bugs and were not, recorded so they are not re-investigated:
 
-1. ~~`titles.size_bytes` is null~~ — **fixed.** The Supabase driver never mapped the column, so
-   every catalogue reported 0 GB and the cap never refused an upload. See PROGRESS. Existing rows
-   still need `pnpm backfill:sizes --write`; new uploads record it.
-2. **A row showed one film while two were `ready`** — the second is the billboard. Featuring a
-   film should probably not remove it from the row a guest scans.
-3. **The footer read "Presented by san-test-studio"** — the org slug, not a studio name. Harmless
-   in a test org, wrong in front of a partner.
-
-Two things that looked like bugs and were not, recorded so they are not re-investigated: the `1m`
-badge on a 35-second clip is deliberate (`formatDurationBadge` rounds to whole minutes so `4:07`
-does not imply precision), and a letter module that appeared to be an empty card was its sign-off.
+- The `1m` badge on a 35-second clip is deliberate — `formatDurationBadge` rounds to whole minutes
+  so `4:07` does not imply a precision the number does not have.
+- A letter module that appeared to be an empty card was its sign-off.
+- **"Presented by san-test-studio" is correct.** `branding.presentedBy` is an operator-editable
+  field in the customizer, seeded from the business name at registration — so it shows whatever
+  was typed there, and a slug-looking value means a slug-looking business name. Not a fallback,
+  not a bug.
 
 ### N-11 · Domain  ·  **live** — one item left, see [`GO-LIVE.md`](./GO-LIVE.md) §4
 

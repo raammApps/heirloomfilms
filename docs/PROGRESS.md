@@ -765,3 +765,24 @@ test: `tests/unit/supabase-mapping.test.ts` compares both maps against `titleSch
 by removing the mapping again and watching it name the missing field.
 
 `pnpm backfill:sizes --write` repairs the rows already written.
+
+## A row that held one film, and a row that held none
+
+`seedModules` keeps the featured film out of the curated rows so a fresh catalogue does not show
+the same film twice. Correct for a wedding with a dozen films; wrong for one with two — seen on a
+real catalogue, where two films with one featured left the row under the billboard holding a
+single card. That reads as breakage rather than curation, and it is the first thing a partner sees
+after their first upload, when they are least inclined to believe the product works.
+
+The featured film now stays in the rows unless there is enough without it — two per row, because
+one card is not a row, it is a mistake with a heading.
+
+Writing the test found a second one nobody had reported: a template with two rows and **one** film
+seeded a second row containing nothing. The fix is not to pad it with a repeat but to not create
+it; rows are added in the customizer whenever there is something to put in one.
+
+**And one finding that was simply wrong.** "Presented by san-test-studio" is not a fallback to the
+org slug — `branding.presentedBy` is an operator-editable field in the customizer, seeded from the
+business name at registration, so it shows whatever was typed. Recorded in NEXT as a non-bug
+alongside the duration badge and the letter sign-off, because the cost of re-investigating these
+is paid by whoever comes next.

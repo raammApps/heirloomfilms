@@ -69,9 +69,20 @@ export function seedModules(
   const template = getTemplate(templateId)
   const rows = template.sections.filter((s) => s.type === 'curated_row').length
 
-  // Split the available films across the template's rows rather than repeating them, so a
-  // freshly seeded catalogue does not show the same film in two places.
-  const nonFeatured = titles.filter((t) => t.id !== catalogue.featuredTitleId)
+  /**
+   * Split the available films across the template's rows rather than repeating them, so a freshly
+   * seeded catalogue does not show the same film in two places.
+   *
+   * **The featured film only comes out when there is enough left without it.** Excluding it is
+   * right for a wedding with a dozen films and wrong for one with two: seen on a real catalogue,
+   * two films with one featured left the row under the billboard holding a single card, which
+   * reads as something broken rather than as curation. That is the first thing a partner sees
+   * after their first upload, when they are least willing to believe the product works.
+   *
+   * Two per row is the bar — one card is not a row, it is a mistake with a heading.
+   */
+  const withoutFeatured = titles.filter((t) => t.id !== catalogue.featuredTitleId)
+  const nonFeatured = withoutFeatured.length >= rows * 2 ? withoutFeatured : titles
   const perRow = Math.max(1, Math.ceil(nonFeatured.length / Math.max(1, rows)))
   let rowIndex = 0
 
@@ -84,6 +95,17 @@ export function seedModules(
     if (section.type === 'curated_row') {
       const slice = nonFeatured.slice(rowIndex * perRow, (rowIndex + 1) * perRow)
       rowIndex += 1
+
+      /**
+       * A row with nothing in it is not seeded at all.
+       *
+       * A template with two rows and one film used to produce a second row holding nothing — a
+       * heading with empty space under it, in the customizer and in the preview, on the operator's
+       * very first look at their catalogue. The remedy is not to pad it with a repeat; it is to
+       * not create it. Rows are added in the customizer whenever there is something to put in one.
+       */
+      if (slice.length === 0) return []
+
       instance.config = {
         ...instance.config,
         titleIds: slice.map((t) => t.id),
