@@ -723,3 +723,45 @@ Two ordering lessons, both cheap and both nearly missed:
 - **Fix the claim screen before flipping the switch.** Registration already hedged about
   confirmation; the claim screen did not, and it calls `signUp` identically — so a couple would
   have been handed their wedding, told to sign in, and found they could not.
+
+## N-33 · The flake was the suite, not the test
+
+Three E2E projects share one server process, one in-memory store and one demo catalogue. Run in
+parallel they interfere: catalogues appear in each other's lists, the demo is read mid-write, and
+about one run in three failed — on the wizard list, or a guest row, or a caption, whichever was
+unlucky. Every one passed alone, every time.
+
+`--workers=1`: **108 passed, three runs, no other change.** That is the whole diagnosis.
+
+**The cost of not finding this sooner was the interesting part.** Chasing it as a bug in the
+wizard produced a longer timeout, a narrowed assertion, and a `revalidatePath` that helped nothing
+and made a stable caption test start failing. Three fixes for behaviour that was already correct.
+The tell was there early and I read it wrong twice: *passes alone, fails together* is contention,
+not a defect, and the first cheap experiment should have been to remove the concurrency rather
+than to reason about caches.
+
+Workers are pinned to 1, and the workarounds are removed now the cause is gone. ~1.7 minutes
+instead of ~55 seconds, which is the right trade: a suite that fails a third of the time teaches
+people to re-run it, and a re-run is how a real failure gets ignored.
+
+Parallelism can return when each worker gets its own store. The fix is isolation, not concurrency.
+
+## The storage cap had never once refused an upload
+
+`titles.size_bytes` was missing from the Supabase driver's column map for the whole life of
+migration 0007, and `createPhoto` hand-listed its columns and omitted it too. Writes dropped it
+silently, reads returned it, and `catalogueStorageBytes` summed a column nothing ever wrote — so
+**every catalogue in production reported 0 GB**, and a partner on a 20 GB plan could have uploaded
+two hundred.
+
+Found while checking why a real catalogue showed no storage, which is the second time this week
+that looking at production data has turned up something no test could see.
+
+**No behavioural test could have caught it.** Every unit, component and E2E test runs against
+`MemoryRepository`, which stores whole objects and is structurally incapable of losing a column.
+The asymmetry exists only in the driver nothing tests. So the map itself is now the thing under
+test: `tests/unit/supabase-mapping.test.ts` compares both maps against `titleSchema` and
+`photoSchema` in each direction, and fails if a field is added to one and not the other. Verified
+by removing the mapping again and watching it name the missing field.
+
+`pnpm backfill:sizes --write` repairs the rows already written.

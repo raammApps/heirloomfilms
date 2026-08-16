@@ -41,7 +41,25 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  /**
+   * **One worker, deliberately (N-33).**
+   *
+   * All three projects share one server process, one in-memory store and one demo catalogue.
+   * Run in parallel they interfere: catalogues appear in each other's lists, the demo is read
+   * while another worker is mid-write, and roughly one run in three failed on whichever test was
+   * unlucky — the wizard list, a guest row, a caption. Each passed alone every time, which is the
+   * signature of contention rather than a bug, and cost hours of chasing fixes for behaviour that
+   * was already correct.
+   *
+   * Proved by running the whole suite with `--workers=1`: 108 passed, repeatedly, with no other
+   * change.
+   *
+   * The cost is ~1.7 minutes instead of ~55 seconds. That is the right trade: a suite that fails
+   * a third of the time teaches people to re-run it, and a re-run is how a real failure gets
+   * ignored. Parallelism can come back when each worker gets its own store — the fix is
+   * isolation, not concurrency.
+   */
+  workers: 1,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',
   timeout: 30_000,
 

@@ -39,30 +39,6 @@ and resumable upload — have all now run against the real services.
 
 ## Tier 2 — before a planner sees it
 
-### N-33 · One flaky E2E test, unsolved  ·  **fails ~2 runs in 3 under the full suite**
-
-`admin.spec.ts › a catalogue made in the wizard is in the list without a reload` (N-32 §1). Passes
-every time in isolation and under `--project=desktop` alone; fails only in a full parallel run.
-
-**The behaviour it guards is correct** — removing `router.refresh()` from `CreateWizard` makes it
-fail reliably, and restoring it makes it pass, so the fix is real and proven.
-
-Ruled out, each by testing it:
-
-- **Latency.** Raising the timeout to 20s did not help; it waits the full budget and the catalogue
-  never arrives.
-- **Rendering scale.** Filtering the list to the one slug before asserting did not help either.
-- **A stale server cache.** `revalidatePath('/admin')` in the create route changed nothing, and
-  correlated with a *previously stable* caption test starting to fail, so it was reverted.
-- **The store being reset between tests.** There is no reset endpoint; nothing clears it.
-
-What is left to try: whether concurrent workers sharing one in-memory store and one operator
-session interfere — three projects write catalogues into the same org throughout the run. Worth
-an hour with `--workers=1` to confirm, then either isolating the org per worker or quarantining
-this spec into its own project.
-
-**Do not delete the test to make the suite green.** It guards a real bug that reached production.
-
 ### N-29 · Language chosen at account creation  ·  ~half a session
 
 **New requirement.** A tenant should pick their language when their account is created, and new
@@ -157,11 +133,9 @@ holds two ~40-second vertical clips and 11 photographs, which cannot answer eith
 
 Found during the review, worth fixing before more footage lands:
 
-1. **`titles.size_bytes` is `None` on both films**, so the catalogue reports 0 GB used and the
-   20 GB cap cannot see it. `pnpm backfill:sizes --write` repairs existing rows — but **whether
-   new uploads record it at all is unverified**, and if they do not, storage metering is fiction
-   for every catalogue and the cost-per-hour question stays unanswerable however much is
-   uploaded. Check this before the next upload, not after.
+1. ~~`titles.size_bytes` is null~~ — **fixed.** The Supabase driver never mapped the column, so
+   every catalogue reported 0 GB and the cap never refused an upload. See PROGRESS. Existing rows
+   still need `pnpm backfill:sizes --write`; new uploads record it.
 2. **A row showed one film while two were `ready`** — the second is the billboard. Featuring a
    film should probably not remove it from the row a guest scans.
 3. **The footer read "Presented by san-test-studio"** — the org slug, not a studio name. Harmless

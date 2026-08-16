@@ -38,6 +38,61 @@ type Row = Record<string, any>
  * boundary for anything the anon key touches — this class carries the *second* layer, scoping
  * every operator query by `org_id` taken from the session rather than from the request.
  */
+
+/**
+ * `Title` field → column. **Exported so a test can hold it to the schema.**
+ *
+ * `size_bytes` was missing here for the entire life of migration 0007. Writes dropped it
+ * silently, reads returned it, and `catalogueStorageBytes` summed a column nothing ever wrote —
+ * so every catalogue in production reported **0 GB** and the storage cap never once refused an
+ * upload. A partner on a 20 GB plan could have uploaded two hundred.
+ *
+ * Nothing caught it, and could not have: the memory driver stores whole objects, so it is
+ * structurally incapable of losing a column, and every unit test runs against the memory driver.
+ * `tests/unit/supabase-mapping.test.ts` compares this map against the schema, which is the only
+ * shape of test that would have.
+ */
+export const TITLE_COLUMNS: Record<string, string> = {
+  id: 'id',
+  catalogueId: 'catalogue_id',
+  slug: 'slug',
+  name: 'name',
+  synopsis: 'synopsis',
+  category: 'category',
+  credits: 'credits',
+  provider: 'provider',
+  providerId: 'provider_id',
+  durationS: 'duration_s',
+  posterUrl: 'poster_url',
+  posterCandidates: 'poster_candidates',
+  posterSource: 'poster_source',
+  thumbnailsUrl: 'thumbnails_url',
+  trailerUrl: 'trailer_url',
+  captions: 'captions',
+  status: 'status',
+  errorMessage: 'error_message',
+  published: 'published',
+  sizeBytes: 'size_bytes',
+  sortOrder: 'sort_order',
+  publishedAt: 'published_at',
+  createdAt: 'created_at',
+  viewCount: 'view_count',
+  watchSeconds: 'watch_seconds',
+}
+
+/** `Photo` field → column. `createPhoto` hand-listed its columns and omitted `size_bytes` too. */
+export const PHOTO_COLUMNS: Record<string, string> = {
+  id: 'id',
+  albumId: 'album_id',
+  url: 'url',
+  lqip: 'lqip',
+  caption: 'caption',
+  width: 'width',
+  height: 'height',
+  sizeBytes: 'size_bytes',
+  sortOrder: 'sort_order',
+}
+
 export class SupabaseRepository implements Repository {
   private readonly db: SupabaseClient
 
@@ -176,35 +231,19 @@ export class SupabaseRepository implements Repository {
   }
 
   private static fromTitle(t: Partial<Title>): Row {
+    return SupabaseRepository.project(t as Row, TITLE_COLUMNS)
+  }
+
+  /** Built from `PHOTO_COLUMNS` rather than hand-listed, so a new field cannot be forgotten. */
+  private static fromPhoto(p: Partial<Photo>): Row {
+    return SupabaseRepository.project(p as Row, PHOTO_COLUMNS)
+  }
+
+  /** Field → column, skipping anything the caller did not set. */
+  private static project(source: Row, columns: Record<string, string>): Row {
     const row: Row = {}
-    const map: Record<string, string> = {
-      id: 'id',
-      catalogueId: 'catalogue_id',
-      slug: 'slug',
-      name: 'name',
-      synopsis: 'synopsis',
-      category: 'category',
-      credits: 'credits',
-      provider: 'provider',
-      providerId: 'provider_id',
-      durationS: 'duration_s',
-      posterUrl: 'poster_url',
-      posterCandidates: 'poster_candidates',
-      posterSource: 'poster_source',
-      thumbnailsUrl: 'thumbnails_url',
-      trailerUrl: 'trailer_url',
-      captions: 'captions',
-      status: 'status',
-      errorMessage: 'error_message',
-      published: 'published',
-      sortOrder: 'sort_order',
-      publishedAt: 'published_at',
-      createdAt: 'created_at',
-      viewCount: 'view_count',
-      watchSeconds: 'watch_seconds',
-    }
-    for (const [key, column] of Object.entries(map)) {
-      const value = (t as Row)[key]
+    for (const [key, column] of Object.entries(columns)) {
+      const value = source[key]
       if (value !== undefined) row[column] = value
     }
     return row
@@ -806,16 +845,7 @@ export class SupabaseRepository implements Repository {
   async createPhoto(photo: Photo): Promise<Photo> {
     const result = await this.db
       .from('photos')
-      .insert({
-        id: photo.id,
-        album_id: photo.albumId,
-        url: photo.url,
-        lqip: photo.lqip,
-        caption: photo.caption,
-        width: photo.width,
-        height: photo.height,
-        sort_order: photo.sortOrder,
-      })
+      .insert(SupabaseRepository.fromPhoto(photo))
       .select()
       .single()
     return SupabaseRepository.toPhoto(SupabaseRepository.unwrap(result))

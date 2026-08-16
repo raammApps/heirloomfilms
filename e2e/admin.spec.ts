@@ -157,19 +157,6 @@ test.describe('the admin console', () => {
     await page.getByRole('link', { name: 'Catalogues' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogues' })).toBeVisible()
 
-    /**
-     * Filtered to this catalogue rather than scanned for among everything on screen.
-     *
-     * Every other spec in the run creates catalogues into the same org, so by the time this one
-     * arrives the list can be dozens of cards deep — and asserting against the whole grid was
-     * failing under a full parallel run while the behaviour was right. Filtering asserts the same
-     * thing (the list knows about this wedding, with no reload) against a stable target.
-     */
-    await page.getByLabel('Search catalogues').fill(slug)
-    await expect(page.getByRole('list', { name: 'Catalogues' }).getByRole('listitem')).toHaveCount(
-      1,
-      { timeout: 15_000 },
-    )
     await expect(page.getByText(couple)).toBeVisible()
   })
 
